@@ -1,0 +1,68 @@
+[
+    {
+        "username": "admin",
+        "type": "login",
+        "timestamp": 1764266142,
+        "ip": "::1"
+    },
+    {
+        "username": "admin",
+        "type": "logout",
+        "timestamp": 1764402257,
+        "ip": "::1"
+    },
+    {
+        "username": "admin",
+        "type": "login",
+        "timestamp": 1764402262,
+        "ip": "::1"
+    },
+    {
+        "username": "admin",
+        "type": "login",
+        "timestamp": 1764675674,
+        "ip": "::1"
+    },
+    {
+        "username": "admin",
+        "type": "logout",
+        "timestamp": 1764677363,
+        "ip": "::1"
+    },
+    {
+        "username": "admin",
+        "type": "login",
+        "timestamp": 1764677367,
+        "ip": "::1"
+    },
+    {
+        "username": "admin",
+        "type": "login",
+        "timestamp": 1765111574,
+        "ip": "::1"
+    },
+    {
+        "username": "admin",
+        "type": "logout",
+        "timestamp": 1765112465,
+        "ip": "::1"
+    },
+    {
+        "username": "admin",
+        "type": "login",
+        "timestamp": 1765112469,
+        "ip": "::1"
+    },
+    {
+        "username": "admin",
+        "type": "logout",
+        "timestamp": 1765112676,
+        "ip": "::1"
+    },
+    {
+        "username": "admin",
+        "type": "login",
+        "timestamp": 1765112723,
+        "ip": "::1"
+    }
+]

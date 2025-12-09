@@ -1,0 +1,5 @@
+2025-11-27 11:47:12 API Error: {"ok":false,"error_code":400,"description":"Bad Request: inline keyboard button URL 'http://localhost:8888/process.php?action=done&code=RA-251149338' is invalid: Wrong HTTP URL"}
+2025-11-27 19:25:07 API Error: {"ok":false,"error_code":400,"description":"Bad Request: can't parse entities: Can't find end of the entity starting at byte offset 98"}
+2025-11-28 11:57:06 API Error: {"ok":false,"error_code":400,"description":"Bad Request: can't parse entities: Can't find end of the entity starting at byte offset 98"}
+2025-11-28 12:08:45 API Error: {"ok":false,"error_code":400,"description":"Bad Request: can't parse entities: Can't find end of the entity starting at byte offset 98"}
+2025-11-28 13:39:38 API Error: {"ok":false,"error_code":400,"description":"Bad Request: can't parse entities: Can't find end of the entity starting at byte offset 113"}

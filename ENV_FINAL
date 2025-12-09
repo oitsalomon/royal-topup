@@ -1,0 +1,8 @@
+# Database (Vercel Postgres / Neon)
+POSTGRES_PRISMA_URL="postgresql://neondb_owner:npg_Tigq2Pf4lkOX@ep-wandering-band-a1fan8x6-pooler.ap-southeast-1.aws.neon.tech/neondb?connect_timeout=15&sslmode=require"
+POSTGRES_URL_NON_POOLING="postgresql://neondb_owner:npg_Tigq2Pf4lkOX@ep-wandering-band-a1fan8x6.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
+
+# Cloudinary (Images)
+CLOUDINARY_CLOUD_NAME="dtxydu1nv"
+CLOUDINARY_API_KEY="819652911275168"
+CLOUDINARY_API_SECRET="PWmoQmGZlUpJMPFhNlL1VETQYRQ"

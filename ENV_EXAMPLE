@@ -1,0 +1,15 @@
+# Database (Vercel Postgres)
+# Copy these from your Vercel Project Settings > Storage > Postgres > .env.local
+POSTGRES_URL=
+POSTGRES_PRISMA_URL=
+POSTGRES_URL_NON_POOLING=
+POSTGRES_USER=
+POSTGRES_HOST=
+POSTGRES_PASSWORD=
+POSTGRES_DATABASE=
+
+# Cloudinary (Image Uploads)
+# Copy these from your Cloudinary Dashboard
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=

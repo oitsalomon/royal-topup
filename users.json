@@ -1,0 +1,17 @@
+[
+    {
+        "id": 1,
+        "username": "admin",
+        "password": "admin",
+        "role": "superadmin",
+        "permissions": [
+            "transactions",
+            "banks",
+            "idwd",
+            "neo",
+            "users",
+            "settings",
+            "edit_final"
+        ]
+    }
+]

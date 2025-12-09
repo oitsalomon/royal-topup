@@ -1,0 +1,205 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL") // uses connection pooling
+  directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  username      String    @unique
+  password      String
+  role          String    @default("VIEWER") // ADMIN, CS, VIEWER, SUPER_ADMIN
+  permissions   String    @default("") // Comma separated permissions
+  isActive      Boolean   @default(true)
+  lastLogin     DateTime?
+  statsResetAt  DateTime? // When stats were last reset
+  balance_money Float     @default(0)
+  balance_chip  Float     @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  transactionsProcessed Transaction[] @relation("ProcessedBy")
+  transfersSent         Transfer[]    @relation("Sender")
+  transfersReceived     Transfer[]    @relation("Receiver")
+  adjustments           Adjustment[]
+  dcBos                 DcBos[]
+  activityLogs          ActivityLog[]
+  managedBanks          PaymentMethod[]
+}
+
+model Game {
+  id          Int      @id @default(autoincrement())
+  name        String
+  code        String   @unique
+  image       String?
+  category    String   @default("GAMES") // GAMES, APPS, OTHERS
+  isActive    Boolean  @default(true)
+  externalUrl String?  // If set, clicking this game redirects to this URL
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  transactions Transaction[]
+  gameAccounts GameAccount[]
+}
+
+model PaymentMethod {
+  id            Int      @id @default(autoincrement())
+  name          String
+  type          String   // BANK, EWALLET
+  account_number String
+  account_name  String
+  image         String?
+  
+  // Internal System Fields
+  balance       Float    @default(0)
+  isActive      Boolean  @default(true)
+  admin_id      Int?
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  transactions  Transaction[]
+  admin         User?    @relation(fields: [admin_id], references: [id])
+  
+  // Relations for History
+  adjustments Adjustment[]
+  transfersFrom Transfer[] @relation("TransferFromBank")
+  transfersTo   Transfer[] @relation("TransferToBank")
+}
+
+model GameAccount {
+  id        Int      @id @default(autoincrement())
+  game_id   Int
+  username  String
+  password  String?
+  role      String   @default("ALL") // DEPOSIT, WITHDRAW, ALL, GUDANG
+  balance   Float    @default(0)
+  isActive  Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  game      Game     @relation(fields: [game_id], references: [id])
+  
+  // Relations for History
+  adjustments Adjustment[]
+  transfersFrom Transfer[] @relation("TransferFromGame")
+  transfersTo   Transfer[] @relation("TransferToGame")
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  action    String   // LOGIN, LOGOUT, APPROVE_TX, ADJUSTMENT, TRANSFER
+  details   String?
+  ip_address String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [user_id], references: [id])
+}
+
+model Transaction {
+  id              Int      @id @default(autoincrement())
+  user_wa         String
+  game_id         Int
+  user_game_id    String   @default("") // The user's ID in the game
+  nickname        String
+  amount_chip     Float
+  amount_money    Float
+  payment_method_id Int
+  proof_image     String?
+  status          String   @default("PENDING") // PENDING, APPROVED_1, APPROVED_2, DECLINED
+  type            String   // TOPUP, WITHDRAW
+  
+  // For Withdraw
+  target_payment_details String? // e.g. "BCA 1234567890 A/N User"
+
+  processed_by_id Int?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  game            Game          @relation(fields: [game_id], references: [id])
+  paymentMethod   PaymentMethod @relation(fields: [payment_method_id], references: [id])
+  processedBy     User?         @relation("ProcessedBy", fields: [processed_by_id], references: [id])
+}
+
+model SystemConfig {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model Transfer {
+  id           Int      @id @default(autoincrement())
+  from_user_id Int?     // Optional if system transfer
+  to_user_id   Int?     // Optional if system transfer
+  amount       Float
+  type         String   // CHIP, MONEY
+  note         String?
+  
+  // Internal Relations (Optional)
+  from_bank_id Int?
+  to_bank_id   Int?
+  from_game_account_id Int?
+  to_game_account_id   Int?
+
+  createdAt    DateTime @default(now())
+
+  sender       User?    @relation("Sender", fields: [from_user_id], references: [id])
+  receiver     User?    @relation("Receiver", fields: [to_user_id], references: [id])
+  
+  fromBank     PaymentMethod? @relation("TransferFromBank", fields: [from_bank_id], references: [id])
+  toBank       PaymentMethod? @relation("TransferToBank", fields: [to_bank_id], references: [id])
+  fromGameAccount GameAccount? @relation("TransferFromGame", fields: [from_game_account_id], references: [id])
+  toGameAccount   GameAccount? @relation("TransferToGame", fields: [to_game_account_id], references: [id])
+}
+
+model Adjustment {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  amount    Float
+  type      String   // CHIP, MONEY
+  reason    String
+  
+  // Linked Internal Account (Optional)
+  bank_id          Int?
+  game_account_id  Int?
+
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [user_id], references: [id])
+  bank      PaymentMethod? @relation(fields: [bank_id], references: [id])
+  gameAccount GameAccount? @relation(fields: [game_account_id], references: [id])
+}
+
+model DcBos {
+  id        Int      @id @default(autoincrement())
+  user_id   Int
+  amount    Float
+  type      String   // CHIP, MONEY
+  note      String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [user_id], references: [id])
+}
+
+model Package {
+  id        Int      @id @default(autoincrement())
+  name      String   // e.g. "120 M"
+  chip      Float    // e.g. 120
+  price     Float    // e.g. 10000
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

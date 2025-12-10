@@ -12,6 +12,7 @@ interface Bank {
     balance: number
     isActive: boolean
     image?: string
+    category?: string
 }
 
 export default function AdminBanks() {
@@ -28,6 +29,7 @@ export default function AdminBanks() {
         account_name: '',
         balance: '',
         image: '',
+        category: 'BOTH',
         admin_id: '1'
     })
     const [uploading, setUploading] = useState(false)
@@ -108,6 +110,7 @@ export default function AdminBanks() {
             account_name: bank.account_name,
             balance: bank.balance.toString(),
             image: bank.image || '',
+            category: bank.category || 'BOTH',
             admin_id: '1'
         })
         setEditId(bank.id)
@@ -123,6 +126,7 @@ export default function AdminBanks() {
             account_name: '',
             balance: '',
             image: '',
+            category: 'BOTH',
             admin_id: '1'
         })
         setIsEditing(false)
@@ -225,6 +229,14 @@ export default function AdminBanks() {
                             <option value="BANK">Bank Transfer</option>
                             <option value="EWALLET">E-Wallet / QRIS</option>
                         </select>
+                        <select
+                            className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
+                            value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}
+                        >
+                            <option value="BOTH">TopUp & Withdraw</option>
+                            <option value="DEPOSIT">TopUp Saja (Deposit)</option>
+                            <option value="WITHDRAW">Withdraw Saja (Payout)</option>
+                        </select>
                         <input
                             type="text" placeholder="Nomor Rekening"
                             className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
@@ -282,7 +294,11 @@ export default function AdminBanks() {
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-white">{bank.name}</h3>
-                                    <p className="text-xs text-gray-400">{bank.type}</p>
+                                    <h3 className="font-bold text-white">{bank.name}</h3>
+                                    <div className="flex gap-2 text-xs">
+                                        <span className="text-gray-400">{bank.type}</span>
+                                        <span className="text-cyan-400">• {bank.category === 'BOTH' ? 'All' : bank.category}</span>
+                                    </div>
                                 </div>
                             </div>
                             <button

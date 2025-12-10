@@ -11,6 +11,7 @@ interface PaymentMethod {
     account_number: string
     account_name: string
     image?: string | null
+    category?: string
 }
 
 interface Package {
@@ -48,7 +49,12 @@ export default function TopUpForm({ gameCode, gameName }: TopUpFormProps) {
         // Fetch Payment Methods
         fetch('/api/payment-methods')
             .then(res => res.json())
-            .then(data => setPaymentMethods(data))
+
+            .then((data: PaymentMethod[]) => {
+                // Filter for Deposit Only available methods
+                const filtered = data.filter(pm => !pm.category || pm.category === 'DEPOSIT' || pm.category === 'BOTH')
+                setPaymentMethods(filtered)
+            })
             .catch(err => console.error(err))
 
         // Fetch Packages

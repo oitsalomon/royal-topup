@@ -57,6 +57,7 @@ model PaymentMethod {
   account_number String
   account_name  String
   image         String?
+  category      String   @default("BOTH") // DEPOSIT, WITHDRAW, BOTH
   
   // Internal System Fields
   balance       Float    @default(0)

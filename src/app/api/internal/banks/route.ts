@@ -34,6 +34,7 @@ export async function POST(request: Request) {
                 admin_id: admin_id ? Number(admin_id) : userId,
                 balance: balance ? Number(balance) : 0,
                 image: image || null,
+                category: body.category || 'BOTH',
                 isActive: true
             }
         })
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json()
-        const { id, name, type, account_number, account_name, balance, isActive, image } = body
+        const { id, name, type, account_number, account_name, balance, isActive, image, category } = body
         const userId = getUserId(request)
 
         // Update Bank
@@ -69,7 +70,8 @@ export async function PUT(request: Request) {
                 account_name,
                 balance: balance !== undefined ? Number(balance) : undefined,
                 isActive: isActive !== undefined ? isActive : undefined,
-                image: image !== undefined ? image : undefined
+                image: image !== undefined ? image : undefined,
+                category: category !== undefined ? category : undefined
             }
         })
 

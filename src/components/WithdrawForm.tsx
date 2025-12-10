@@ -8,6 +8,7 @@ interface PaymentMethod {
     id: number
     name: string
     type: string
+    category: string
 }
 
 interface WithdrawFormProps {
@@ -39,7 +40,11 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
     useEffect(() => {
         fetch('/api/payment-methods')
             .then(res => res.json())
-            .then(data => setPaymentMethods(data))
+            .then((data: PaymentMethod[]) => {
+                // Filter for Withdraw Only available methods
+                const filtered = data.filter(pm => !pm.category || pm.category === 'WITHDRAW' || pm.category === 'BOTH')
+                setPaymentMethods(filtered)
+            })
             .catch(err => console.error(err))
 
         fetch('/api/config')

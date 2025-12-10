@@ -72,6 +72,24 @@ async function main() {
       data: pkg
     })
   }
+
+  // Create Withdraw Methods (Supported Destinations)
+  const withdrawMethods = [
+    { name: 'BCA', type: 'BANK' },
+    { name: 'BRI', type: 'BANK' },
+    { name: 'Mandiri', type: 'BANK' },
+    { name: 'BNI', type: 'BANK' },
+    { name: 'DANA', type: 'EWALLET' },
+    { name: 'GOPAY', type: 'EWALLET' },
+    { name: 'OVO', type: 'EWALLET' },
+    { name: 'SHOPEEPAY', type: 'EWALLET' },
+  ]
+
+  for (const wm of withdrawMethods) {
+    await prisma.withdrawMethod.create({
+      data: wm
+    })
+  }
 }
 
 main()

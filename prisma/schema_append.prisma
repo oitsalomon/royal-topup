@@ -1,0 +1,9 @@
+
+model WithdrawMethod {
+  id        Int      @id @default(autoincrement())
+  name      String   // e.g. "BCA", "DANA", "GOPAY"
+  type      String   // "BANK" or "EWALLET"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

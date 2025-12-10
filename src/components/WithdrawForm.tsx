@@ -4,11 +4,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Upload, Check, AlertTriangle, Shield, Coins, Wallet } from 'lucide-react'
 
-interface PaymentMethod {
+interface WithdrawMethod {
     id: number
     name: string
     type: string
-    category: string
 }
 
 interface WithdrawFormProps {
@@ -18,7 +17,7 @@ interface WithdrawFormProps {
 
 export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) {
     const router = useRouter()
-    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
+    const [withdrawMethods, setWithdrawMethods] = useState<WithdrawMethod[]>([])
     const [submitting, setSubmitting] = useState(false)
 
     const [formData, setFormData] = useState({
@@ -38,12 +37,10 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
     const [config, setConfig] = useState<{ id_wd?: { value: string, nickname: string } } | null>(null)
 
     useEffect(() => {
-        fetch('/api/payment-methods')
+        fetch('/api/withdraw-methods')
             .then(res => res.json())
-            .then((data: PaymentMethod[]) => {
-                // Filter for Withdraw Only available methods
-                const filtered = data.filter(pm => !pm.category || pm.category === 'WITHDRAW' || pm.category === 'BOTH')
-                setPaymentMethods(filtered)
+            .then((data: WithdrawMethod[]) => {
+                setWithdrawMethods(data)
             })
             .catch(err => console.error(err))
 
@@ -245,17 +242,17 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                 </h3>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-6">
-                    {paymentMethods.map((pm) => (
+                    {withdrawMethods.map((wm) => (
                         <button
-                            key={pm.id}
+                            key={wm.id}
                             type="button"
-                            onClick={() => setFormData({ ...formData, payment_method_id: pm.id.toString() })}
-                            className={`px-4 py-3 rounded-xl border transition-all duration-300 ${formData.payment_method_id === pm.id.toString()
+                            onClick={() => setFormData({ ...formData, payment_method_id: wm.id.toString() })}
+                            className={`px-4 py-3 rounded-xl border transition-all duration-300 ${formData.payment_method_id === wm.id.toString()
                                 ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-500/25'
                                 : 'bg-black/40 border-white/10 text-gray-300 hover:border-white/30 hover:bg-white/5'
                                 }`}
                         >
-                            <span className="font-medium">{pm.name}</span>
+                            <span className="font-medium">{wm.name}</span>
                         </button>
                     ))}
                 </div>

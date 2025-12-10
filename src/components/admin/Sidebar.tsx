@@ -22,6 +22,7 @@ export default function Sidebar() {
         { href: '/admin/games', label: 'Kelola Game', icon: Gamepad2 },
         { href: '/admin/packages', label: 'Manajemen Paket', icon: Package },
         { href: '/admin/banks', label: 'Panel Bank', icon: Wallet },
+        { href: '/admin/withdraw-methods', label: 'Tujuan Withdraw', icon: Receipt },
         { href: '/admin/game-accounts', label: 'Panel ID', icon: Coins },
         { href: '/admin/staff', label: 'Staff', icon: User },
         { href: '/admin/adjustments', label: 'Riwayat Adjustment', icon: Coins },

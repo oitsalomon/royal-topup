@@ -21,7 +21,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { name, type, account_number, account_name, admin_id, balance } = body
+        const { name, type, account_number, account_name, admin_id, balance, image } = body
         const userId = getUserId(request)
 
         // Create Bank
@@ -33,6 +33,7 @@ export async function POST(request: Request) {
                 account_name,
                 admin_id: admin_id ? Number(admin_id) : userId,
                 balance: balance ? Number(balance) : 0,
+                image: image || null,
                 isActive: true
             }
         })
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json()
-        const { id, name, type, account_number, account_name, balance, isActive } = body
+        const { id, name, type, account_number, account_name, balance, isActive, image } = body
         const userId = getUserId(request)
 
         // Update Bank
@@ -67,7 +68,8 @@ export async function PUT(request: Request) {
                 account_number,
                 account_name,
                 balance: balance !== undefined ? Number(balance) : undefined,
-                isActive: isActive !== undefined ? isActive : undefined
+                isActive: isActive !== undefined ? isActive : undefined,
+                image: image !== undefined ? image : undefined
             }
         })
 

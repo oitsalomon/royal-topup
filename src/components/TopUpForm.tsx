@@ -10,6 +10,7 @@ interface PaymentMethod {
     type: string
     account_number: string
     account_name: string
+    image?: string | null
 }
 
 interface Package {
@@ -63,8 +64,6 @@ export default function TopUpForm({ gameCode, gameName }: TopUpFormProps) {
 
     const [uploading, setUploading] = useState(false)
 
-    // ... (keep existing effects)
-
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (file) {
@@ -92,8 +91,6 @@ export default function TopUpForm({ gameCode, gameName }: TopUpFormProps) {
             }
         }
     }
-
-    // ... (keep existing bulk logic)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -300,9 +297,27 @@ export default function TopUpForm({ gameCode, gameName }: TopUpFormProps) {
                 {selectedPayment && (
                     <div className="mt-6 p-6 bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-2xl text-center relative overflow-hidden group">
                         <div className="absolute inset-0 bg-purple-500/5 group-hover:bg-purple-500/10 transition-colors" />
-                        <p className="text-sm text-gray-400 mb-2 relative z-10">Silakan transfer ke:</p>
-                        <p className="text-3xl font-bold text-white tracking-wider mb-1 relative z-10 font-mono">{selectedPayment.account_number}</p>
-                        <p className="text-sm text-purple-400 relative z-10">A/N {selectedPayment.account_name}</p>
+                        <p className="text-sm text-gray-400 mb-4 relative z-10">Silakan transfer / scan ke:</p>
+
+                        {selectedPayment.image ? (
+                            <div className="flex flex-col items-center relative z-10 animate-in fade-in zoom-in duration-300">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                    src={selectedPayment.image}
+                                    alt="QRIS"
+                                    className="w-56 h-auto object-contain rounded-xl border-4 border-white shadow-2xl mb-4"
+                                />
+                                <div className="space-y-1">
+                                    <p className="text-xl font-bold text-white">{selectedPayment.name}</p>
+                                    <p className="text-sm text-purple-400">A/N {selectedPayment.account_name}</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="relative z-10 animate-in fade-in">
+                                <p className="text-3xl font-bold text-white tracking-wider mb-1 font-mono">{selectedPayment.account_number}</p>
+                                <p className="text-sm text-purple-400">A/N {selectedPayment.account_name}</p>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

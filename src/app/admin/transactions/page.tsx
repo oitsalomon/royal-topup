@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, X, Clock, ArrowRight, AlertCircle } from 'lucide-react'
+import { Check, X, Clock, AlertCircle, Pencil, ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface Transaction {
     id: number
@@ -38,10 +38,9 @@ export default function TransactionsPage() {
     const [gameAccounts, setGameAccounts] = useState<GameAccount[]>([])
     const [banks, setBanks] = useState<Bank[]>([])
     const [loading, setLoading] = useState(true)
-    const [currentAdminId, setCurrentAdminId] = useState<number>(1) // Default to 1 (fallback)
+    const [currentAdminId, setCurrentAdminId] = useState<number>(1)
 
     useEffect(() => {
-        // Load admin ID from session
         try {
             const userStr = localStorage.getItem('user')
             if (userStr) {
@@ -53,24 +52,30 @@ export default function TransactionsPage() {
         }
     }, [])
 
-    // Filters
     const [filterDate, setFilterDate] = useState('')
     const [filterBank, setFilterBank] = useState('all')
     const [filterType, setFilterType] = useState('all')
+    const [searchQuery, setSearchQuery] = useState('')
+    const [page, setPage] = useState(1)
+    const [totalPages, setTotalPages] = useState(1)
 
-    // Selection State
     const [selectedAccountId, setSelectedAccountId] = useState<number | ''>('')
     const [selectedBankId, setSelectedBankId] = useState<number | ''>('')
-
-    // Image Modal State
     const [previewImage, setPreviewImage] = useState<string | null>(null)
+
+    // Edit State
+    const [editingDetail, setEditingDetail] = useState<{ id: number, field: 'TARGET' | 'GAME_ID', value: string } | null>(null)
+    const [saving, setSaving] = useState(false)
 
     const fetchData = async () => {
         try {
             const params = new URLSearchParams()
+            params.append('page', page.toString())
+            params.append('limit', '20')
             if (filterDate) params.append('date', filterDate)
             if (filterBank !== 'all') params.append('bank_id', filterBank)
             if (filterType !== 'all') params.append('type', filterType)
+            if (searchQuery) params.append('search', searchQuery)
 
             const [txRes, accRes, bankRes] = await Promise.all([
                 fetch(`/api/transactions?${params.toString()}`),
@@ -82,7 +87,13 @@ export default function TransactionsPage() {
             const accData = await accRes.json()
             const bankData = await bankRes.json()
 
-            if (Array.isArray(txData)) setTransactions(txData)
+            if (txData && txData.data) {
+                setTransactions(txData.data)
+                setTotalPages(Number(txData.pagination.totalPages) || 1)
+            } else if (Array.isArray(txData)) {
+                setTransactions(txData)
+            }
+
             if (Array.isArray(accData)) setGameAccounts(accData)
             if (Array.isArray(bankData)) setBanks(bankData)
 
@@ -97,7 +108,7 @@ export default function TransactionsPage() {
         fetchData()
         const interval = setInterval(fetchData, 10000)
         return () => clearInterval(interval)
-    }, [filterDate, filterBank, filterType]) // Re-fetch when filters change
+    }, [filterDate, filterBank, filterType, page, searchQuery])
 
     const getAuthHeaders = () => {
         const headers: any = { 'Content-Type': 'application/json' }
@@ -111,8 +122,39 @@ export default function TransactionsPage() {
         return headers
     }
 
+    const handleStartEdit = (id: number, field: 'TARGET' | 'GAME_ID', currentValue: string) => {
+        setEditingDetail({ id, field, value: currentValue || '' })
+    }
+
+    const handleSaveEdit = async () => {
+        if (!editingDetail) return
+        setSaving(true)
+        try {
+            const body: any = { admin_id: currentAdminId }
+            if (editingDetail.field === 'TARGET') body.target_payment_details = editingDetail.value
+            if (editingDetail.field === 'GAME_ID') body.user_game_id = editingDetail.value
+
+            const res = await fetch(`/api/transactions/${editingDetail.id}`, {
+                method: 'PATCH',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(body)
+            })
+            if (res.ok) {
+                fetchData() // Refresh data
+                setEditingDetail(null)
+            } else {
+                alert('Gagal update data')
+            }
+        } catch (e) {
+            console.error(e)
+            alert('Error updating')
+        } finally {
+            setSaving(false)
+        }
+    }
+
+
     const handleApproval = async (id: number, stage: number, action: 'APPROVE' | 'DECLINE', type: 'TOPUP' | 'WITHDRAW') => {
-        // Validation for Approval
         if (action === 'APPROVE') {
             if (type === 'TOPUP' && stage === 2 && !selectedAccountId) {
                 alert('Pilih Akun Game (Panel ID) pengirim chip!')
@@ -159,21 +201,28 @@ export default function TransactionsPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-white">Manajemen Transaksi</h1>
-                    <p className="text-gray-400 mt-1">Kelola Top Up dan Withdraw</p>
+                    <p className="text-gray-400 mt-1">Kelola Top Up dan Withdraw (Showing Page {page} of {totalPages})</p>
                 </div>
 
                 {/* Filters */}
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+                    <input
+                        type="text"
+                        placeholder="Cari ID/Nickname/WA..."
+                        className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white text-sm outline-none focus:border-cyan-500 min-w-[200px]"
+                        value={searchQuery}
+                        onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                    />
                     <input
                         type="date"
                         className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white text-sm outline-none focus:border-blue-500"
                         value={filterDate}
-                        onChange={(e) => setFilterDate(e.target.value)}
+                        onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
                     />
                     <select
                         className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white text-sm outline-none focus:border-blue-500"
                         value={filterBank}
-                        onChange={(e) => setFilterBank(e.target.value)}
+                        onChange={(e) => { setFilterBank(e.target.value); setPage(1); }}
                     >
                         <option value="all">Semua Bank</option>
                         {banks.map(b => (
@@ -183,7 +232,7 @@ export default function TransactionsPage() {
                     <select
                         className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white text-sm outline-none focus:border-blue-500"
                         value={filterType}
-                        onChange={(e) => setFilterType(e.target.value)}
+                        onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
                     >
                         <option value="all">Semua Tipe</option>
                         <option value="TOPUP">Top Up</option>
@@ -214,12 +263,36 @@ export default function TransactionsPage() {
                                         <h3 className="text-2xl font-bold text-white mb-1">{tx.nickname}</h3>
                                         <div className="flex items-center gap-2">
                                             <p className="text-cyan-400 text-sm font-medium">{tx.game?.name || 'Unknown Game'}</p>
-                                            {/* Display User Game ID */}
-                                            {/* @ts-ignore */}
-                                            {tx.user_game_id && (
-                                                <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-300 font-mono">
-                                                    ID: {tx.user_game_id}
-                                                </span>
+
+                                            {/* Editable User Game ID */}
+                                            {editingDetail?.id === tx.id && editingDetail.field === 'GAME_ID' ? (
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        className="bg-black/50 border border-white/20 rounded px-2 py-1 text-xs text-white w-24"
+                                                        value={editingDetail.value}
+                                                        onChange={e => setEditingDetail({ ...editingDetail, value: e.target.value })}
+                                                    />
+                                                    <button onClick={handleSaveEdit} disabled={saving} className="text-green-400 hover:text-green-300"><Check size={14} /></button>
+                                                    <button onClick={() => setEditingDetail(null)} className="text-red-400 hover:text-red-300"><X size={14} /></button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-1 group/edit">
+                                                    {/* @ts-ignore */}
+                                                    {tx.user_game_id && (
+                                                        <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-gray-300 font-mono">
+                                                            ID: {tx.user_game_id}
+                                                        </span>
+                                                    )}
+                                                    {tx.status === 'PENDING' && (
+                                                        <button
+                                                            /* @ts-ignore */
+                                                            onClick={() => handleStartEdit(tx.id, 'GAME_ID', tx.user_game_id)}
+                                                            className="opacity-0 group-hover/edit:opacity-100 text-gray-500 hover:text-white transition-opacity"
+                                                        >
+                                                            <Pencil size={10} />
+                                                        </button>
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -247,10 +320,38 @@ export default function TransactionsPage() {
                                         <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{tx.type === 'TOPUP' ? 'Bank Tujuan' : 'Metode'}</p>
                                         <p className="text-cyan-400 font-bold text-lg">{tx.paymentMethod?.name || 'Unknown'}</p>
                                     </div>
-                                    {tx.target_payment_details && (
+
+                                    {/* Editable Target Payment Details (WD) */}
+                                    {tx.type === 'WITHDRAW' && (
                                         <div className="col-span-2 md:col-span-3 pt-2 border-t border-white/5 mt-2">
                                             <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Rekening Tujuan User</p>
-                                            <p className="text-white text-sm font-mono bg-white/5 p-2 rounded-lg inline-block">{tx.target_payment_details}</p>
+
+                                            {editingDetail?.id === tx.id && editingDetail.field === 'TARGET' ? (
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        className="bg-black/50 border border-white/20 rounded-lg px-3 py-2 text-sm text-white w-full font-mono"
+                                                        value={editingDetail.value}
+                                                        onChange={e => setEditingDetail({ ...editingDetail, value: e.target.value })}
+                                                        placeholder="Contoh: DANA 081234..."
+                                                    />
+                                                    <button onClick={handleSaveEdit} disabled={saving} className="bg-green-500/20 p-2 rounded-lg text-green-400 hover:bg-green-500/30"><Check size={16} /></button>
+                                                    <button onClick={() => setEditingDetail(null)} className="bg-red-500/20 p-2 rounded-lg text-red-400 hover:bg-red-500/30"><X size={16} /></button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2 group/edit-target">
+                                                    <p className="text-white text-sm font-mono bg-white/5 p-2 rounded-lg inline-block">
+                                                        {tx.target_payment_details || '-'}
+                                                    </p>
+                                                    {tx.status === 'PENDING' && (
+                                                        <button
+                                                            onClick={() => handleStartEdit(tx.id, 'TARGET', tx.target_payment_details || '')}
+                                                            className="opacity-0 group-hover/edit-target:opacity-100 p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-all"
+                                                        >
+                                                            <Pencil size={14} /> Edit
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -406,10 +507,33 @@ export default function TransactionsPage() {
 
                 {transactions.length === 0 && (
                     <div className="text-center text-gray-500 py-20 bg-white/5 rounded-3xl border border-white/5 border-dashed">
-                        <p>Belum ada transaksi saat ini.</p>
+                        <p>{searchQuery ? 'Tidak ada transaksi yang cocok.' : 'Belum ada transaksi saat ini.'}</p>
                     </div>
                 )}
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-8 pb-8">
+                    <button
+                        disabled={page === 1}
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        className="p-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-white/5 transition-all text-white"
+                    >
+                        <ChevronLeft size={24} />
+                    </button>
+                    <span className="text-white font-mono text-sm px-4">
+                        Page {page} of {totalPages}
+                    </span>
+                    <button
+                        disabled={page === totalPages}
+                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                        className="p-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-white/5 transition-all text-white"
+                    >
+                        <ChevronRight size={24} />
+                    </button>
+                </div>
+            )}
 
             {/* Image Preview Modal */}
             {previewImage && (

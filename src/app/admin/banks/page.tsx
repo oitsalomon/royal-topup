@@ -11,6 +11,7 @@ interface Bank {
     account_name: string
     balance: number
     isActive: boolean
+    image?: string
 }
 
 export default function AdminBanks() {
@@ -26,8 +27,10 @@ export default function AdminBanks() {
         account_number: '',
         account_name: '',
         balance: '',
+        image: '',
         admin_id: '1'
     })
+    const [uploading, setUploading] = useState(false)
 
     useEffect(() => {
         // Load admin ID from session
@@ -104,6 +107,7 @@ export default function AdminBanks() {
             account_number: bank.account_number,
             account_name: bank.account_name,
             balance: bank.balance.toString(),
+            image: bank.image || '',
             admin_id: '1'
         })
         setEditId(bank.id)
@@ -118,6 +122,7 @@ export default function AdminBanks() {
             account_number: '',
             account_name: '',
             balance: '',
+            image: '',
             admin_id: '1'
         })
         setIsEditing(false)
@@ -160,12 +165,40 @@ export default function AdminBanks() {
         }
     }
 
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (file) {
+            setUploading(true)
+            const uploadData = new FormData()
+            uploadData.append('file', file)
+
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: uploadData
+                })
+
+                if (res.ok) {
+                    const data = await res.json()
+                    setFormData(prev => ({ ...prev, image: data.url }))
+                } else {
+                    alert('Gagal upload gambar')
+                }
+            } catch (err) {
+                console.error(err)
+                alert('Error uploading image')
+            } finally {
+                setUploading(false)
+            }
+        }
+    }
+
     return (
         <div>
             <div className="flex items-center justify-between mb-8">
                 <div>
                     <h1 className="text-3xl font-bold text-white">Panel Bank</h1>
-                    <p className="text-gray-400 mt-1">Kelola akun bank dan saldo internal</p>
+                    <p className="text-gray-400 mt-1">Kelola akun bank, QRIS, dan saldo internal</p>
                 </div>
                 <button
                     onClick={() => { resetForm(); setShowForm(!showForm) }}
@@ -190,7 +223,7 @@ export default function AdminBanks() {
                             value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}
                         >
                             <option value="BANK">Bank Transfer</option>
-                            <option value="EWALLET">E-Wallet</option>
+                            <option value="EWALLET">E-Wallet / QRIS</option>
                         </select>
                         <input
                             type="text" placeholder="Nomor Rekening"
@@ -207,9 +240,28 @@ export default function AdminBanks() {
                             className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
                             value={formData.balance} onChange={e => setFormData({ ...formData, balance: e.target.value })}
                         />
+
+                        {/* Image Upload for QRIS */}
+                        <div className="md:col-span-2">
+                            <label className="text-xs text-gray-400 mb-1 block">Foto QRIS (Optional)</label>
+                            <div className="flex items-center gap-4">
+                                {formData.image && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={formData.image} alt="Preview" className="w-16 h-16 object-cover rounded-lg border border-white/10" />
+                                )}
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleFileChange}
+                                    className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-500/10 file:text-cyan-400 hover:file:bg-cyan-500/20"
+                                />
+                                {uploading && <span className="text-xs text-yellow-400 animate-pulse">Uploading...</span>}
+                            </div>
+                        </div>
+
                         <div className="md:col-span-2 flex justify-end gap-2 mt-2">
                             <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-gray-400 hover:text-white">Batal</button>
-                            <button type="submit" className="px-6 py-2 bg-cyan-500 text-white rounded-xl font-bold">Simpan</button>
+                            <button type="submit" disabled={uploading} className="px-6 py-2 bg-cyan-500 text-white rounded-xl font-bold disabled:opacity-50">Simpan</button>
                         </div>
                     </form>
                 </div>
@@ -220,8 +272,13 @@ export default function AdminBanks() {
                     <div key={bank.id} className={`glass p-6 rounded-2xl relative overflow-hidden group border ${bank.isActive ? 'border-green-500/30' : 'border-red-500/30'}`}>
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${bank.type === 'BANK' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
-                                    {bank.type === 'BANK' ? <Wallet size={24} /> : <CreditCard size={24} />}
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden ${bank.type === 'BANK' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                                    {bank.image ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={bank.image} alt={bank.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        bank.type === 'BANK' ? <Wallet size={24} /> : <CreditCard size={24} />
+                                    )}
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-white">{bank.name}</h3>

@@ -144,7 +144,15 @@ export default function SettingsPage() {
                             <input
                                 type="text"
                                 value={config.contacts?.whatsapp?.number || ''}
-                                onChange={(e) => updateNestedConfig('contacts', 'whatsapp', 'number', e.target.value)}
+                                onChange={(e) => {
+                                    // Remove all non-numeric characters except +
+                                    let val = e.target.value.replace(/[^0-9+]/g, '')
+                                    // If user pasted a full URL, try to extract the number
+                                    if (e.target.value.includes('wa.me/')) {
+                                        val = e.target.value.split('wa.me/')[1]?.replace(/[^0-9]/g, '') || val
+                                    }
+                                    updateNestedConfig('contacts', 'whatsapp', 'number', val)
+                                }}
                                 className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-colors"
                             />
                         </div>
@@ -153,7 +161,15 @@ export default function SettingsPage() {
                             <input
                                 type="text"
                                 value={config.contacts?.telegram?.username || ''}
-                                onChange={(e) => updateNestedConfig('contacts', 'telegram', 'username', e.target.value)}
+                                onChange={(e) => {
+                                    // Remove @, spaces, and handle full URLs
+                                    let val = e.target.value
+                                    if (val.includes('t.me/')) {
+                                        val = val.split('t.me/')[1] || val
+                                    }
+                                    val = val.replace('@', '').trim()
+                                    updateNestedConfig('contacts', 'telegram', 'username', val)
+                                }}
                                 className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-colors"
                             />
                         </div>

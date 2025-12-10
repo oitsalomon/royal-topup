@@ -3,13 +3,17 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
+const getUserId = (req: Request) => {
+    const id = req.headers.get('X-User-Id')
+    return id ? Number(id) : 1
+}
+
 export async function GET() {
     try {
         let games = await prisma.game.findMany({
             orderBy: { createdAt: 'desc' }
         })
 
-        // Lazy Seed: If no games found, create them (Logic for Vercel/SQLite persistence)
         if (games.length === 0) {
             console.log('No games found, seeding default games...')
             const defaultGames = [
@@ -23,7 +27,6 @@ export async function GET() {
                 await prisma.game.create({ data: g })
             }
 
-            // Refetch after seeding
             games = await prisma.game.findMany({
                 orderBy: { createdAt: 'desc' }
             })
@@ -40,6 +43,7 @@ export async function POST(request: Request) {
     try {
         const body = await request.json()
         const { name, code, image, category, externalUrl, isActive } = body
+        const userId = getUserId(request)
 
         const game = await prisma.game.create({
             data: {
@@ -51,6 +55,15 @@ export async function POST(request: Request) {
                 isActive: isActive ?? true
             }
         })
+
+        await prisma.activityLog.create({
+            data: {
+                user_id: userId,
+                action: 'CREATE_GAME',
+                details: `Created game: ${name} (${code})`
+            }
+        })
+
         return NextResponse.json(game)
     } catch (error) {
         return NextResponse.json({ error: 'Failed to create game' }, { status: 500 })
@@ -61,6 +74,7 @@ export async function PUT(request: Request) {
     try {
         const body = await request.json()
         const { id, name, code, image, category, externalUrl, isActive } = body
+        const userId = getUserId(request)
 
         const game = await prisma.game.update({
             where: { id: Number(id) },
@@ -73,6 +87,15 @@ export async function PUT(request: Request) {
                 isActive
             }
         })
+
+        await prisma.activityLog.create({
+            data: {
+                user_id: userId,
+                action: 'UPDATE_GAME',
+                details: `Updated game ${game.name}`
+            }
+        })
+
         return NextResponse.json(game)
     } catch (error) {
         return NextResponse.json({ error: 'Failed to update game' }, { status: 500 })
@@ -83,12 +106,22 @@ export async function DELETE(request: Request) {
     try {
         const { searchParams } = new URL(request.url)
         const id = searchParams.get('id')
+        const userId = getUserId(request)
 
         if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
 
-        await prisma.game.delete({
+        const deletedGame = await prisma.game.delete({
             where: { id: Number(id) }
         })
+
+        await prisma.activityLog.create({
+            data: {
+                user_id: userId,
+                action: 'DELETE_GAME',
+                details: `Deleted game: ${deletedGame.name}`
+            }
+        })
+
         return NextResponse.json({ success: true })
     } catch (error) {
         return NextResponse.json({ error: 'Failed to delete game' }, { status: 500 })

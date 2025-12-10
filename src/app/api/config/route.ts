@@ -29,10 +29,15 @@ export async function GET() {
     }
 }
 
+const getUserId = (req: Request) => {
+    const id = req.headers.get('X-User-Id')
+    return id ? Number(id) : 1
+}
+
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const user_id = 1 // Default Admin ID for now (TODO: Get from session)
+        const user_id = getUserId(request)
 
         // 1. Get Current Config for comparison (Optional, skipped for speed)
 

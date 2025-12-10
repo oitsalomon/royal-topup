@@ -42,6 +42,18 @@ export default function AdminGames() {
         fetchGames()
     }, [])
 
+    const getAuthHeaders = () => {
+        const headers: any = { 'Content-Type': 'application/json' }
+        try {
+            const userStr = localStorage.getItem('user')
+            if (userStr) {
+                const user = JSON.parse(userStr)
+                if (user.id) headers['X-User-Id'] = String(user.id)
+            }
+        } catch (e) { }
+        return headers
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
@@ -50,7 +62,7 @@ export default function AdminGames() {
 
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(formData)
             })
 
@@ -67,7 +79,10 @@ export default function AdminGames() {
     const handleDelete = async (id: number) => {
         if (!confirm('Hapus game ini?')) return
         try {
-            await fetch(`/api/games?id=${id}`, { method: 'DELETE' })
+            await fetch(`/api/games?id=${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            })
             fetchGames()
         } catch (error) {
             console.error(error)

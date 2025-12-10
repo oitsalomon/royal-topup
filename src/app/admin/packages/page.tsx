@@ -38,6 +38,18 @@ export default function AdminPackages() {
         fetchPackages()
     }, [])
 
+    const getAuthHeaders = () => {
+        const headers: any = { 'Content-Type': 'application/json' }
+        try {
+            const userStr = localStorage.getItem('user')
+            if (userStr) {
+                const user = JSON.parse(userStr)
+                if (user.id) headers['X-User-Id'] = String(user.id)
+            }
+        } catch (e) { }
+        return headers
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
@@ -47,7 +59,7 @@ export default function AdminPackages() {
 
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(body)
             })
 
@@ -75,7 +87,10 @@ export default function AdminPackages() {
     const handleDelete = async (id: number) => {
         if (!confirm('Hapus paket ini?')) return
         try {
-            await fetch(`/api/packages?id=${id}`, { method: 'DELETE' })
+            await fetch(`/api/packages?id=${id}`, {
+                method: 'DELETE',
+                headers: getAuthHeaders()
+            })
             fetchPackages()
         } catch (error) {
             console.error(error)
@@ -96,7 +111,7 @@ export default function AdminPackages() {
         try {
             const res = await fetch('/api/packages', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ id, isActive: !currentStatus })
             })
             if (res.ok) {

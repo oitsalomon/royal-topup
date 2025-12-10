@@ -3,6 +3,11 @@ import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
+const getUserId = (req: Request) => {
+    const id = req.headers.get('X-User-Id')
+    return id ? Number(id) : 1
+}
+
 export async function GET() {
     try {
         let packages = await prisma.package.findMany({
@@ -44,6 +49,7 @@ export async function POST(request: Request) {
     try {
         const body = await request.json()
         const { name, chip, price } = body
+        const userId = getUserId(request)
 
         const pkg = await prisma.package.create({
             data: {
@@ -53,6 +59,15 @@ export async function POST(request: Request) {
                 isActive: true
             }
         })
+
+        await prisma.activityLog.create({
+            data: {
+                user_id: userId,
+                action: 'CREATE_PACKAGE',
+                details: `Created package: ${name} (${chip} Chip)`
+            }
+        })
+
         return NextResponse.json(pkg)
     } catch (error) {
         return NextResponse.json({ error: 'Failed to create package' }, { status: 500 })
@@ -63,6 +78,7 @@ export async function PUT(request: Request) {
     try {
         const body = await request.json()
         const { id, name, chip, price, isActive } = body
+        const userId = getUserId(request)
 
         const pkg = await prisma.package.update({
             where: { id: Number(id) },
@@ -73,6 +89,15 @@ export async function PUT(request: Request) {
                 isActive
             }
         })
+
+        await prisma.activityLog.create({
+            data: {
+                user_id: userId,
+                action: 'UPDATE_PACKAGE',
+                details: `Updated package ${pkg.name}: Rp ${price}`
+            }
+        })
+
         return NextResponse.json(pkg)
     } catch (error) {
         return NextResponse.json({ error: 'Failed to update package' }, { status: 500 })
@@ -83,12 +108,22 @@ export async function DELETE(request: Request) {
     try {
         const { searchParams } = new URL(request.url)
         const id = searchParams.get('id')
+        const userId = getUserId(request)
 
         if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
 
-        await prisma.package.delete({
+        const deletedPkg = await prisma.package.delete({
             where: { id: Number(id) }
         })
+
+        await prisma.activityLog.create({
+            data: {
+                user_id: userId,
+                action: 'DELETE_PACKAGE',
+                details: `Deleted package: ${deletedPkg.name}`
+            }
+        })
+
         return NextResponse.json({ success: true })
     } catch (error) {
         return NextResponse.json({ error: 'Failed to delete package' }, { status: 500 })

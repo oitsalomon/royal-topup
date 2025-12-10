@@ -52,6 +52,18 @@ export default function AdminGameAccounts() {
         fetchAccounts()
     }, [])
 
+    const getAuthHeaders = () => {
+        const headers: any = { 'Content-Type': 'application/json' }
+        try {
+            const userStr = localStorage.getItem('user')
+            if (userStr) {
+                const user = JSON.parse(userStr)
+                if (user.id) headers['X-User-Id'] = String(user.id)
+            }
+        } catch (e) { }
+        return headers
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
@@ -61,7 +73,7 @@ export default function AdminGameAccounts() {
 
             const res = await fetch(url, {
                 method,
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(body)
             })
             if (res.ok) {
@@ -104,7 +116,7 @@ export default function AdminGameAccounts() {
         try {
             const res = await fetch('/api/internal/game-accounts', {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({ id, isActive: !currentStatus })
             })
             if (res.ok) {

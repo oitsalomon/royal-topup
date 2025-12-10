@@ -96,12 +96,17 @@ export default function Navbar() {
                     </div>
 
                     {/* Mobile Menu Button */}
-                    <div className="md:hidden">
+                    <div className="md:hidden relative z-50">
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="text-white p-2 hover:bg-white/10 rounded-lg transition-colors"
+                            className="text-white p-3 hover:bg-white/10 rounded-xl transition-colors active:scale-95"
+                            aria-label="Toggle menu"
                         >
-                            {isMobileMenuOpen ? <div className="p-1"><span className="text-xl font-bold">✕</span></div> : <Menu className="h-6 w-6" />}
+                            {isMobileMenuOpen ? (
+                                <div className="p-1"><span className="text-xl font-bold">✕</span></div>
+                            ) : (
+                                <Menu className="h-7 w-7" />
+                            )}
                         </button>
                     </div>
                 </div>
@@ -109,18 +114,26 @@ export default function Navbar() {
 
             {/* Mobile Menu Overlay */}
             {isMobileMenuOpen && (
-                <div className="md:hidden absolute top-20 left-0 w-full bg-[#0a0f1c] border-b border-white/10 shadow-2xl animate-in slide-in-from-top-4 z-40">
-                    <div className="p-4 space-y-4">
-                        <Link href="/" className="block px-4 py-3 rounded-xl bg-white/5 text-white font-medium hover:bg-white/10 transition-colors">
+                <div className="md:hidden fixed top-20 left-0 w-full bg-[#0a0f1c]/95 backdrop-blur-xl border-b border-white/10 shadow-2xl animate-in slide-in-from-top-4 z-40 max-h-[calc(100vh-5rem)] overflow-y-auto">
+                    <div className="p-6 space-y-6">
+                        <Link
+                            href="/"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="block px-4 py-3 rounded-xl bg-white/5 text-white font-medium hover:bg-white/10 transition-colors"
+                        >
                             Home
                         </Link>
-                        <Link href="/check-transaction" className="block px-4 py-3 rounded-xl bg-white/5 text-white font-medium hover:bg-white/10 transition-colors">
+                        <Link
+                            href="/check-transaction"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="block px-4 py-3 rounded-xl bg-white/5 text-white font-medium hover:bg-white/10 transition-colors"
+                        >
                             Cek Transaksi
                         </Link>
 
-                        {/* Mobile Download App */}
-                        <div className="space-y-2">
-                            <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Download Aplikasi</p>
+                        {/* Mobile Download Game */}
+                        <div className="space-y-3">
+                            <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Download Game</p>
                             <a href={config?.download_app?.royal_dream || '#'} target="_blank" className="block px-4 py-3 rounded-xl bg-gradient-to-r from-pink-500/10 to-purple-600/10 border border-pink-500/20 text-pink-400 font-medium hover:bg-pink-500/20 transition-colors">
                                 Royal Dream
                             </a>
@@ -133,20 +146,20 @@ export default function Navbar() {
                         </div>
 
                         {/* Mobile Contact CS */}
-                        <div className="space-y-2 pb-4">
+                        <div className="space-y-3 pb-8">
                             <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Hubungi CS</p>
-                            <div className="grid grid-cols-3 gap-2 px-4">
+                            <div className="grid grid-cols-3 gap-3 px-1">
                                 <a href={`https://wa.me/${config?.contacts?.whatsapp?.number || ''}`} target="_blank" className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-colors">
                                     <Phone size={20} />
-                                    <span className="text-xs">WA</span>
+                                    <span className="text-xs font-medium">WhatsApp</span>
                                 </a>
                                 <a href={`https://t.me/${config?.contacts?.telegram?.username || ''}`} target="_blank" className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors">
                                     <Send size={20} />
-                                    <span className="text-xs">TG</span>
+                                    <span className="text-xs font-medium">Telegram</span>
                                 </a>
                                 <a href={config?.contacts?.live_chat?.url || '#'} target="_blank" className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 hover:bg-yellow-500/20 transition-colors">
                                     <MessageCircle size={20} />
-                                    <span className="text-xs">Chat</span>
+                                    <span className="text-xs font-medium">Live Chat</span>
                                 </a>
                             </div>
                         </div>

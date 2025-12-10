@@ -18,12 +18,24 @@ export default function SettingsPage() {
             })
     }, [])
 
+    const getAuthHeaders = () => {
+        const headers: any = { 'Content-Type': 'application/json' }
+        try {
+            const userStr = localStorage.getItem('user')
+            if (userStr) {
+                const user = JSON.parse(userStr)
+                if (user.id) headers['X-User-Id'] = String(user.id)
+            }
+        } catch (e) { }
+        return headers
+    }
+
     const handleSave = async () => {
         setSaving(true)
         try {
             const res = await fetch('/api/config', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify(config)
             })
 

@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-const ADMIN_ID = 1 // Mock Admin ID
+const getUserId = (req: Request) => {
+    const id = req.headers.get('X-User-Id')
+    return id ? Number(id) : 1
+}
 
 export async function GET() {
     try {
@@ -19,6 +22,7 @@ export async function POST(request: Request) {
     try {
         const body = await request.json()
         const { name, type, account_number, account_name, admin_id, balance } = body
+        const userId = getUserId(request)
 
         // Create Bank
         const bank = await prisma.paymentMethod.create({
@@ -27,7 +31,7 @@ export async function POST(request: Request) {
                 type,
                 account_number,
                 account_name,
-                admin_id: admin_id ? Number(admin_id) : ADMIN_ID,
+                admin_id: admin_id ? Number(admin_id) : userId,
                 balance: balance ? Number(balance) : 0,
                 isActive: true
             }
@@ -36,7 +40,7 @@ export async function POST(request: Request) {
         // Log Activity
         await prisma.activityLog.create({
             data: {
-                user_id: ADMIN_ID,
+                user_id: userId,
                 action: 'CREATE_BANK',
                 details: `Added new bank: ${name} (${account_number})`
             }
@@ -52,6 +56,7 @@ export async function PUT(request: Request) {
     try {
         const body = await request.json()
         const { id, name, type, account_number, account_name, balance, isActive } = body
+        const userId = getUserId(request)
 
         // Update Bank
         const bank = await prisma.paymentMethod.update({
@@ -73,7 +78,7 @@ export async function PUT(request: Request) {
 
         await prisma.activityLog.create({
             data: {
-                user_id: ADMIN_ID,
+                user_id: userId,
                 action: 'UPDATE_BANK',
                 details: actionDetails
             }
@@ -89,24 +94,48 @@ export async function DELETE(request: Request) {
     try {
         const { searchParams } = new URL(request.url)
         const id = searchParams.get('id')
+        const userId = getUserId(request)
 
         if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
 
-        const deletedBank = await prisma.paymentMethod.delete({
-            where: { id: Number(id) }
-        })
+        try {
+            // Try Hard Delete first
+            const deletedBank = await prisma.paymentMethod.delete({
+                where: { id: Number(id) }
+            })
 
-        // Log Activity
-        await prisma.activityLog.create({
-            data: {
-                user_id: ADMIN_ID,
-                action: 'DELETE_BANK',
-                details: `Deleted bank: ${deletedBank.name} (${deletedBank.account_number})`
+            // Log Activity (Hard Delete)
+            await prisma.activityLog.create({
+                data: {
+                    user_id: userId,
+                    action: 'DELETE_BANK',
+                    details: `Deleted bank permanently: ${deletedBank.name} (${deletedBank.account_number})`
+                }
+            })
+        } catch (error: any) {
+            // Foreign Key Constraint Violation (P2003) -> Soft Delete
+            if (error.code === 'P2003') {
+                const softDeleted = await prisma.paymentMethod.update({
+                    where: { id: Number(id) },
+                    data: { isActive: false }
+                })
+
+                // Log Activity (Soft Delete)
+                await prisma.activityLog.create({
+                    data: {
+                        user_id: userId,
+                        action: 'ARCHIVE_BANK',
+                        details: `Archived bank (soft delete) due to dependencies: ${softDeleted.name}`
+                    }
+                })
+                return NextResponse.json({ success: true, message: 'Bank diarsipkan karena memiliki riwayat transaksi' })
             }
-        })
+            throw error // Rethrow other errors
+        }
 
         return NextResponse.json({ success: true })
     } catch (error) {
+        console.error('Delete Bank Error:', error)
         return NextResponse.json({ error: 'Failed to delete bank' }, { status: 500 })
     }
 }

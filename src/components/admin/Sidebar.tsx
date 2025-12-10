@@ -1,11 +1,19 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation' // Correct Import
 import { LayoutDashboard, Receipt, FileText, LogOut, Settings, Shield, Wallet, Coins, User, Gamepad2, Package, TrendingUp } from 'lucide-react'
 
 export default function Sidebar() {
+    const router = useRouter()
     const pathname = usePathname()
+
+    const handleLogout = () => {
+        if (confirm('Apakah anda yakin ingin logout?')) {
+            localStorage.removeItem('user')
+            router.push('/admin/login')
+        }
+    }
 
     const links = [
         { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -57,7 +65,10 @@ export default function Sidebar() {
                 })}
             </nav>
 
-            <button className="flex items-center gap-4 px-4 py-4 rounded-2xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all mt-auto group border border-transparent hover:border-red-500/10">
+            <button
+                onClick={handleLogout}
+                className="flex items-center gap-4 px-4 py-4 rounded-2xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all mt-auto group border border-transparent hover:border-red-500/10"
+            >
                 <LogOut size={22} className="group-hover:scale-110 transition-transform" />
                 <span className="font-medium">Logout</span>
             </button>

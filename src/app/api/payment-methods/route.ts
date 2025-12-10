@@ -5,9 +5,10 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
     try {
-        let methods = await prisma.paymentMethod.findMany()
+        // Prevent re-seeding if we just have everything disabled
+        const totalCount = await prisma.paymentMethod.count()
 
-        if (methods.length === 0) {
+        if (totalCount === 0) {
             console.log('No payment methods found, seeding defaults...')
             const defaultMethods = [
                 { name: 'BCA', type: 'BANK', account_number: '1234567890', account_name: 'Aqua Store' },
@@ -20,9 +21,11 @@ export async function GET() {
             for (const m of defaultMethods) {
                 await prisma.paymentMethod.create({ data: { ...m, isActive: true } })
             }
-
-            methods = await prisma.paymentMethod.findMany()
         }
+
+        const methods = await prisma.paymentMethod.findMany({
+            where: { isActive: true }
+        })
 
         return NextResponse.json(methods)
     } catch (error) {

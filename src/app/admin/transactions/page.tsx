@@ -99,6 +99,18 @@ export default function TransactionsPage() {
         return () => clearInterval(interval)
     }, [filterDate, filterBank, filterType]) // Re-fetch when filters change
 
+    const getAuthHeaders = () => {
+        const headers: any = { 'Content-Type': 'application/json' }
+        try {
+            const userStr = localStorage.getItem('user')
+            if (userStr) {
+                const user = JSON.parse(userStr)
+                if (user.id) headers['X-User-Id'] = String(user.id)
+            }
+        } catch (e) { }
+        return headers
+    }
+
     const handleApproval = async (id: number, stage: number, action: 'APPROVE' | 'DECLINE', type: 'TOPUP' | 'WITHDRAW') => {
         // Validation for Approval
         if (action === 'APPROVE') {
@@ -119,7 +131,7 @@ export default function TransactionsPage() {
         try {
             const res = await fetch(`/api/transactions/${id}/approve`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: getAuthHeaders(),
                 body: JSON.stringify({
                     stage,
                     action,

@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
+const getUserId = (req: Request) => {
+    const id = req.headers.get('X-User-Id')
+    return id ? Number(id) : null
+}
+
 export async function POST(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -8,7 +13,12 @@ export async function POST(
     try {
         const { id } = await params
         const body = await request.json()
-        const { stage, action, admin_id, game_account_id, bank_id } = body // stage: 1 or 2, action: APPROVE or DECLINE
+        const { stage, action, game_account_id, bank_id } = body // stage: 1 or 2, action: APPROVE or DECLINE
+
+        // Priority: Header ID -> Body ID -> 1 (System/Fallback)
+        let userId = getUserId(request)
+        if (!userId && body.admin_id) userId = Number(body.admin_id)
+        if (!userId) userId = 1
 
         const transaction = await prisma.transaction.findUnique({
             where: { id: Number(id) }
@@ -49,23 +59,21 @@ export async function POST(
                 where: { id: Number(id) },
                 data: {
                     status: newStatus,
-                    processed_by_id: admin_id ? Number(admin_id) : null
+                    processed_by_id: userId
                 }
             })
 
-            if (action === 'APPROVE' && admin_id) {
-                const adminId = Number(admin_id)
+            // Log Activity for both APPROVE and DECLINE
+            await tx.activityLog.create({
+                data: {
+                    user_id: userId,
+                    action: action === 'APPROVE' ? 'APPROVE_TX' : 'DECLINE_TX',
+                    details: `Transaction #${id} ${transaction.type} Stage ${stage} ${action === 'APPROVE' ? 'Approved' : 'Declined'}`,
+                    ip_address: '127.0.0.1'
+                }
+            })
 
-                // Log Activity
-                await tx.activityLog.create({
-                    data: {
-                        user_id: adminId,
-                        action: 'APPROVE_TX',
-                        details: `Transaction #${id} ${transaction.type} Stage ${stage} Approved`,
-                        ip_address: '127.0.0.1' // Mock IP
-                    }
-                })
-
+            if (action === 'APPROVE') {
                 if (transaction.type === 'TOPUP') {
                     if (stage === 1) {
                         // Money Received: Bank Balance + (User sent to this bank)

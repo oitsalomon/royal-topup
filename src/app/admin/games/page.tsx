@@ -146,11 +146,37 @@ export default function AdminGames() {
                             className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
                             value={formData.code} onChange={e => setFormData({ ...formData, code: e.target.value })} required
                         />
-                        <input
-                            type="text" placeholder="URL Gambar (Optional)"
-                            className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-                            value={formData.image} onChange={e => setFormData({ ...formData, image: e.target.value })}
-                        />
+                        <div className="relative group">
+                            <label className="block text-xs text-gray-400 mb-1">Gambar Game</label>
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0]
+                                    if (file) {
+                                        const reader = new FileReader()
+                                        reader.onloadend = () => {
+                                            setFormData({ ...formData, image: reader.result as string })
+                                        }
+                                        reader.readAsDataURL(file)
+                                    }
+                                }}
+                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-500 file:text-white hover:file:bg-cyan-600"
+                            />
+                            {formData.image && (
+                                <div className="mt-2 relative w-full h-32 rounded-lg overflow-hidden border border-white/10">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormData({ ...formData, image: '' })}
+                                        className="absolute top-1 right-1 bg-red-500/80 text-white p-1 rounded-full hover:bg-red-600"
+                                    >
+                                        <Trash2 size={12} />
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                         <select
                             className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
                             value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}

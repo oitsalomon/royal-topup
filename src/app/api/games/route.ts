@@ -11,7 +11,18 @@ const getUserId = (req: Request) => {
 export async function GET() {
     try {
         let games = await prisma.game.findMany({
-            orderBy: { createdAt: 'desc' }
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true,
+                name: true,
+                code: true,
+                category: true,
+                isActive: true,
+                externalUrl: true,
+                createdAt: true,
+                updatedAt: true,
+                // image: false // Exclude heavy image data to prevent Vercel Function Timeout
+            }
         })
 
         if (games.length === 0) {

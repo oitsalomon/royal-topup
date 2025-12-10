@@ -82,10 +82,18 @@ export default function Navbar() {
                                 <ChevronDown size={16} />
                             </button>
                             <div className="absolute top-full right-0 mt-2 w-48 bg-gray-900 border border-white/10 rounded-xl shadow-xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right">
-                                <a href={`https://wa.me/${config?.contacts?.whatsapp?.number || ''}`} target="_blank" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
+                                <a
+                                    href={`https://wa.me/${(config?.contacts?.whatsapp?.number || '').replace(/[^0-9]/g, '')}`}
+                                    target="_blank"
+                                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                                >
                                     <Phone size={16} className="text-green-500" /> WhatsApp
                                 </a>
-                                <a href={`https://t.me/${config?.contacts?.telegram?.username || ''}`} target="_blank" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
+                                <a
+                                    href={`https://t.me/${(config?.contacts?.telegram?.username || '').replace('https://t.me/', '').replace('@', '')}`}
+                                    target="_blank"
+                                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                                >
                                     <Send size={16} className="text-blue-500" /> Telegram
                                 </a>
                                 <a href={config?.contacts?.live_chat?.url || '#'} target="_blank" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
@@ -149,11 +157,19 @@ export default function Navbar() {
                         <div className="space-y-3 pb-8">
                             <p className="px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Hubungi CS</p>
                             <div className="grid grid-cols-3 gap-3 px-1">
-                                <a href={`https://wa.me/${config?.contacts?.whatsapp?.number || ''}`} target="_blank" className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-colors">
+                                <a
+                                    href={`https://wa.me/${(config?.contacts?.whatsapp?.number || '').replace(/[^0-9]/g, '')}`}
+                                    target="_blank"
+                                    className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 hover:bg-green-500/20 transition-colors"
+                                >
                                     <Phone size={20} />
                                     <span className="text-xs font-medium">WhatsApp</span>
                                 </a>
-                                <a href={`https://t.me/${config?.contacts?.telegram?.username || ''}`} target="_blank" className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors">
+                                <a
+                                    href={`https://t.me/${(config?.contacts?.telegram?.username || '').replace('https://t.me/', '').replace('@', '')}`}
+                                    target="_blank"
+                                    className="flex flex-col items-center justify-center gap-2 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 transition-colors"
+                                >
                                     <Send size={20} />
                                     <span className="text-xs font-medium">Telegram</span>
                                 </a>

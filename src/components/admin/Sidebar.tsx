@@ -39,7 +39,7 @@ export default function Sidebar() {
                 </div>
                 <div>
                     <h1 className="text-xl font-bold text-white tracking-wide font-outfit">ADMIN</h1>
-                    <p className="text-[10px] text-cyan-400 font-medium tracking-widest uppercase">Control Panel</p>
+                    <p className="text-[10px] text-cyan-400 font-medium tracking-widest uppercase">Control Panel v2.2</p>
                 </div>
             </div>
 

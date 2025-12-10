@@ -6,7 +6,9 @@ export default function Home() {
     <div className="min-h-screen">
       <HeroBanner />
       <GameGrid />
-      <footer className="text-center py-4 text-xs text-slate-700">v2.1</footer>
+      <footer className="text-center text-gray-600 text-xs py-10 mt-20 relative z-10">
+        &copy; 2024 Royal TopUp. All rights reserved. <span className="opacity-50">v2.2</span>
+      </footer>
     </div>
   )
 }

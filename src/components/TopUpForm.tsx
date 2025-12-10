@@ -74,33 +74,61 @@ export default function TopUpForm({ gameCode, gameName }: TopUpFormProps) {
         const file = e.target.files?.[0]
         if (file) {
             setUploading(true)
-            const formData = new FormData()
-            formData.append('file', file)
+            // Compress Image Logic
+            const reader = new FileReader()
+            reader.onload = (event) => {
+                const img = new Image()
+                img.src = event.target?.result as string
+                img.onload = () => {
+                    const canvas = document.createElement('canvas')
+                    const MAX_WIDTH = 800 // Reasonable size for proof
+                    const scaleSize = MAX_WIDTH / img.width
+                    canvas.width = MAX_WIDTH
+                    canvas.height = img.height * scaleSize
 
-            try {
-                const res = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: formData
-                })
+                    const ctx = canvas.getContext('2d')
+                    ctx?.drawImage(img, 0, 0, canvas.width, canvas.height)
 
-                if (res.ok) {
-                    const data = await res.json()
-                    setFormData(prev => ({ ...prev, proof_image: data.url }))
-                } else {
-                    alert('Gagal upload gambar. Coba lagi.')
+                    // Convert to JPEG
+                    canvas.toBlob(async (blob) => {
+                        if (blob) {
+                            const formData = new FormData()
+                            formData.append('file', blob, 'proof.jpg')
+
+                            try {
+                                const res = await fetch('/api/upload', {
+                                    method: 'POST',
+                                    body: formData
+                                })
+
+                                if (res.ok) {
+                                    const data = await res.json()
+                                    setFormData(prev => ({ ...prev, proof_image: data.url }))
+                                } else {
+                                    alert('Gagal upload gambar.')
+                                }
+                            } catch (err) {
+                                console.error(err)
+                            } finally {
+                                setUploading(false)
+                            }
+                        }
+                    }, 'image/jpeg', 0.7)
                 }
-            } catch (err) {
-                console.error(err)
-                alert('Terjadi kesalahan saat upload.')
-            } finally {
-                setUploading(false)
             }
+            reader.readAsDataURL(file)
         }
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setSubmitting(true)
+
+        if (!formData.payment_method_id) {
+            alert('Mohon pilih metode pembayaran terlebih dahulu.')
+            setSubmitting(false)
+            return
+        }
 
         if (!formData.proof_image) {
             alert('Mohon upload bukti transfer terlebih dahulu.')

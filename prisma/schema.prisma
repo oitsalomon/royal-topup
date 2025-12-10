@@ -115,7 +115,6 @@ model Transaction {
   nickname        String
   amount_chip     Float
   amount_money    Float
-  amount_money    Float
   payment_method_id Int?
   withdraw_method_id Int?
   proof_image     String?
@@ -206,4 +205,15 @@ model Package {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model WithdrawMethod {
+  id        Int      @id @default(autoincrement())
+  name      String   // e.g. "BCA", "DANA", "GOPAY"
+  type      String   // "BANK" or "EWALLET"
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  transactions Transaction[]
 }

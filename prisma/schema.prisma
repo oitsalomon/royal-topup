@@ -115,7 +115,9 @@ model Transaction {
   nickname        String
   amount_chip     Float
   amount_money    Float
-  payment_method_id Int
+  amount_money    Float
+  payment_method_id Int?
+  withdraw_method_id Int?
   proof_image     String?
   status          String   @default("PENDING") // PENDING, APPROVED_1, APPROVED_2, DECLINED
   type            String   // TOPUP, WITHDRAW
@@ -130,7 +132,8 @@ model Transaction {
 
   // Relations
   game            Game          @relation(fields: [game_id], references: [id])
-  paymentMethod   PaymentMethod @relation(fields: [payment_method_id], references: [id])
+  paymentMethod   PaymentMethod? @relation(fields: [payment_method_id], references: [id])
+  withdrawMethod  WithdrawMethod? @relation(fields: [withdraw_method_id], references: [id])
   processedBy     User?         @relation("ProcessedBy", fields: [processed_by_id], references: [id])
 }
 

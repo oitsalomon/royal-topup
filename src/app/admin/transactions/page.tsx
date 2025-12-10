@@ -14,7 +14,8 @@ interface Transaction {
     status: string
     proof_image: string | null
     game: { name: string }
-    paymentMethod: { name: string }
+    paymentMethod: { name: string } | null
+    withdrawMethod: { name: string } | null
     createdAt: string
     target_payment_details?: string
 }
@@ -318,7 +319,9 @@ export default function TransactionsPage() {
                                     </div>
                                     <div>
                                         <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">{tx.type === 'TOPUP' ? 'Bank Tujuan' : 'Metode'}</p>
-                                        <p className="text-cyan-400 font-bold text-lg">{tx.paymentMethod?.name || 'Unknown'}</p>
+                                        <p className="text-cyan-400 font-bold text-lg">
+                                            {tx.type === 'TOPUP' ? (tx.paymentMethod?.name || 'Unknown') : (tx.withdrawMethod?.name || 'Unknown')}
+                                        </p>
                                     </div>
 
                                     {/* Editable Target Payment Details (WD) */}

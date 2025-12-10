@@ -6,6 +6,7 @@ export default function Home() {
     <div className="min-h-screen">
       <HeroBanner />
       <GameGrid />
+      <footer className="text-center py-4 text-xs text-slate-700">v2.1</footer>
     </div>
   )
 }

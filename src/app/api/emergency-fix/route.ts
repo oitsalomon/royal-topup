@@ -4,10 +4,19 @@ import { PrismaClient } from '@prisma/client'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-    const prisma = new PrismaClient() // Fresh instance specifically for this emergency op
+    // Try to use the Direct URL to bypass the connection pooler
+    const directUrl = process.env.POSTGRES_URL_NON_POOLING
+
+    const prisma = new PrismaClient({
+        datasources: {
+            db: {
+                url: directUrl || process.env.POSTGRES_PRISMA_URL
+            }
+        }
+    })
 
     try {
-        console.log("Starting emergency fix...")
+        console.log("Starting emergency fix with Direct URL...")
 
         // 1. Wipe all Game Images
         console.log("Wiping game images...")

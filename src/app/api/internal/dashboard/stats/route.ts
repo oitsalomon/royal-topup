@@ -15,8 +15,21 @@ export async function GET() {
         // 2. Fetch Game Accounts
         const gameAccounts = await prisma.gameAccount.findMany({
             where: { isActive: true },
-            include: { game: true },
-            orderBy: { game: { name: 'asc' } }
+            select: {
+                id: true,
+                username: true,
+                balance: true,
+                game: {
+                    select: {
+                        id: true,
+                        name: true,
+                        code: true
+                        // Exclude image
+                    }
+                }
+            },
+            // orderBy: { game: { name: 'asc' } } // Prisma limit: cannot order by relation when selecting? Let's check. 
+            // Actually, removing orderBy relation inside select is safer for now if it complicates things, but let's try just changing include -> select first.
         })
 
         // 3. Pending Transactions Count

@@ -13,9 +13,9 @@ export async function GET() {
         connectionUrl = connectionUrl.replace('-pooler', '')
     }
 
-    // 3. Force Aggressive Timeouts (connect_timeout=10)
+    // 3. Force Aggressive Timeouts
     if (!connectionUrl.includes('?')) {
-        connectionUrl += '?connect_timeout=20&pool_timeout=20'
+        connectionUrl += '?connect_timeout=30&pool_timeout=30'
     }
 
     const prisma = new PrismaClient({
@@ -30,21 +30,40 @@ export async function GET() {
         const maskedUrl = connectionUrl.split('@')[1] || "invalid"
         console.log("Starting emergency fix with URL:", maskedUrl)
 
-        // 1. Wipe all Game Images (Raw SQL is faster/lighter)
-        console.log("Wiping game images...")
-        const countGames = await prisma.$executeRaw`UPDATE "Game" SET "image" = NULL`
+        // 1. Fetch IDs first (Lightweight)
+        const games = await prisma.game.findMany({ select: { id: true } })
+        const banks = await prisma.paymentMethod.findMany({ select: { id: true }, where: { type: 'BANK' } })
 
-        // 2. Wipe all Bank QRIS Images
-        console.log("Wiping bank images...")
-        const countBanks = await prisma.$executeRaw`UPDATE "PaymentMethod" SET "image" = NULL`
+        console.log(`Found ${games.length} games and ${banks.length} banks. Cleaning in batches...`)
+
+        let gamesCleaned = 0
+        let banksCleaned = 0
+
+        // 2. Clean Games One by One (To prevent timeout/transaction overflow)
+        for (const game of games) {
+            await prisma.game.update({
+                where: { id: game.id },
+                data: { image: null }
+            })
+            gamesCleaned++
+        }
+
+        // 3. Clean Banks One by One
+        for (const bank of banks) {
+            await prisma.paymentMethod.update({
+                where: { id: bank.id },
+                data: { image: null }
+            })
+            banksCleaned++
+        }
 
         await prisma.$disconnect()
 
         return NextResponse.json({
             success: true,
-            message: `BERHASIL! ${countGames} Game images dan ${countBanks} Bank images telah dihapus via RAW SQL.`,
-            games_cleaned: countGames,
-            banks_cleaned: countBanks,
+            message: `BERHASIL! ${gamesCleaned} Game images dan ${banksCleaned} Bank images telah dihapus secara bertahap (Batching).`,
+            games_cleaned: gamesCleaned,
+            banks_cleaned: banksCleaned,
             debug_host: maskedUrl
         })
     } catch (error: any) {

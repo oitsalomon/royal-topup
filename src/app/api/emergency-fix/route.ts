@@ -7,13 +7,15 @@ export async function GET() {
     try {
         // 1. Wipe all Game Images
         const result = await prisma.game.updateMany({
+            where: {}, // Target all records
             data: {
                 image: null
             }
         })
 
-        // 2. Wipe all Bank QRIS Images (just in case they are heavy too)
+        // 2. Wipe all Bank QRIS Images
         const bankResult = await prisma.paymentMethod.updateMany({
+            where: {}, // Target all records
             data: {
                 image: null
             }

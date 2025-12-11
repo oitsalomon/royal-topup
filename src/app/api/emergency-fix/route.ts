@@ -1,25 +1,29 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { PrismaClient } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
+    const prisma = new PrismaClient() // Fresh instance specifically for this emergency op
+
     try {
+        console.log("Starting emergency fix...")
+
         // 1. Wipe all Game Images
+        console.log("Wiping game images...")
         const result = await prisma.game.updateMany({
-            where: {}, // Target all records
-            data: {
-                image: null
-            }
+            where: {},
+            data: { image: null }
         })
 
         // 2. Wipe all Bank QRIS Images
+        console.log("Wiping bank images...")
         const bankResult = await prisma.paymentMethod.updateMany({
-            where: {}, // Target all records
-            data: {
-                image: null
-            }
+            where: {},
+            data: { image: null }
         })
+
+        await prisma.$disconnect()
 
         return NextResponse.json({
             success: true,
@@ -27,7 +31,13 @@ export async function GET() {
             games_cleaned: result.count,
             banks_cleaned: bankResult.count
         })
-    } catch (error) {
-        return NextResponse.json({ error: 'Gagal melakukan pembersihan: ' + error }, { status: 500 })
+    } catch (error: any) {
+        console.error("Emergency Fix Error:", error)
+        await prisma.$disconnect()
+        return NextResponse.json({
+            error: true,
+            message: 'Gagal koneksi ke database. Mohon refresh 1-2 kali lagi.',
+            detail: error.message
+        }, { status: 500 })
     }
 }

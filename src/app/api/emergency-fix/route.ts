@@ -13,6 +13,11 @@ export async function GET() {
         connectionUrl = connectionUrl.replace('-pooler', '')
     }
 
+    // 3. Force Aggressive Timeouts (connect_timeout=10)
+    if (!connectionUrl.includes('?')) {
+        connectionUrl += '?connect_timeout=20&pool_timeout=20'
+    }
+
     const prisma = new PrismaClient({
         datasources: {
             db: {
@@ -22,29 +27,25 @@ export async function GET() {
     })
 
     try {
-        console.log("Starting emergency fix with URL (masked):", connectionUrl.split('@')[1] || "invalid")
+        const maskedUrl = connectionUrl.split('@')[1] || "invalid"
+        console.log("Starting emergency fix with URL:", maskedUrl)
 
-        // 1. Wipe all Game Images
+        // 1. Wipe all Game Images (Raw SQL is faster/lighter)
         console.log("Wiping game images...")
-        const result = await prisma.game.updateMany({
-            where: {},
-            data: { image: null }
-        })
+        const countGames = await prisma.$executeRaw`UPDATE "Game" SET "image" = NULL`
 
         // 2. Wipe all Bank QRIS Images
         console.log("Wiping bank images...")
-        const bankResult = await prisma.paymentMethod.updateMany({
-            where: {},
-            data: { image: null }
-        })
+        const countBanks = await prisma.$executeRaw`UPDATE "PaymentMethod" SET "image" = NULL`
 
         await prisma.$disconnect()
 
         return NextResponse.json({
             success: true,
-            message: `BERHASIL! ${result.count} Game images dan ${bankResult.count} Bank images telah dihapus. Database sekarang enteng/ringan kembali.`,
-            games_cleaned: result.count,
-            banks_cleaned: bankResult.count
+            message: `BERHASIL! ${countGames} Game images dan ${countBanks} Bank images telah dihapus via RAW SQL.`,
+            games_cleaned: countGames,
+            banks_cleaned: countBanks,
+            debug_host: maskedUrl
         })
     } catch (error: any) {
         console.error("Emergency Fix Error:", error)
@@ -52,7 +53,8 @@ export async function GET() {
         return NextResponse.json({
             error: true,
             message: 'Gagal koneksi ke database. Mohon refresh 1-2 kali lagi.',
-            detail: error.message
+            detail: error.message,
+            debug_host: connectionUrl.split('@')[1] || "invalid"
         }, { status: 500 })
     }
 }

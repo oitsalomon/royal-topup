@@ -1,22 +1,29 @@
+```javascript
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-    // Try to use the Direct URL to bypass the connection pooler
-    const directUrl = process.env.POSTGRES_URL_NON_POOLING
+    // 1. Get the base URL
+    let connectionUrl = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_PRISMA_URL || ""
+    
+    // 2. Hack: If it contains "-pooler", strip it to guess the Direct URL
+    if (connectionUrl.includes('-pooler')) {
+        console.log("Detected pooler URL, attempting to derive direct URL...")
+        connectionUrl = connectionUrl.replace('-pooler', '')
+    }
 
     const prisma = new PrismaClient({
         datasources: {
             db: {
-                url: directUrl || process.env.POSTGRES_PRISMA_URL
+                url: connectionUrl
             }
         }
     })
-
+    
     try {
-        console.log("Starting emergency fix with Direct URL...")
+        console.log("Starting emergency fix with URL (masked):", connectionUrl.split('@')[1] || "invalid")
 
         // 1. Wipe all Game Images
         console.log("Wiping game images...")
@@ -36,7 +43,7 @@ export async function GET() {
 
         return NextResponse.json({
             success: true,
-            message: `BERHASIL! ${result.count} Game images dan ${bankResult.count} Bank images telah dihapus. Database sekarang enteng/ringan kembali.`,
+            message: `BERHASIL! ${ result.count } Game images dan ${ bankResult.count } Bank images telah dihapus.Database sekarang enteng / ringan kembali.`,
             games_cleaned: result.count,
             banks_cleaned: bankResult.count
         })

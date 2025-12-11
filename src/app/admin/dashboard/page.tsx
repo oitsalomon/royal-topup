@@ -43,7 +43,14 @@ export default function AdminDashboard() {
         setLoading(true)
         fetch('/api/internal/dashboard/stats')
             .then(res => res.json())
-            .then(setData)
+            .then(data => {
+                if (data.banks && Array.isArray(data.banks)) {
+                    setData(data)
+                } else {
+                    console.error('Invalid stats data:', data)
+                    // Keep default empty state but stop loading
+                }
+            })
             .catch(console.error)
             .finally(() => setLoading(false))
     }

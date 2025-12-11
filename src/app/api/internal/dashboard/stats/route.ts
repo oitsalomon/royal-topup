@@ -9,7 +9,16 @@ export async function GET() {
         // 1. Fetch Banks
         const banks = await prisma.paymentMethod.findMany({
             where: { type: 'BANK', isActive: true },
-            orderBy: { name: 'asc' }
+            orderBy: { name: 'asc' },
+            select: {
+                id: true,
+                name: true,
+                account_number: true,
+                account_name: true,
+                balance: true,
+                type: true
+                // Exclude image
+            }
         })
 
         // 2. Fetch Game Accounts

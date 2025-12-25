@@ -64,11 +64,17 @@ export default function AdminLayout({
     }
 
     return (
-        <div className="flex min-h-screen bg-[#0a0f1c]">
+        <div className="flex min-h-screen bg-[#050912]">
+            {/* Background Pattern */}
+            <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] pointer-events-none opacity-[0.03]" />
+            <div className="fixed inset-0 bg-gradient-to-br from-emerald-900/5 via-[#050912] to-[#050912] pointer-events-none" />
+
             {!isLoginPage && <Sidebar />}
             {!isLoginPage && <PendingNotifier />}
             <main className={`flex-1 overflow-y-auto relative z-10 ${!isLoginPage ? 'p-8' : ''}`}>
-                {children}
+                <div className="max-w-7xl mx-auto">
+                    {children}
+                </div>
             </main>
         </div>
     )

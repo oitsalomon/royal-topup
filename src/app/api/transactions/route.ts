@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getTransactions } from '@/services/transactions'
 
 export async function POST(request: Request) {
     try {
@@ -52,63 +53,22 @@ export async function GET(request: Request) {
         const status = searchParams.get('status')
         const type = searchParams.get('type')
         const bank_id = searchParams.get('bank_id')
-        const date = searchParams.get('date') // YYYY-MM-DD
-        const search = searchParams.get('search') // Nickname or Game ID
+        const date = searchParams.get('date')
+        const search = searchParams.get('search')
         const page = Number(searchParams.get('page')) || 1
         const limit = Number(searchParams.get('limit')) || 20
-        const skip = (page - 1) * limit
 
-        const where: any = {}
-        if (status) where.status = status
-        if (type && type !== 'all') where.type = type
-        if (bank_id && bank_id !== 'all') where.payment_method_id = Number(bank_id)
-
-        if (date) {
-            const startDate = new Date(date)
-            startDate.setHours(0, 0, 0, 0)
-            const endDate = new Date(date)
-            endDate.setHours(23, 59, 59, 999)
-
-            where.createdAt = {
-                gte: startDate,
-                lte: endDate
-            }
-        }
-
-        if (search) {
-            where.OR = [
-                { nickname: { contains: search, mode: 'insensitive' } },
-                { user_game_id: { contains: search, mode: 'insensitive' } },
-                { user_wa: { contains: search, mode: 'insensitive' } }
-            ]
-        }
-
-        const [transactions, total] = await prisma.$transaction([
-            prisma.transaction.findMany({
-                where,
-                include: {
-                    game: true,
-                    paymentMethod: true,
-                    withdrawMethod: true, // Include this
-                },
-                orderBy: {
-                    createdAt: 'desc'
-                },
-                take: limit,
-                skip: skip
-            }),
-            prisma.transaction.count({ where })
-        ])
-
-        return NextResponse.json({
-            data: transactions,
-            pagination: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit)
-            }
+        const result = await getTransactions({
+            status,
+            type,
+            bank_id,
+            date,
+            search,
+            page,
+            limit
         })
+
+        return NextResponse.json(result)
     } catch (error) {
         console.error('Transaction fetch error:', error)
         return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 })

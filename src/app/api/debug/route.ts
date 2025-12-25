@@ -39,11 +39,47 @@ export async function GET() {
         debugInfo.prismaStatus = 'Connected'
 
         // Check specifically for Admin
-        const admin = await prisma.user.findFirst({
+        let admin = await prisma.user.findFirst({
             where: { username: 'admin' },
             select: { id: true, username: true, role: true, password: true }
         })
+
+        // AUTO-FIX: If Admin missing, create it
+        if (!admin) {
+            debugInfo.autoFixAdmin = 'Attempting to create admin...'
+            try {
+                admin = await prisma.user.create({
+                    data: {
+                        username: 'admin',
+                        password: 'admin123',
+                        role: 'ADMIN',
+                        balance_money: 1000000,
+                        balance_chip: 1000000,
+                    },
+                    select: { id: true, username: true, role: true, password: true }
+                })
+                debugInfo.autoFixAdminResult = 'Success'
+            } catch (err: any) {
+                debugInfo.autoFixAdminResult = 'Failed: ' + err.message
+            }
+        }
+
         debugInfo.adminUser = admin || 'NOT FOUND'
+
+        // AUTO-FIX: If Games missing, create defaults
+        if (gameCount === 0) {
+            debugInfo.autoFixGames = 'Attempting to seed games...'
+            const defaultGames = [
+                { name: 'Royal Aqua', code: 'ROYAL_AQUA', image: '/images/royal-aqua.png', category: 'GAMES', isActive: true },
+                { name: 'Neo Party', code: 'NEO_PARTY', image: '/images/neo-party.png', category: 'GAMES', isActive: true },
+                { name: 'Aqua Gacor', code: 'AQUA_GACOR', image: '/images/aqua-gacor.png', category: 'GAMES', isActive: true },
+                { name: 'Royal Dream', code: 'ROYAL_DREAM', image: '/images/royal-dream.png', category: 'GAMES', isActive: true },
+            ]
+            for (const g of defaultGames) {
+                await prisma.game.create({ data: g })
+            }
+            debugInfo.autoFixGamesResult = 'Seeded ' + defaultGames.length + ' games'
+        }
 
     } catch (e: any) {
         debugInfo.prismaStatus = 'Error: ' + e.message
@@ -53,7 +89,7 @@ export async function GET() {
     try {
         const test = await prisma.activityLog.create({
             data: {
-                user_id: 1, // Dummy
+                user_id: 1, // Dummy (will fail if user 1 missing, but we sort of fixed it above)
                 action: 'DEBUG_TEST',
                 details: 'Testing write access'
             }

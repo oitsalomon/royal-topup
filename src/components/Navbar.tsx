@@ -32,11 +32,12 @@ export default function Navbar() {
                 <div className="flex items-center justify-between h-20">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2 group cursor-pointer">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 group-hover:shadow-cyan-500/40 transition-all duration-300">
-                            <span className="text-white font-bold text-xl">A</span>
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/40 transition-all duration-300">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/images/clover-logo.png" alt="Clover" className="w-7 h-7 object-contain" />
                         </div>
-                        <span className="text-2xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent group-hover:to-white transition-all">
-                            AQUA STORE
+                        <span className="text-2xl font-bold bg-gradient-to-r from-emerald-300 via-yellow-200 to-emerald-300 bg-clip-text text-transparent group-hover:to-white transition-all">
+                            CLOVER STORE
                         </span>
                     </Link>
 

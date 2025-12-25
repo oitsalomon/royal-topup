@@ -6,8 +6,8 @@ import Navbar from "@/components/Navbar";
 const outfit = Outfit({ subsets: ["latin"], variable: '--font-outfit' });
 
 export const metadata: Metadata = {
-  title: "Aqua Store - Top Up & Withdraw Terpercaya",
-  description: "Layanan Top Up & Withdraw Game Tercepat dan Aman.",
+  title: "Clover Store - Top Up Game Sultan",
+  description: "Layanan Top Up & Withdraw Game Tercepat, Aman, dan Terpercaya.",
 };
 
 export default function RootLayout({

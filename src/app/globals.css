@@ -1,69 +1,133 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0f172a;
-  /* Slate 900 instead of pure black */
+  --background: #050912;
+  /* Deep Dark Blue/Black */
   --foreground: #f8fafc;
+
+  /* Clover SULTAN Palette */
+  --emerald-glow: #10b981;
+  --gold-accent: #fbbf24;
 }
 
 body {
   color: var(--foreground);
-  background: radial-gradient(circle at top center, #1e293b, #0f172a);
+  background-color: var(--background);
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(251, 191, 36, 0.05), transparent 25%);
   min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  /* Ensure a clean sans-serif font is used */
 }
 
 @layer utilities {
+
+  /* Premium Glass Effect */
   .glass {
-    background-color: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.03);
     backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   }
 
-  .glass-hover {
-    transition: all 300ms;
+  .glass-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  .glass-hover:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+  .glass-card:hover {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+    border-color: rgba(16, 185, 129, 0.3);
+    /* Emerald border on hover */
+    transform: translateY(-4px);
+    box-shadow: 0 10px 40px -10px rgba(16, 185, 129, 0.2);
   }
 
-  .text-gradient {
-    background-image: linear-gradient(to right, #22d3ee, #3b82f6, #9333ea);
+  /* Text Gradients */
+  .text-gradient-gold {
+    background: linear-gradient(to right, #fcd34d, #fbbf24, #d97706);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
+  .text-gradient-emerald {
+    background: linear-gradient(to right, #34d399, #10b981, #059669);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Animations */
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
 
   .animate-glow {
-    animation: glow 2s ease-in-out infinite alternate;
+    animation: glow 3s ease-in-out infinite alternate;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(to right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
   }
 }
 
 @keyframes float {
-  0% {
+
+  0%,
+  100% {
     transform: translateY(0px);
   }
 
   50% {
     transform: translateY(-20px);
   }
-
-  100% {
-    transform: translateY(0px);
-  }
 }
 
 @keyframes glow {
   from {
-    box-shadow: 0 0 10px -10px rgba(6, 182, 212, 0);
+    box-shadow: 0 0 20px -10px rgba(16, 185, 129, 0.1);
   }
 
   to {
-    box-shadow: 0 0 20px 5px rgba(6, 182, 212, 0.3);
+    box-shadow: 0 0 30px 10px rgba(16, 185, 129, 0.2);
   }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #050912;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
 }

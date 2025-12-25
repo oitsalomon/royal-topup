@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
-import FloatingCS from "@/components/FloatingCS";
 
 const outfit = Outfit({ subsets: ["latin"], variable: '--font-outfit' });
 
@@ -25,7 +24,6 @@ export default function RootLayout({
         <main className="min-h-screen relative z-10">
           {children}
         </main>
-        <FloatingCS />
       </body>
     </html>
   );

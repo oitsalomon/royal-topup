@@ -57,6 +57,12 @@ Aplikasi ini menggunakan database file `dev.db`.
     *   Ubah `provider = "sqlite"` di `schema.prisma` menjadi `postgresql` / `mysql`.
     *   Update `DATABASE_URL` di `.env`.
 
+## 🧹 Otomatisasi Maintenance (Cron Job)
+Aplikasi ini sekarang memiliki fitur **Auto-Cleanup** yang berjalan otomatis setiap tanggal 1 (via Vercel Cron).
+*   Logs > 90 hari akan dihapus.
+*   Transaksi selesai > 6 bulan akan dihapus.
+*   **Cara Cek**: Di Dashboard Vercel, buka tab **Settings > Cron Jobs**.
+
 ---
 
 ## Fitur Baru: Manajemen Staff (Super Admin)

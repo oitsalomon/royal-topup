@@ -183,8 +183,8 @@ export default function AdminDashboard() {
     const [showGameDetails, setShowGameDetails] = useState(false)
 
     // Calculate Totals
-    const totalBankBalance = data.banks.reduce((acc: number, curr: any) => acc + (Number(curr.balance) || 0), 0)
-    const totalChipBalance = data.gameAccounts.reduce((acc: number, curr: any) => acc + (Number(curr.balance) || 0), 0)
+    const totalBankBalance = (data?.banks || []).reduce((acc: number, curr: any) => acc + (Number(curr.balance) || 0), 0)
+    const totalChipBalance = (data?.gameAccounts || []).reduce((acc: number, curr: any) => acc + (Number(curr.balance) || 0), 0)
 
     if (loading) return <div className="p-8 text-white">Loading dashboard...</div>
 
@@ -233,7 +233,7 @@ export default function AdminDashboard() {
                         <Coins size={24} />
                     </div>
                 </div>
-                {data.pendingCount > 0 ? (
+                {data?.pendingCount > 0 ? (
                     <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl flex items-center justify-between animate-pulse">
                         <div>
                             <p className="text-yellow-500 text-xs font-medium uppercase tracking-wider">Perlu Proses</p>
@@ -276,7 +276,7 @@ export default function AdminDashboard() {
 
                         {showBankDetails && (
                             <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                                {data.banks.map((bank: any) => (
+                                {(data?.banks || []).map((bank: any) => (
                                     <div key={bank.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-2">
@@ -311,7 +311,7 @@ export default function AdminDashboard() {
 
                         {showGameDetails && (
                             <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                                {data.gameAccounts.map((acc: any) => (
+                                {(data?.gameAccounts || []).map((acc: any) => (
                                     <div key={acc.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
                                         <div className="min-w-0">
                                             <div className="flex items-center gap-2">
@@ -343,19 +343,19 @@ export default function AdminDashboard() {
                                 <span className="text-xs text-green-400 font-bold flex items-center gap-1">
                                     <ArrowDownLeft size={14} /> Top Up
                                 </span>
-                                <span className="text-xs text-gray-400">{data.dailyStats.topup.count} Form</span>
+                                <span className="text-xs text-gray-400">{data?.dailyStats?.topup?.count || 0} Form</span>
                             </div>
                             <div className="flex justify-between items-end">
                                 <div>
                                     <p className="text-[10px] text-gray-500">Uang Masuk</p>
-                                    <p className="text-sm font-bold text-white">Rp {data.dailyStats.topup.money_in.toLocaleString()}</p>
+                                    <p className="text-sm font-bold text-white">Rp {(data?.dailyStats?.topup?.money_in || 0).toLocaleString()}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-[10px] text-gray-500">Chip Keluar</p>
                                     <p className="text-sm font-bold text-blue-400">
-                                        {data.dailyStats.topup.chip_out < 1
-                                            ? `${(data.dailyStats.topup.chip_out * 1000).toLocaleString()} M`
-                                            : `${data.dailyStats.topup.chip_out.toLocaleString()} B`
+                                        {(data?.dailyStats?.topup?.chip_out || 0) < 1
+                                            ? `${((data?.dailyStats?.topup?.chip_out || 0) * 1000).toLocaleString()} M`
+                                            : `${(data?.dailyStats?.topup?.chip_out || 0).toLocaleString()} B`
                                         }
                                     </p>
                                 </div>
@@ -367,19 +367,19 @@ export default function AdminDashboard() {
                                 <span className="text-xs text-red-400 font-bold flex items-center gap-1">
                                     <ArrowUpRight size={14} /> Withdraw
                                 </span>
-                                <span className="text-xs text-gray-400">{data.dailyStats.withdraw.count} Form</span>
+                                <span className="text-xs text-gray-400">{data?.dailyStats?.withdraw?.count || 0} Form</span>
                             </div>
                             <div className="flex justify-between items-end">
                                 <div>
                                     <p className="text-[10px] text-gray-500">Uang Keluar</p>
-                                    <p className="text-sm font-bold text-white">Rp {data.dailyStats.withdraw.money_out.toLocaleString()}</p>
+                                    <p className="text-sm font-bold text-white">Rp {(data?.dailyStats?.withdraw?.money_out || 0).toLocaleString()}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-[10px] text-gray-500">Chip Masuk</p>
                                     <p className="text-sm font-bold text-blue-400">
-                                        {data.dailyStats.withdraw.chip_in < 1
-                                            ? `${(data.dailyStats.withdraw.chip_in * 1000).toLocaleString()} M`
-                                            : `${data.dailyStats.withdraw.chip_in.toLocaleString()} B`
+                                        {(data?.dailyStats?.withdraw?.chip_in || 0) < 1
+                                            ? `${((data?.dailyStats?.withdraw?.chip_in || 0) * 1000).toLocaleString()} M`
+                                            : `${(data?.dailyStats?.withdraw?.chip_in || 0).toLocaleString()} B`
                                         }
                                     </p>
                                 </div>
@@ -419,7 +419,7 @@ export default function AdminDashboard() {
                                             required
                                         >
                                             <option value="">-- Pilih Bank --</option>
-                                            {data.banks.map((b: any) => (
+                                            {(data?.banks || []).map((b: any) => (
                                                 <option key={b.id} value={b.id}>{b.name} - {b.account_number}</option>
                                             ))}
                                         </select>
@@ -436,7 +436,7 @@ export default function AdminDashboard() {
                                             required
                                         >
                                             <option value="">-- Pilih Akun Game --</option>
-                                            {data.gameAccounts.map((g: any) => (
+                                            {(data?.gameAccounts || []).map((g: any) => (
                                                 <option key={g.id} value={g.id}>{g.game?.name} - {g.username}</option>
                                             ))}
                                         </select>
@@ -543,7 +543,7 @@ export default function AdminDashboard() {
                                             onChange={e => setTransferData({ ...transferData, source_id: e.target.value })}
                                         >
                                             <option value="">Pilih Akun Asal</option>
-                                            {data.gameAccounts.map((g: any) => (
+                                            {(data?.gameAccounts || []).map((g: any) => (
                                                 <option key={g.id} value={g.id}>{g.game?.name} - {g.username} ({g.balance} B)</option>
                                             ))}
                                         </select>
@@ -557,7 +557,7 @@ export default function AdminDashboard() {
                                             onChange={e => setTransferData({ ...transferData, target_id: e.target.value })}
                                         >
                                             <option value="">Pilih Akun Tujuan</option>
-                                            {data.gameAccounts.map((g: any) => (
+                                            {(data?.gameAccounts || []).map((g: any) => (
                                                 <option key={g.id} value={g.id}>{g.game?.name} - {g.username} ({g.balance} B)</option>
                                             ))}
                                         </select>
@@ -574,7 +574,7 @@ export default function AdminDashboard() {
                                             onChange={e => setTransferData({ ...transferData, source_id: e.target.value })}
                                         >
                                             <option value="">Pilih Bank Asal</option>
-                                            {data.banks.map((b: any) => (
+                                            {(data?.banks || []).map((b: any) => (
                                                 <option key={b.id} value={b.id}>{b.name} - {b.account_name} (Rp {b.balance.toLocaleString()})</option>
                                             ))}
                                         </select>
@@ -588,7 +588,7 @@ export default function AdminDashboard() {
                                             onChange={e => setTransferData({ ...transferData, target_id: e.target.value })}
                                         >
                                             <option value="">Pilih Bank Tujuan</option>
-                                            {data.banks.map((b: any) => (
+                                            {(data?.banks || []).map((b: any) => (
                                                 <option key={b.id} value={b.id}>{b.name} - {b.account_name} (Rp {b.balance.toLocaleString()})</option>
                                             ))}
                                         </select>

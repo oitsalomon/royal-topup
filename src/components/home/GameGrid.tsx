@@ -19,15 +19,26 @@ export default function GameGrid() {
 
     useEffect(() => {
         fetch('/api/games')
-            .then((res) => res.json())
+            .then(async (res) => {
+                if (!res.ok) {
+                    const text = await res.text()
+                    throw new Error(`Failed to fetch games: ${res.status} ${text}`)
+                }
+                return res.json()
+            })
             .then((data) => {
                 // Filter active games
-                const activeGames = data.filter((g: Game) => g.isActive)
-                setGames(activeGames)
+                if (Array.isArray(data)) {
+                    const activeGames = data.filter((g: Game) => g.isActive)
+                    setGames(activeGames)
+                } else {
+                    console.error('API response is not an array:', data)
+                    setGames([])
+                }
                 setLoading(false)
             })
             .catch((err) => {
-                console.error(err)
+                console.error('Error loading games:', err)
                 setLoading(false)
             })
     }, [])
@@ -101,6 +112,18 @@ export default function GameGrid() {
                                 </Link>
                             )
                         })}
+                    </div>
+                )}
+
+                {!loading && games.length === 0 && (
+                    <div className="text-center py-10 bg-white/5 rounded-2xl border border-white/10">
+                        <p className="text-gray-400">Belum ada game yang tersedia saat ini.</p>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="mt-4 px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg hover:bg-cyan-500/30 transition-colors text-sm"
+                        >
+                            Refresh Halaman
+                        </button>
                     </div>
                 )}
             </div>

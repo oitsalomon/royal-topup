@@ -21,7 +21,7 @@ export async function GET() {
                 externalUrl: true,
                 createdAt: true,
                 updatedAt: true,
-                // image: false // Exclude heavy image data to prevent Vercel Function Timeout
+                image: true
             }
         })
 

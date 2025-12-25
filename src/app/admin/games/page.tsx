@@ -26,6 +26,7 @@ export default function AdminGames() {
         externalUrl: ''
     })
     const [isEditing, setIsEditing] = useState(false)
+    const [uploading, setUploading] = useState(false)
 
     const fetchGames = async () => {
         const res = await fetch('/api/games')
@@ -146,52 +147,61 @@ export default function AdminGames() {
                             className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
                             value={formData.code} onChange={e => setFormData({ ...formData, code: e.target.value })} required
                         />
-                        <div className="relative group">
-                            <label className="block text-xs text-gray-400 mb-1">Gambar Game</label>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={(e) => {
-                                    const file = e.target.files?.[0]
-                                    if (file) {
-                                        // Compress Image Logic
-                                        const reader = new FileReader()
-                                        reader.onload = (event) => {
-                                            const img = new Image()
-                                            img.src = event.target?.result as string
-                                            img.onload = () => {
-                                                const canvas = document.createElement('canvas')
-                                                const MAX_WIDTH = 500
-                                                const scaleSize = MAX_WIDTH / img.width
-                                                canvas.width = MAX_WIDTH
-                                                canvas.height = img.height * scaleSize
+                        <label className="block text-xs text-gray-400 mb-1">Gambar Game</label>
+                        <div className="flex items-center gap-4">
+                            <div className="relative w-24 h-24 bg-white/5 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center group/preview">
+                                {uploading ? (
+                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500"></div>
+                                ) : formData.image ? (
+                                    <>
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, image: '' })}
+                                            className="absolute inset-0 bg-black/60 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center text-red-500"
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
+                                    </>
+                                ) : (
+                                    <Gamepad2 className="text-gray-600" size={32} />
+                                )}
+                            </div>
+                            <div className="flex-1">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0]
+                                        if (!file) return
 
-                                                const ctx = canvas.getContext('2d')
-                                                ctx?.drawImage(img, 0, 0, canvas.width, canvas.height)
+                                        setUploading(true)
+                                        const uploadData = new FormData()
+                                        uploadData.append('file', file)
 
-                                                // Convert to JPEG with 0.7 quality
-                                                const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7)
-                                                setFormData({ ...formData, image: compressedBase64 })
+                                        try {
+                                            const res = await fetch('/api/upload', {
+                                                method: 'POST',
+                                                body: uploadData
+                                            })
+                                            const data = await res.json()
+                                            if (data.url) {
+                                                setFormData({ ...formData, image: data.url })
+                                            } else {
+                                                alert('Gagal upload: ' + (data.error || 'Unknown error'))
                                             }
+                                        } catch (err) {
+                                            console.error('Upload error:', err)
+                                            alert('Terjadi kesalahan saat upload gambar')
+                                        } finally {
+                                            setUploading(false)
                                         }
-                                        reader.readAsDataURL(file)
-                                    }
-                                }}
-                                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-500 file:text-white hover:file:bg-cyan-600"
-                            />
-                            {formData.image && (
-                                <div className="mt-2 relative w-full h-32 rounded-lg overflow-hidden border border-white/10">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
-                                    <button
-                                        type="button"
-                                        onClick={() => setFormData({ ...formData, image: '' })}
-                                        className="absolute top-1 right-1 bg-red-500/80 text-white p-1 rounded-full hover:bg-red-600"
-                                    >
-                                        <Trash2 size={12} />
-                                    </button>
-                                </div>
-                            )}
+                                    }}
+                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-cyan-500 file:text-white hover:file:bg-cyan-600 text-sm"
+                                />
+                                <p className="text-xs text-gray-500 mt-2">Upload gambar (JPG/PNG). Otomatis masuk Cloud Storage.</p>
+                            </div>
                         </div>
                         <select
                             className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
@@ -225,8 +235,9 @@ export default function AdminGames() {
                             <button type="submit" className="px-6 py-2 bg-cyan-500 text-white rounded-xl font-bold">Simpan</button>
                         </div>
                     </form>
-                </div>
-            )}
+                </div >
+            )
+            }
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {games.map((game) => (
@@ -267,6 +278,6 @@ export default function AdminGames() {
                     </div>
                 ))}
             </div>
-        </div>
+        </div >
     )
 }

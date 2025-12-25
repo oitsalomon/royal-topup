@@ -46,14 +46,16 @@ export default function TopUpForm({ gameCode, gameName }: TopUpFormProps) {
     const [manualMode, setManualMode] = useState(false)
 
     useEffect(() => {
-        // Fetch Payment Methods
-        fetch('/api/payment-methods')
+        // Fetch Payment Methods with Game Code filter
+        fetch(`/api/payment-methods?gameCode=${gameCode}`)
             .then(res => res.json())
 
             .then((data: PaymentMethod[]) => {
-                // Filter for Deposit Only available methods
-                const filtered = data.filter(pm => !pm.category || pm.category === 'DEPOSIT' || pm.category === 'BOTH')
-                setPaymentMethods(filtered)
+                if (Array.isArray(data)) {
+                    // Filter for Deposit Only available methods
+                    const filtered = data.filter(pm => !pm.category || pm.category === 'DEPOSIT' || pm.category === 'BOTH')
+                    setPaymentMethods(filtered)
+                }
             })
             .catch(err => console.error(err))
 
@@ -66,7 +68,7 @@ export default function TopUpForm({ gameCode, gameName }: TopUpFormProps) {
                 }
             })
             .catch(err => console.error(err))
-    }, [])
+    }, [gameCode])
 
     const [uploading, setUploading] = useState(false)
 

@@ -9,7 +9,10 @@ const getUserId = (req: Request) => {
 export async function GET() {
     try {
         const banks = await prisma.paymentMethod.findMany({
-            include: { admin: true },
+            include: {
+                admin: true,
+                games: true // Include game relations
+            },
             orderBy: { isActive: 'desc' }
         })
         return NextResponse.json(banks)
@@ -21,7 +24,7 @@ export async function GET() {
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const { name, type, account_number, account_name, admin_id, balance, image } = body
+        const { name, type, account_number, account_name, admin_id, balance, image, gameIds } = body
         const userId = getUserId(request)
 
         // Create Bank
@@ -35,7 +38,10 @@ export async function POST(request: Request) {
                 balance: balance ? Number(balance) : 0,
                 image: image || null,
                 category: body.category || 'BOTH',
-                isActive: true
+                isActive: true,
+                games: {
+                    connect: gameIds?.map((id: number) => ({ id: Number(id) })) || []
+                }
             }
         })
 
@@ -57,10 +63,10 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         const body = await request.json()
-        const { id, name, type, account_number, account_name, balance, isActive, image, category } = body
+        const { id, name, type, account_number, account_name, balance, isActive, image, category, gameIds } = body
         const userId = getUserId(request)
 
-        // Update Bank
+        // Update Bank with Relations
         const bank = await prisma.paymentMethod.update({
             where: { id: Number(id) },
             data: {
@@ -71,7 +77,10 @@ export async function PUT(request: Request) {
                 balance: balance !== undefined ? Number(balance) : undefined,
                 isActive: isActive !== undefined ? isActive : undefined,
                 image: image !== undefined ? image : undefined,
-                category: category !== undefined ? category : undefined
+                category: category !== undefined ? category : undefined,
+                games: gameIds !== undefined ? {
+                    set: gameIds.map((gid: number) => ({ id: Number(gid) }))
+                } : undefined
             }
         })
 
@@ -90,6 +99,7 @@ export async function PUT(request: Request) {
 
         return NextResponse.json(bank)
     } catch (error) {
+        console.error(error)
         return NextResponse.json({ error: 'Failed to update bank' }, { status: 500 })
     }
 }

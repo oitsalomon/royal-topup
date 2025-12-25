@@ -22,6 +22,9 @@ export default function AdminBanks() {
     const [isEditing, setIsEditing] = useState(false)
     const [editId, setEditId] = useState(0)
 
+    // New: Available Games Logic
+    const [availableGames, setAvailableGames] = useState<any[]>([])
+
     const [formData, setFormData] = useState({
         name: '',
         type: 'BANK',
@@ -30,7 +33,8 @@ export default function AdminBanks() {
         balance: '',
         image: '',
         category: 'BOTH',
-        admin_id: '1'
+        admin_id: '1',
+        gameIds: [] as number[] // New: Selected Game IDs
     })
     const [uploading, setUploading] = useState(false)
 
@@ -45,6 +49,14 @@ export default function AdminBanks() {
                 }
             }
         } catch (e) { console.error(e) }
+
+        // Fetch Games for Selection
+        fetch('/api/games')
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) setAvailableGames(data)
+            })
+            .catch(console.error)
     }, [])
 
     const fetchBanks = async () => {
@@ -102,7 +114,7 @@ export default function AdminBanks() {
         }
     }
 
-    const handleEdit = (bank: Bank) => {
+    const handleEdit = (bank: any) => {
         setFormData({
             name: bank.name,
             type: bank.type,
@@ -111,7 +123,8 @@ export default function AdminBanks() {
             balance: bank.balance.toString(),
             image: bank.image || '',
             category: bank.category || 'BOTH',
-            admin_id: '1'
+            admin_id: '1',
+            gameIds: bank.games?.map((g: any) => g.id) || [] // Load existing Relations
         })
         setEditId(bank.id)
         setIsEditing(true)
@@ -127,7 +140,8 @@ export default function AdminBanks() {
             balance: '',
             image: '',
             category: 'BOTH',
-            admin_id: '1'
+            admin_id: '1',
+            gameIds: []
         })
         setIsEditing(false)
         setEditId(0)
@@ -252,6 +266,31 @@ export default function AdminBanks() {
                             className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
                             value={formData.balance} onChange={e => setFormData({ ...formData, balance: e.target.value })}
                         />
+
+                        {/* Game Selection */}
+                        <div className="md:col-span-2 bg-black/20 p-4 rounded-xl border border-white/5">
+                            <label className="text-sm font-bold text-white mb-2 block">Tampilkan Khusus Game:</label>
+                            <p className="text-xs text-gray-400 mb-3">Biarkan kosong jika ingin tampil di SEMUA game.</p>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-40 overflow-y-auto">
+                                {availableGames.map(game => (
+                                    <label key={game.id} className="flex items-center gap-2 text-sm text-gray-300 cursor-pointer hover:text-white">
+                                        <input
+                                            type="checkbox"
+                                            checked={formData.gameIds.includes(game.id)}
+                                            onChange={(e) => {
+                                                if (e.target.checked) {
+                                                    setFormData(prev => ({ ...prev, gameIds: [...prev.gameIds, game.id] }))
+                                                } else {
+                                                    setFormData(prev => ({ ...prev, gameIds: prev.gameIds.filter(id => id !== game.id) }))
+                                                }
+                                            }}
+                                            className="rounded border-gray-600 bg-black/40 text-cyan-500 focus:ring-cyan-500"
+                                        />
+                                        {game.name}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
 
                         {/* Image Upload for QRIS */}
                         <div className="md:col-span-2">

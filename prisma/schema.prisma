@@ -48,6 +48,7 @@ model Game {
   
   transactions Transaction[]
   gameAccounts GameAccount[]
+  paymentMethods PaymentMethod[] // Implicit Many-to-Many
 }
 
 model PaymentMethod {
@@ -58,6 +59,9 @@ model PaymentMethod {
   account_name  String
   image         String?
   category      String   @default("BOTH") // DEPOSIT, WITHDRAW, BOTH
+  
+  // Relations
+  games         Game[]   // Implicit Many-to-Many
   
   // Internal System Fields
   balance       Float    @default(0)

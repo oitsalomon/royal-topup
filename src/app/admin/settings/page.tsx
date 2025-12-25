@@ -55,7 +55,7 @@ export default function SettingsPage() {
         setConfig((prev: any) => ({
             ...prev,
             [section]: {
-                ...prev[section],
+                ...(prev?.[section] || {}),
                 [field]: value
             }
         }))
@@ -63,16 +63,21 @@ export default function SettingsPage() {
 
     // This helper is for deeply nested properties like config.section.subsection.field
     const updateNestedConfig = (section: string, subsection: string, field: string, value: any) => {
-        setConfig((prev: any) => ({
-            ...prev,
-            [section]: {
-                ...prev[section],
-                [subsection]: {
-                    ...prev[section][subsection],
-                    [field]: value
+        setConfig((prev: any) => {
+            const sectionData = prev?.[section] || {}
+            const subsectionData = sectionData[subsection] || {}
+
+            return {
+                ...prev,
+                [section]: {
+                    ...sectionData,
+                    [subsection]: {
+                        ...subsectionData,
+                        [field]: value
+                    }
                 }
             }
-        }))
+        })
     }
 
     if (loading) return <div className="p-8 text-center text-white">Loading settings...</div>

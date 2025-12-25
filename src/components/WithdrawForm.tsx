@@ -102,8 +102,8 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
             })
 
             if (res.ok) {
-                alert('Permintaan Withdraw Berhasil Dikirim! Tunggu konfirmasi admin.')
-                router.push('/')
+                alert('Permintaan Withdraw berhasil dikirim!\n\nMohon tunggu sejenak. Jika sudah lewat 1 menit, silakan cek status transaksi Anda di sini.\n\nApabila ada keluhan, jangan ragu untuk langsung menghubungi CS kami.')
+                router.push('/check-transaction')
             } else {
                 alert('Gagal mengirim Withdraw.')
             }

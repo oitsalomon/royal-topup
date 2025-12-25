@@ -184,7 +184,10 @@ export default function AdminDashboard() {
 
     // Calculate Totals
     const totalBankBalance = (data?.banks || []).reduce((acc: number, curr: any) => acc + (Number(curr.balance) || 0), 0)
-    const totalChipBalance = (data?.gameAccounts || []).reduce((acc: number, curr: any) => acc + (Number(curr.balance) || 0), 0)
+    // Use server-side total if available (optimized), else fallback to client-side reduce
+    const totalChipBalance = data?.totalStats?.chipBalance !== undefined
+        ? Number(data.totalStats.chipBalance)
+        : (data?.gameAccounts || []).reduce((acc: number, curr: any) => acc + (Number(curr.balance) || 0), 0)
 
     if (loading) return <div className="p-8 text-white">Loading dashboard...</div>
 

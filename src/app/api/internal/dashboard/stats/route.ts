@@ -6,88 +6,99 @@ export async function GET() {
         const today = new Date()
         today.setHours(0, 0, 0, 0)
 
-        // 1. Fetch Banks
-        const banks = await prisma.paymentMethod.findMany({
-            where: { type: 'BANK', isActive: true },
-            orderBy: { name: 'asc' },
-            select: {
-                id: true,
-                name: true,
-                account_number: true,
-                account_name: true,
-                balance: true,
-                type: true
-                // Exclude image
-            }
-        })
-
-        // 2. Fetch Game Accounts
-        const gameAccounts = await prisma.gameAccount.findMany({
-            where: { isActive: true },
-            select: {
-                id: true,
-                username: true,
-                balance: true,
-                game: {
-                    select: {
-                        id: true,
-                        name: true,
-                        code: true
-                        // Exclude image
-                    }
-                }
-            },
-            // orderBy: { game: { name: 'asc' } } // Prisma limit: cannot order by relation when selecting? Let's check. 
-            // Actually, removing orderBy relation inside select is safer for now if it complicates things, but let's try just changing include -> select first.
-        })
-
-        // 3. Pending Transactions Count
-        const pendingCount = await prisma.transaction.count({
-            where: { status: 'PENDING' }
-        })
-
-        // 4. Daily Stats (Today)
-        const dailyTransactions = await prisma.transaction.findMany({
-            where: {
-                createdAt: {
-                    gte: today
-                },
-                status: {
-                    in: ['APPROVED_1', 'APPROVED_2'] // Only count successful ones? Or all? Usually successful.
-                }
-            }
-        })
-
-        const stats = {
-            topup: {
-                count: 0,
-                money_in: 0,
-                chip_out: 0
-            },
-            withdraw: {
-                count: 0,
-                money_out: 0,
-                chip_in: 0
-            }
-        }
-
-        dailyTransactions.forEach(tx => {
-            if (tx.type === 'TOPUP') {
-                stats.topup.count++
-                stats.topup.money_in += tx.amount_money
-                stats.topup.chip_out += tx.amount_chip
-            } else if (tx.type === 'WITHDRAW') {
-                stats.withdraw.count++
-                stats.withdraw.money_out += tx.amount_money
-                stats.withdraw.chip_in += tx.amount_chip
-            }
-        })
-
-        return NextResponse.json({
+        const [
             banks,
             gameAccounts,
             pendingCount,
-            dailyStats: stats
+            dailyStats,
+            totalStats
+        ] = await Promise.all([
+            // 1. Fetch Banks (Usually few, so all is fine)
+            prisma.paymentMethod.findMany({
+                where: { type: 'BANK', isActive: true },
+                orderBy: { name: 'asc' },
+                select: {
+                    id: true,
+                    name: true,
+                    account_number: true,
+                    account_name: true,
+                    balance: true,
+                    type: true
+                }
+            }),
+
+            // 2. Fetch Top 50 Game Accounts (Optimized)
+            prisma.gameAccount.findMany({
+                where: { isActive: true },
+                take: 50,
+                orderBy: { balance: 'desc' }, // Show richest first
+                select: {
+                    id: true,
+                    username: true,
+                    balance: true,
+                    game: {
+                        select: { id: true, name: true, code: true }
+                    }
+                }
+            }),
+
+            // 3. Pending Count
+            prisma.transaction.count({
+                where: { status: 'PENDING' }
+            }),
+
+            // 4. Daily Stats (Aggregated in DB)
+            (async () => {
+                const [topup, withdraw] = await Promise.all([
+                    prisma.transaction.aggregate({
+                        where: {
+                            type: 'TOPUP',
+                            createdAt: { gte: today },
+                            status: { in: ['APPROVED_1', 'APPROVED_2'] }
+                        },
+                        _count: true,
+                        _sum: { amount_money: true, amount_chip: true }
+                    }),
+                    prisma.transaction.aggregate({
+                        where: {
+                            type: 'WITHDRAW',
+                            createdAt: { gte: today },
+                            status: { in: ['APPROVED_1', 'APPROVED_2'] }
+                        },
+                        _count: true,
+                        _sum: { amount_money: true, amount_chip: true }
+                    })
+                ])
+
+                return {
+                    topup: {
+                        count: topup._count,
+                        money_in: topup._sum.amount_money || 0,
+                        chip_out: topup._sum.amount_chip || 0
+                    },
+                    withdraw: {
+                        count: withdraw._count,
+                        money_out: withdraw._sum.amount_money || 0,
+                        chip_in: withdraw._sum.amount_chip || 0
+                    }
+                }
+            })(),
+
+            // 5. Total Chip Balance (Aggregated in DB for accuracy)
+            prisma.gameAccount.aggregate({
+                where: { isActive: true },
+                _sum: { balance: true }
+            })
+        ])
+
+        return NextResponse.json({
+            banks,
+            gameAccounts, // Now limit 50
+            pendingCount,
+            dailyStats,
+            totalStats: {
+                chipBalance: totalStats._sum.balance || 0
+            }
         })
 
     } catch (error) {

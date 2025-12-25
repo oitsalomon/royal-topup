@@ -36,7 +36,7 @@ export default function HeroBanner() {
                 {/* Main Heading */}
                 <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight text-white mb-6 leading-[1.1]">
                     TOP UP <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-200 to-emerald-400 animate-shimmer bg-[length:200%_auto]">
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-emerald-200 to-emerald-400 bg-[length:200%_auto] animate-pulse">
                         CLOVER SULTAN
                     </span>
                 </h1>

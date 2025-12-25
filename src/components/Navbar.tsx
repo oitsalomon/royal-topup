@@ -58,49 +58,61 @@ export default function Navbar() {
                     {/* Desktop Actions */}
                     <div className="hidden md:flex items-center gap-4">
                         {/* Download App Dropdown */}
-                        <div className="relative group">
-                            <button className="px-4 py-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white text-sm font-bold shadow-lg shadow-pink-500/20 transition-all flex items-center gap-2">
+                        <div className="relative">
+                            <button
+                                onClick={() => setConfig((prev: any) => ({ ...prev, activeDropdown: prev?.activeDropdown === 'download' ? null : 'download' }))}
+                                className="px-4 py-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-400 hover:to-purple-500 text-white text-sm font-bold shadow-lg shadow-pink-500/20 transition-all flex items-center gap-2"
+                            >
                                 Download App
-                                <ChevronDown size={16} />
+                                <ChevronDown size={16} className={`transition-transform duration-200 ${config?.activeDropdown === 'download' ? 'rotate-180' : ''}`} />
                             </button>
-                            <div className="absolute top-full right-0 mt-2 w-48 bg-gray-900 border border-white/10 rounded-xl shadow-xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right">
-                                <a href={config?.download_app?.royal_dream || '#'} target="_blank" className="block px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
-                                    Royal Dream
-                                </a>
-                                <a href={config?.download_app?.domino_rp || '#'} target="_blank" className="block px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
-                                    Domino RP
-                                </a>
-                                <a href={config?.download_app?.neo || '#'} target="_blank" className="block px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
-                                    Neo
-                                </a>
-                            </div>
+
+                            {config?.activeDropdown === 'download' && (
+                                <div className="absolute top-full right-0 mt-2 w-48 bg-gray-900 border border-white/10 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                                    <a href={config?.download_app?.royal_dream || '#'} target="_blank" className="block px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
+                                        Royal Dream
+                                    </a>
+                                    <a href={config?.download_app?.domino_rp || '#'} target="_blank" className="block px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
+                                        Domino RP
+                                    </a>
+                                    <a href={config?.download_app?.neo || '#'} target="_blank" className="block px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
+                                        Neo
+                                    </a>
+                                </div>
+                            )}
                         </div>
 
                         {/* Hubungi CS Dropdown */}
-                        <div className="relative group">
-                            <button className="px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-medium transition-all flex items-center gap-2">
+                        <div className="relative">
+                            <button
+                                onClick={() => setConfig((prev: any) => ({ ...prev, activeDropdown: prev?.activeDropdown === 'cs' ? null : 'cs' }))}
+                                className="px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 text-white text-sm font-medium transition-all flex items-center gap-2"
+                            >
                                 Hubungi CS
-                                <ChevronDown size={16} />
+                                <ChevronDown size={16} className={`transition-transform duration-200 ${config?.activeDropdown === 'cs' ? 'rotate-180' : ''}`} />
                             </button>
-                            <div className="absolute top-full right-0 mt-2 w-48 bg-gray-900 border border-white/10 rounded-xl shadow-xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform origin-top-right">
-                                <a
-                                    href={`https://wa.me/${(config?.contacts?.whatsapp?.number || '').replace(/[^0-9]/g, '')}`}
-                                    target="_blank"
-                                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
-                                >
-                                    <Phone size={16} className="text-green-500" /> WhatsApp
-                                </a>
-                                <a
-                                    href={`https://t.me/${(config?.contacts?.telegram?.username || '').replace('https://t.me/', '').replace('@', '')}`}
-                                    target="_blank"
-                                    className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
-                                >
-                                    <Send size={16} className="text-blue-500" /> Telegram
-                                </a>
-                                <a href={config?.contacts?.live_chat?.url || '#'} target="_blank" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
-                                    <MessageCircle size={16} className="text-yellow-500" /> Live Chat
-                                </a>
-                            </div>
+
+                            {config?.activeDropdown === 'cs' && (
+                                <div className="absolute top-full right-0 mt-2 w-48 bg-gray-900 border border-white/10 rounded-xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                                    <a
+                                        href={`https://wa.me/${(config?.contacts?.whatsapp?.number || '').replace(/[^0-9]/g, '')}`}
+                                        target="_blank"
+                                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                                    >
+                                        <Phone size={16} className="text-green-500" /> WhatsApp
+                                    </a>
+                                    <a
+                                        href={`https://t.me/${(config?.contacts?.telegram?.username || '').replace('https://t.me/', '').replace('@', '')}`}
+                                        target="_blank"
+                                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+                                    >
+                                        <Send size={16} className="text-blue-500" /> Telegram
+                                    </a>
+                                    <a href={config?.contacts?.live_chat?.url || '#'} target="_blank" className="flex items-center gap-3 px-4 py-3 text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors">
+                                        <MessageCircle size={16} className="text-yellow-500" /> Live Chat
+                                    </a>
+                                </div>
+                            )}
                         </div>
                     </div>
 

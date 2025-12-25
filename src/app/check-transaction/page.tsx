@@ -28,34 +28,28 @@ export default function CheckTransaction() {
         setResult(null)
 
         try {
-            // In a real app, you might search by Transaction ID or WA Number
-            // For now, let's assume searching by ID for simplicity, or implement a specific API
-            // Since we don't have a specific public search API yet, let's use a mock or reuse an existing one securely?
-            // Actually, we should create a specific endpoint for public status check to avoid exposing all data.
-            // For this MVP, let's assume we fetch a specific transaction by ID if the user enters a number.
-
-            // NOTE: The current /api/transactions is for admin (returns all) or creation.
-            // We need a way to filter. Let's try to fetch all and filter client side for MVP (NOT SECURE for production)
-            // OR better, let's filter by ID if the API supports it.
-            // The current GET /api/transactions returns ALL.
-            // Let's rely on the user entering the ID.
-
-            const res = await fetch('/api/transactions')
+            // Search via API (Server-side filtering)
+            // Supports searching by WA Number, Game ID, or Nickname
+            const res = await fetch(`/api/transactions?search=${encodeURIComponent(search)}&limit=50`)
             const data = await res.json()
 
-            if (Array.isArray(data)) {
-                // Try to find by ID (if number) or WA (if string)
-                const found = data.find((t: any) =>
-                    t.id.toString() === search || t.user_wa === search
-                )
+            if (data && Array.isArray(data.data)) {
+                // The API returns fuzzy matches. We want to be a bit precise if it's a number
+                // But for user convenience, showing the latest match is usually best.
+                // Let's take the first result that matches loosely.
 
-                if (found) {
-                    setResult(found)
+                const transactions = data.data
+                if (transactions.length > 0) {
+                    // If multiple found, prioritize exact match or the latest one (API sorts by desc)
+                    setResult(transactions[0])
                 } else {
                     setError('Transaksi tidak ditemukan.')
                 }
+            } else {
+                setError('Format data tidak valid.')
             }
         } catch (err) {
+            console.error(err)
             setError('Terjadi kesalahan saat mencari data.')
         } finally {
             setLoading(false)

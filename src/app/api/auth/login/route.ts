@@ -67,4 +67,8 @@ export async function POST(request: Request) {
             permissions: user.permissions,
             token: 'dummy-token'
         })
+    } catch (error) {
+        console.error('Login error:', error)
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }
+}

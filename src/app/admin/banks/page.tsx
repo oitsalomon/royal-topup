@@ -215,7 +215,7 @@ export default function AdminBanks() {
         <div>
             <div className="flex items-center justify-between mb-8">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Panel Bank</h1>
+                    <h1 className="text-3xl font-bold text-white">Panel Bank Pro (v2.3)</h1>
                     <p className="text-gray-400 mt-1">Kelola akun bank, QRIS, dan saldo internal</p>
                 </div>
                 <button

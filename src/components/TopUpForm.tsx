@@ -44,6 +44,7 @@ export default function TopUpForm({ gameCode, gameName }: TopUpFormProps) {
 
     const [selectedPrice, setSelectedPrice] = useState<number>(0)
     const [manualMode, setManualMode] = useState(false)
+    const [promoConfig, setPromoConfig] = useState<{ promoTitle: string, packages: { id: number, name: string, chip: number, price: number }[] } | null>(null)
 
     useEffect(() => {
         // Fetch Payment Methods with Game Code filter
@@ -65,6 +66,18 @@ export default function TopUpForm({ gameCode, gameName }: TopUpFormProps) {
             .then(data => {
                 if (Array.isArray(data)) {
                     setPackages(data)
+                }
+            })
+            .catch(err => console.error(err))
+
+        // Fetch Promo Config
+        fetch(`/api/promos/public?gameCode=${gameCode}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data) {
+                    setPromoConfig(data)
+                } else {
+                    setPromoConfig(null)
                 }
             })
             .catch(err => console.error(err))
@@ -229,77 +242,115 @@ export default function TopUpForm({ gameCode, gameName }: TopUpFormProps) {
                     <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
                         <Zap size={20} />
                     </div>
-                    2. Masukkan Nominal Top Up
+                    {promoConfig ? promoConfig.promoTitle : '2. Masukkan Nominal Top Up'}
                 </h3>
 
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-sm font-medium text-gray-400 ml-1 mb-2 block">Masukkan Nominal Uang (Rp)</label>
-                        <div className="relative">
-                            <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold">Rp</span>
-                            <input
-                                type="number"
-                                className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all pl-12"
-                                placeholder="Contoh: 100000"
-                                onChange={(e) => {
-                                    const money = Number(e.target.value)
-                                    setSelectedPrice(money)
+                {promoConfig && promoConfig.packages.length > 0 ? (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            {promoConfig.packages.map((pkg) => (
+                                <button
+                                    key={pkg.id}
+                                    type="button"
+                                    onClick={() => {
+                                        setFormData(prev => ({ ...prev, amount_chip: pkg.chip.toString() }))
+                                        setSelectedPrice(pkg.price)
+                                    }}
+                                    className={`relative p-4 rounded-xl border transition-all duration-300 text-left group overflow-hidden ${Number(formData.amount_chip) === pkg.chip
+                                        ? 'bg-gradient-to-br from-blue-600 to-cyan-500 border-transparent shadow-lg text-white transform scale-105'
+                                        : 'bg-black/40 border-white/10 hover:border-blue-500/50 hover:bg-white/5'
+                                        }`}
+                                >
+                                    <div className="relative z-10">
+                                        <p className={`text-lg font-bold mb-1 ${Number(formData.amount_chip) === pkg.chip ? 'text-white' : 'text-cyan-400'}`}>
+                                            {pkg.chip} M
+                                        </p>
+                                        <p className={`text-sm ${Number(formData.amount_chip) === pkg.chip ? 'text-white/90' : 'text-gray-400'}`}>
+                                            Rp {pkg.price.toLocaleString()}
+                                        </p>
+                                    </div>
+                                    {Number(formData.amount_chip) === pkg.chip && (
+                                        <div className="absolute right-0 top-0 p-2 text-white/20">
+                                            <Zap size={48} />
+                                        </div>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+                        {(!formData.amount_chip || Number(formData.amount_chip) === 0) && (
+                            <p className="text-sm text-yellow-500 text-center animate-pulse">🔥 Silakan pilih paket promo di atas!</p>
+                        )}
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-sm font-medium text-gray-400 ml-1 mb-2 block">Masukkan Nominal Uang (Rp)</label>
+                            <div className="relative">
+                                <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold">Rp</span>
+                                <input
+                                    type="number"
+                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all pl-12"
+                                    placeholder="Contoh: 100000"
+                                    onChange={(e) => {
+                                        const money = Number(e.target.value)
+                                        setSelectedPrice(money)
 
-                                    let chipsM = 0
+                                        let chipsM = 0
 
-                                    // Thresholds for Special Bulk Prices
-                                    // 50B+ @ 63K/B -> 50 * 63000 = 3,150,000
-                                    // 20B+ @ 64K/B -> 20 * 64000 = 1,280,000
-                                    // 10B+ @ 64.5K/B -> 10 * 64500 = 645,000
+                                        // Thresholds for Special Bulk Prices
+                                        // 50B+ @ 63K/B -> 50 * 63000 = 3,150,000
+                                        // 20B+ @ 64K/B -> 20 * 64000 = 1,280,000
+                                        // 10B+ @ 64.5K/B -> 10 * 64500 = 645,000
 
-                                    if (money >= 3150000) {
-                                        chipsM = (money / 63000) * 1000
-                                    } else if (money >= 1280000) {
-                                        chipsM = (money / 64000) * 1000
-                                    } else if (money >= 645000) {
-                                        chipsM = (money / 64500) * 1000
-                                    } else {
-                                        // Standard Greedy Package Logic
-                                        let remainingMoney = money
-                                        const sortedPkgs = [...packages].sort((a, b) => b.price - a.price)
+                                        if (money >= 3150000) {
+                                            chipsM = (money / 63000) * 1000
+                                        } else if (money >= 1280000) {
+                                            chipsM = (money / 64000) * 1000
+                                        } else if (money >= 645000) {
+                                            chipsM = (money / 64500) * 1000
+                                        } else {
+                                            // Standard Greedy Package Logic
+                                            let remainingMoney = money
+                                            const sortedPkgs = [...packages].sort((a, b) => b.price - a.price)
 
-                                        if (sortedPkgs.length > 0) {
-                                            for (const pkg of sortedPkgs) {
-                                                while (remainingMoney >= pkg.price) {
-                                                    chipsM += pkg.chip
-                                                    remainingMoney -= pkg.price
+                                            if (sortedPkgs.length > 0) {
+                                                for (const pkg of sortedPkgs) {
+                                                    while (remainingMoney >= pkg.price) {
+                                                        chipsM += pkg.chip
+                                                        remainingMoney -= pkg.price
+                                                    }
                                                 }
+                                            }
+
+                                            // Fallback for remaining money (or small amounts) using base rate 65k/B
+                                            if (remainingMoney > 0) {
+                                                chipsM += (remainingMoney / 65000) * 1000
                                             }
                                         }
 
-                                        // Fallback for remaining money (or small amounts) using base rate 65k/B
-                                        if (remainingMoney > 0) {
-                                            chipsM += (remainingMoney / 65000) * 1000
-                                        }
-                                    }
-
-                                    setFormData(prev => ({ ...prev, amount_chip: chipsM.toString() }))
-                                }}
-                            />
-                        </div>
-                    </div>
-
-                    {Number(formData.amount_chip) > 0 && (
-                        <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex justify-between items-center animate-in fade-in slide-in-from-top-2">
-                            <span className="text-blue-400 text-sm">Anda Mendapatkan:</span>
-                            <div className="text-right">
-                                <span className="text-2xl font-bold text-white block">
-                                    {Number(formData.amount_chip) >= 1000
-                                        ? `${(Math.floor((Number(formData.amount_chip) / 1000) * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} B`
-                                        : `${Number(formData.amount_chip).toLocaleString()} M`}
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                    (Rp {selectedPrice.toLocaleString()})
-                                </span>
+                                        setFormData(prev => ({ ...prev, amount_chip: chipsM.toString() }))
+                                    }}
+                                />
                             </div>
                         </div>
-                    )}
-                </div>
+
+                        {Number(formData.amount_chip) > 0 && (
+                            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex justify-between items-center animate-in fade-in slide-in-from-top-2">
+                                <span className="text-blue-400 text-sm">Anda Mendapatkan:</span>
+                                <div className="text-right">
+                                    <span className="text-2xl font-bold text-white block">
+                                        {Number(formData.amount_chip) >= 1000
+                                            ? `${(Math.floor((Number(formData.amount_chip) / 1000) * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} B`
+                                            : `${Number(formData.amount_chip).toLocaleString()} M`}
+                                    </span>
+                                    <span className="text-xs text-gray-500">
+                                        (Rp {selectedPrice.toLocaleString()})
+                                    </span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Section 3: Pembayaran */}

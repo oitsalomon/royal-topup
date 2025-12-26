@@ -231,3 +231,24 @@ model WithdrawMethod {
   
   transactions Transaction[]
 }
+
+model StorePromoConfig {
+  id            Int      @id @default(autoincrement())
+  store_name    String   @unique // e.g. "Nova Store"
+  isPromoActive Boolean  @default(false)
+  promoTitle    String   @default("Special Promo")
+
+  packages      PromoPackage[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model PromoPackage {
+  id                Int      @id @default(autoincrement())
+  store_promo_id    Int
+  name              String
+  chip              Float
+  price             Float
+  
+  storePromo        StorePromoConfig @relation(fields: [store_promo_id], references: [id], onDelete: Cascade)
+}

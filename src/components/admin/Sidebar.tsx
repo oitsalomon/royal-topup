@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
-import { LayoutDashboard, Receipt, FileText, LogOut, Settings, Shield, Wallet, Coins, User, Gamepad2, Package, TrendingUp } from 'lucide-react'
+import { LayoutDashboard, Receipt, FileText, LogOut, Settings, Shield, Wallet, Coins, User, Gamepad2, Package, TrendingUp, Gift } from 'lucide-react'
 
 export default function Sidebar() {
     const router = useRouter()
@@ -21,6 +21,7 @@ export default function Sidebar() {
         { href: '/admin/manual-transaction', label: 'Input Manual', icon: FileText },
         { href: '/admin/games', label: 'Kelola Game', icon: Gamepad2 },
         { href: '/admin/packages', label: 'Manajemen Paket', icon: Package },
+        { href: '/admin/promos', label: 'Kelola Promo', icon: Gift },
         { href: '/admin/banks', label: 'Panel Bank', icon: Wallet },
         { href: '/admin/withdraw-methods', label: 'Tujuan Withdraw', icon: Receipt },
         { href: '/admin/game-accounts', label: 'Panel ID', icon: Coins },

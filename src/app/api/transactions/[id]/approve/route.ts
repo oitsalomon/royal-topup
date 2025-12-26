@@ -28,6 +28,37 @@ export async function POST(
             return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
         }
 
+        // Race Condition Check: Ensure we are acting on the expected status
+        let expectedCurrentStatus = ''
+
+        if (action === 'APPROVE') {
+            if (transaction.type === 'TOPUP') {
+                if (stage === 1) expectedCurrentStatus = 'PENDING'
+                if (stage === 2) expectedCurrentStatus = 'APPROVED_1'
+            } else if (transaction.type === 'WITHDRAW') {
+                if (stage === 1) expectedCurrentStatus = 'PENDING'
+                if (stage === 2) expectedCurrentStatus = 'APPROVED_1'
+            }
+        } else {
+            // For Decline, we generally expect it to be pending or approved_1
+            // But if it's already declined or completed (approved_2), we should block.
+            if (transaction.status === 'DECLINED' || transaction.status === 'APPROVED_2') {
+                return NextResponse.json({
+                    error: 'Transaction already finalized by another admin',
+                    code: 'CONFLICT'
+                }, { status: 409 })
+            }
+        }
+
+        // Strict check for APPROVE flow
+        if (action === 'APPROVE' && transaction.status !== expectedCurrentStatus) {
+            return NextResponse.json({
+                error: 'Status has changed. Please refresh.',
+                code: 'CONFLICT',
+                currentStatus: transaction.status
+            }, { status: 409 })
+        }
+
         let newStatus = transaction.status
 
         if (action === 'DECLINE') {
@@ -48,10 +79,6 @@ export async function POST(
                     newStatus = 'APPROVED_2' // Money Sent (Completed)
                 }
             }
-        }
-
-        if (newStatus === transaction.status && action === 'APPROVE') {
-            return NextResponse.json({ error: 'Invalid stage transition' }, { status: 400 })
         }
 
         const updated = await prisma.$transaction(async (tx: any) => {

@@ -93,9 +93,31 @@ export default function TransactionsClient({
         }
     }
 
-    // Auto-refresh every 30s
+    // Auto-refresh every 5s (Silent)
     useEffect(() => {
-        const interval = setInterval(fetchData, 30000)
+        const interval = setInterval(() => {
+            // Fetch without setting global loading state
+            const fetchSilent = async () => {
+                try {
+                    const params = new URLSearchParams()
+                    params.append('page', page.toString())
+                    params.append('limit', '20')
+                    if (filterDate) params.append('date', filterDate)
+                    if (filterBank !== 'all') params.append('bank_id', filterBank)
+                    if (filterType !== 'all') params.append('type', filterType)
+                    if (searchQuery) params.append('search', searchQuery)
+
+                    const res = await fetch(`/api/transactions?${params.toString()}`)
+                    const data = await res.json()
+
+                    if (data && data.data) {
+                        setTransactions(data.data)
+                        // Don't restart pages/filters here to avoid jumping
+                    }
+                } catch (e) { console.error('Silent refresh failed', e) }
+            }
+            fetchSilent()
+        }, 5000)
         return () => clearInterval(interval)
     }, [filterDate, filterBank, filterType, page, searchQuery])
 
@@ -177,6 +199,14 @@ export default function TransactionsClient({
                     bank_id: selectedBankId ? Number(selectedBankId) : undefined
                 })
             })
+
+            if (res.status === 409) {
+                const data = await res.json()
+                alert(`⚠️ KONFLIK: ${data.error}`)
+                fetchData() // Immediate refresh
+                return
+            }
+
             if (res.ok) {
                 fetchData()
                 setSelectedAccountId('')
@@ -361,16 +391,27 @@ export default function TransactionsClient({
                             {/* Middle: Proof & Status */}
                             <div className="flex flex-col items-center justify-center gap-4 min-w-[180px] border-l border-white/5 pl-8 border-dashed">
                                 {tx.proof_image ? (
-                                    <div
-                                        className="relative group/img cursor-pointer"
-                                        onClick={() => setPreviewImage(tx.proof_image)}
-                                    >
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={tx.proof_image} alt="Bukti" className="w-24 h-24 object-cover rounded-2xl border border-white/10 shadow-2xl" />
-                                        <div className="absolute inset-0 bg-black/50 rounded-2xl opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-xs text-white font-bold">
-                                            Lihat Foto
+                                    tx.proof_image === 'MANUAL_ENTRY' ? (
+                                        <div className="w-24 h-24 bg-cyan-500/10 rounded-2xl flex items-center justify-center text-cyan-400 border border-cyan-500/20">
+                                            <div className="text-center">
+                                                <div className="bg-cyan-500/20 p-2 rounded-full inline-block mb-1">
+                                                    <Check size={16} />
+                                                </div>
+                                                <p className="text-[10px] font-bold uppercase tracking-wide">Manual</p>
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div
+                                            className="relative group/img cursor-pointer"
+                                            onClick={() => setPreviewImage(tx.proof_image)}
+                                        >
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={tx.proof_image} alt="Bukti" className="w-24 h-24 object-cover rounded-2xl border border-white/10 shadow-2xl" />
+                                            <div className="absolute inset-0 bg-black/50 rounded-2xl opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center text-xs text-white font-bold">
+                                                Lihat Foto
+                                            </div>
+                                        </div>
+                                    )
                                 ) : (
                                     <div className="w-24 h-24 bg-white/5 rounded-2xl flex items-center justify-center text-[10px] text-gray-600 border border-white/5 border-dashed">No Image</div>
                                 )}

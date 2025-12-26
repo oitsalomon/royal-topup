@@ -22,11 +22,22 @@ export async function GET(request: Request) {
         let whereCondition: any = { isActive: true }
 
         if (gameCode) {
+            // New Store-Based Logic
+            // 1. Get the Game to find its Store Name
+            const game = await prisma.game.findFirst({
+                where: { code: gameCode },
+                select: { store_name: true }
+            })
+
+            const storeName = game?.store_name || null
+
             whereCondition = {
                 isActive: true,
                 OR: [
-                    { games: { none: {} } }, // Global (No specific games)
-                    { games: { some: { code: gameCode } } } // Specific to this game
+                    { store_name: null },       // Global (All user)
+                    // { store_name: "" },      // Empty string also treated as global if needed, but we stick to null for "All"
+                    // If storeName is present, allow matches
+                    ...(storeName ? [{ store_name: storeName }] : [])
                 ]
             }
         }

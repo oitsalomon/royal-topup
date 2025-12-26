@@ -43,6 +43,7 @@ model Game {
   category    String   @default("GAMES") // GAMES, APPS, OTHERS
   isActive    Boolean  @default(true)
   externalUrl String?  // If set, clicking this game redirects to this URL
+  store_name  String?  // The store this game belongs to
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
@@ -59,6 +60,7 @@ model PaymentMethod {
   account_name  String
   image         String?
   category      String   @default("BOTH") // DEPOSIT, WITHDRAW, BOTH
+  store_name    String?  // If null, appears in ALL stores. If set, only appears in that store.
   
   // Relations
   games         Game[]   // Implicit Many-to-Many

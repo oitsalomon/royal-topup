@@ -19,9 +19,9 @@ export default function HeroBanner({ games, config }: HeroBannerProps) {
             {/* Referral Promotion Banner (Only for Non-Logged-in Users) */}
             {!user && (
                 <div className="absolute top-[80px] left-0 w-full overflow-hidden bg-emerald-900/40 backdrop-blur-md z-20 border-y border-emerald-500/20 h-10 flex items-center">
-                    <div className="flex whitespace-nowrap animate-marquee w-max">
+                    <div className="flex whitespace-nowrap animate-marquee-scroll w-max hover:[animation-play-state:paused]">
                         {/* Duplicate content enough times to ensure seamless loop */}
-                        {Array.from({ length: 6 }).map((_, i) => (
+                        {Array.from({ length: 10 }).map((_, i) => (
                             <div key={i} className="flex items-center gap-12 px-6">
                                 <span className="flex items-center gap-2 text-emerald-300 font-bold text-sm tracking-wide">
                                     <Gift className="w-4 h-4 text-amber-400" />

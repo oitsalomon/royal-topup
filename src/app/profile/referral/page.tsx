@@ -18,6 +18,7 @@ export default function ReferralPage() {
     const [wdLoading, setWdLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [successMsg, setSuccessMsg] = useState<string | null>(null)
+    const [generatingCode, setGeneratingCode] = useState(false)
 
     useEffect(() => {
         if (!authLoading && !authUser) {
@@ -44,6 +45,32 @@ export default function ReferralPage() {
     useEffect(() => {
         fetchData()
     }, [authUser?.id])
+
+    const handleGenerateCode = async () => {
+        if (!authUser?.id || generatingCode) return
+
+        try {
+            setGeneratingCode(true)
+            const res = await fetch('/api/members/generate-referral', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: authUser.id })
+            })
+
+            const result = await res.json()
+            if (res.ok && result.success) {
+                // Refresh data to show the new code
+                fetchData()
+            } else {
+                alert(result.error || 'Gagal membuat kode referral')
+            }
+        } catch (err) {
+            console.error('Generate code error', err)
+            alert('Terjadi kesalahan saat membuat kode.')
+        } finally {
+            setGeneratingCode(false)
+        }
+    }
 
     const copyReferralLink = async () => {
         if (!data?.user?.referral_code) return
@@ -156,18 +183,32 @@ export default function ReferralPage() {
                             Link Referral Anda
                         </div>
 
-                        <div className="flex flex-col md:flex-row gap-4">
-                            <div className="flex-1 p-4 rounded-xl bg-black/40 border border-white/5 font-mono text-sm text-gray-300 break-all border-dashed">
-                                {referralLink}
+                        {data.user.referral_code ? (
+                            <div className="flex flex-col md:flex-row gap-4">
+                                <div className="flex-1 p-4 rounded-xl bg-black/40 border border-white/5 font-mono text-sm text-gray-300 break-all border-dashed">
+                                    {`${typeof window !== 'undefined' ? window.location.origin : ''}/register?ref=${data.user.referral_code}`}
+                                </div>
+                                <button
+                                    onClick={copyReferralLink}
+                                    className={`flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold transition-all shadow-lg active:scale-95 ${copied ? 'bg-emerald-500 text-white' : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-500/20'}`}
+                                >
+                                    {copied ? <Check size={18} /> : <Copy size={18} />}
+                                    {copied ? 'Tersalin!' : 'Salin Link'}
+                                </button>
                             </div>
-                            <button
-                                onClick={copyReferralLink}
-                                className={`flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold transition-all shadow-lg active:scale-95 ${copied ? 'bg-emerald-500 text-white' : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-cyan-500/20'}`}
-                            >
-                                {copied ? <Check size={18} /> : <Copy size={18} />}
-                                {copied ? 'Tersalin!' : 'Salin Link'}
-                            </button>
-                        </div>
+                        ) : (
+                            <div className="flex flex-col items-start gap-4">
+                                <p className="text-sm text-gray-400">Anda belum memiliki kode referral. Klik tombol di bawah untuk membuatnya sekarang.</p>
+                                <button
+                                    onClick={handleGenerateCode}
+                                    disabled={generatingCode}
+                                    className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition-colors shadow-lg shadow-emerald-500/20 flex items-center gap-2"
+                                >
+                                    {generatingCode ? <RefreshCw className="animate-spin" size={18} /> : <Gift size={18} />}
+                                    {generatingCode ? 'Membuat Kode...' : 'Buat Kode Referral Saya'}
+                                </button>
+                            </div>
+                        )}
 
                         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex gap-4">
                             <Info className="text-amber-500 shrink-0" size={20} />

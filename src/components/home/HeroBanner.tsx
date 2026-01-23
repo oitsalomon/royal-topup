@@ -16,21 +16,23 @@ export default function HeroBanner({ games, config }: HeroBannerProps) {
         <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#050912]">
 
             {/* Referral Promotion Banner (Only for Non-Logged-in Users) */}
+            {/* Referral Promotion Banner (Only for Non-Logged-in Users) */}
             {!user && (
-                <div className="absolute top-24 left-0 w-full overflow-hidden bg-gradient-to-r from-emerald-600/20 via-emerald-500/10 to-emerald-600/20 border-y border-emerald-500/20 py-3 backdrop-blur-md z-20">
-                    <div className="flex whitespace-nowrap animate-marquee items-center gap-12">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                            <div key={i} className="flex items-center gap-6">
-                                <span className="flex items-center gap-2 text-emerald-400 font-bold text-sm md:text-base tracking-wide">
-                                    <Gift className="w-4 h-4 text-amber-500" />
-                                    Ayo buruan daftar dan bagikan link referral kalian agar dapat bonus saldo melimpah!
+                <div className="absolute top-[80px] left-0 w-full overflow-hidden bg-emerald-900/40 backdrop-blur-md z-20 border-y border-emerald-500/20 h-10 flex items-center">
+                    <div className="flex whitespace-nowrap animate-marquee w-max">
+                        {/* Duplicate content enough times to ensure seamless loop */}
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className="flex items-center gap-12 px-6">
+                                <span className="flex items-center gap-2 text-emerald-300 font-bold text-sm tracking-wide">
+                                    <Gift className="w-4 h-4 text-amber-400" />
+                                    <span>Dapatkan Bonus Saldo Melimpah! Bagikan Link Referralmu Sekarang.</span>
                                 </span>
-                                <span className="flex items-center gap-2 text-emerald-400 font-bold text-sm md:text-base tracking-wide">
-                                    <Users className="w-4 h-4 text-amber-500" />
-                                    Referral Program: Cashback Rp 750 / 1B Chip! Tanpa batas!
+                                <span className="flex items-center gap-2 text-white font-medium text-sm tracking-wide">
+                                    <Users className="w-4 h-4 text-emerald-400" />
+                                    <span>Program Referral: Cashback <span className="text-amber-400 font-bold">Rp 750 / 1B Chip</span> (Tanpa Batas!)</span>
                                 </span>
-                                <Link href="/register" className="px-4 py-1 rounded-lg bg-emerald-500 text-black font-black text-xs hover:bg-emerald-400 transition-colors">
-                                    DAFTAR SEKARANG
+                                <Link href="/register" className="px-3 py-0.5 rounded-full bg-emerald-500 text-black font-black text-[10px] hover:bg-emerald-400 transition-colors uppercase tracking-wider">
+                                    Daftar
                                 </Link>
                             </div>
                         ))}

@@ -15,13 +15,8 @@ module.exports = {
                 foreground: "var(--foreground)",
             },
             keyframes: {
-                'marquee-scroll': {
-                    '0%': { transform: 'translateX(0)' },
-                    '100%': { transform: 'translateX(-50%)' }
-                }
             },
             animation: {
-                'marquee-scroll': 'marquee-scroll 25s linear infinite',
             }
         },
     },

@@ -15,31 +15,6 @@ export default function HeroBanner({ games, config }: HeroBannerProps) {
     return (
         <div className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden bg-[#050912]">
 
-            {/* Referral Promotion Banner (Only for Non-Logged-in Users) */}
-            {/* Referral Promotion Banner (Only for Non-Logged-in Users) */}
-            {!user && (
-                <div className="absolute top-[80px] left-0 w-full overflow-hidden bg-emerald-900/40 backdrop-blur-md z-20 border-y border-emerald-500/20 h-10 flex items-center">
-                    <div className="flex whitespace-nowrap animate-marquee-scroll w-max hover:[animation-play-state:paused]">
-                        {/* Duplicate content enough times to ensure seamless loop */}
-                        {Array.from({ length: 10 }).map((_, i) => (
-                            <div key={i} className="flex items-center gap-12 px-6">
-                                <span className="flex items-center gap-2 text-emerald-300 font-bold text-sm tracking-wide">
-                                    <Gift className="w-4 h-4 text-amber-400" />
-                                    <span>Dapatkan Bonus Saldo Melimpah! Bagikan Link Referralmu Sekarang.</span>
-                                </span>
-                                <span className="flex items-center gap-2 text-white font-medium text-sm tracking-wide">
-                                    <Users className="w-4 h-4 text-emerald-400" />
-                                    <span>Program Referral: Cashback <span className="text-amber-400 font-bold">Rp 750 / 1B Chip</span> (Tanpa Batas!)</span>
-                                </span>
-                                <Link href="/register" className="px-3 py-0.5 rounded-full bg-emerald-500 text-black font-black text-[10px] hover:bg-emerald-400 transition-colors uppercase tracking-wider">
-                                    Daftar
-                                </Link>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
             {/* 1. LAYER: Dynamic Luxurious Background */}
             <div className="absolute inset-0 pointer-events-none">
                 {/* Gold Orb */}
@@ -84,7 +59,7 @@ export default function HeroBanner({ games, config }: HeroBannerProps) {
                 </h1>
 
                 {/* Subheading with Glass Badge */}
-                <div className="flex justify-center mb-10">
+                <div className="flex justify-center mb-8">
                     <div className="inline-flex items-center gap-3 px-6 py-3 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl animate-in slide-in-from-bottom-5 fade-in duration-1000 delay-300">
                         <Gem className="text-emerald-400 w-5 h-5" />
                         <span className="text-gray-300 text-sm md:text-base tracking-wide">
@@ -92,6 +67,25 @@ export default function HeroBanner({ games, config }: HeroBannerProps) {
                         </span>
                     </div>
                 </div>
+
+                {/* Static Referral Promo (Lightweight replacement for marquee) */}
+                {!user && (
+                    <div className="flex justify-center mb-10 animate-in slide-in-from-bottom-5 fade-in duration-1000 delay-400">
+                        <Link href="/register" className="group relative overflow-hidden rounded-xl bg-emerald-900/30 border border-emerald-500/30 px-6 py-2 transition-all hover:bg-emerald-900/50 hover:border-emerald-500/50 hover:scale-105 active:scale-95">
+                            <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 text-center">
+                                <span className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
+                                    <Gift className="w-3 h-3 text-amber-500" />
+                                    Program Referral
+                                </span>
+                                <span className="hidden md:block w-px h-3 bg-white/10"></span>
+                                <span className="text-gray-300 text-xs">
+                                    Dapatkan Cashback <span className="text-amber-400 font-bold">Rp 750 / 1B Chip</span> Seumur Hidup!
+                                </span>
+                                <ArrowRight className="w-3 h-3 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+                            </div>
+                        </Link>
+                    </div>
+                )}
 
                 {/* 4. ACTIONS (Buttons) */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-6 animate-in slide-in-from-bottom-5 fade-in duration-1000 delay-500">

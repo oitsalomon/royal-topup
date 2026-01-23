@@ -45,12 +45,41 @@ export default function ReferralPage() {
         fetchData()
     }, [authUser?.id])
 
-    const copyReferralLink = () => {
+    const copyReferralLink = async () => {
         if (!data?.user?.referral_code) return
         const link = `${window.location.origin}/register?ref=${data.user.referral_code}`
-        navigator.clipboard.writeText(link)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
+
+        try {
+            if (navigator?.clipboard?.writeText) {
+                await navigator.clipboard.writeText(link)
+                setCopied(true)
+                setTimeout(() => setCopied(false), 2000)
+            } else {
+                throw new Error('Clipboard API not available')
+            }
+        } catch (err) {
+            // Fallback for older browsers or non-secure contexts
+            try {
+                const textArea = document.createElement("textarea")
+                textArea.value = link
+                textArea.style.position = "fixed" // Avoid scrolling to bottom
+                document.body.appendChild(textArea)
+                textArea.focus()
+                textArea.select()
+                const successful = document.execCommand('copy')
+                document.body.removeChild(textArea)
+
+                if (successful) {
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                } else {
+                    alert('Gagal menyalin otomatis. Silakan salin manual.')
+                }
+            } catch (fallbackErr) {
+                console.error('Fallback copy failed', fallbackErr)
+                alert('Gagal menyalin link. Browser tidak mendukung.')
+            }
+        }
     }
 
     const handleWithdrawBonus = async () => {

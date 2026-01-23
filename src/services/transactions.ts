@@ -22,8 +22,27 @@ export async function getTransactions({
     const skip = (page - 1) * limit
 
     const where: any = {}
-    if (status) where.status = status
-    if (type && type !== 'all') where.type = type
+    if (status) {
+        where.status = status
+
+        // If filtering for UNPAID, only show recent ones (e.g. last 5 mins)
+        // to prevent stuck notifications from abandoned transactions
+        if (status === 'UNPAID') {
+            const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+            where.createdAt = {
+                gte: fiveMinutesAgo
+            }
+        }
+    } else {
+        where.status = { not: 'UNPAID' }
+    }
+    if (type && type !== 'all') {
+        where.type = type
+    } else {
+        // Exclude REFERRAL_WD by default from the main list as per user request
+        where.type = { not: 'REFERRAL_WD' }
+    }
+
     if (bank_id && bank_id !== 'all') where.payment_method_id = Number(bank_id)
 
     if (date) {
@@ -53,6 +72,22 @@ export async function getTransactions({
                 game: true,
                 paymentMethod: true,
                 withdrawMethod: true,
+                user: {
+                    select: {
+                        username: true,
+                        level: true,
+                        bank_name: true,
+                        account_number: true,
+                        account_name: true,
+                        gameIds: {
+                            select: {
+                                game_user_id: true,
+                                nickname: true,
+                                game_id: true
+                            }
+                        }
+                    }
+                }
             },
             orderBy: {
                 createdAt: 'desc'

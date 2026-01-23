@@ -66,7 +66,10 @@ export default function AdjustmentHistory() {
         if (formData.amount_money) {
             requests.push(fetch('/api/internal/adjustments', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Id': JSON.parse(localStorage.getItem('user') || '{}').id
+                },
                 body: JSON.stringify({
                     type: 'MONEY',
                     action: formData.action,
@@ -85,7 +88,10 @@ export default function AdjustmentHistory() {
 
             requests.push(fetch('/api/internal/adjustments', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-User-Id': JSON.parse(localStorage.getItem('user') || '{}').id
+                },
                 body: JSON.stringify({
                     type: 'CHIP',
                     action: formData.action,

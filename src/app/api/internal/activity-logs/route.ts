@@ -12,8 +12,19 @@ export async function GET(request: Request) {
         const user_id = searchParams.get('user_id')
         const date = searchParams.get('date')
         const action = searchParams.get('action')
+        const role = searchParams.get('role') // STAFF or MEMBER
 
         const where: any = {}
+
+        if (role === 'STAFF') {
+            where.user = {
+                role: { in: ['ADMIN', 'CS', 'SUPER_ADMIN'] }
+            }
+        } else if (role === 'MEMBER') {
+            where.user = {
+                role: 'VIEWER'
+            }
+        }
 
         if (user_id && user_id !== 'all') {
             where.user_id = Number(user_id)

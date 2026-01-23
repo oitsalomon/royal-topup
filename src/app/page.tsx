@@ -1,11 +1,17 @@
 import HeroBanner from '@/components/home/HeroBanner'
-import GameGrid from '@/components/home/GameGrid'
+import { getGames } from '@/services/games'
+import { getSystemConfig } from '@/services/config'
 
-export default function Home() {
+export const dynamic = 'force-dynamic'
+export const revalidate = 60 // Cache for 60 seconds
+
+export default async function Home() {
+  const games = await getGames(true) // Fetch only active games
+  const config = await getSystemConfig()
+
   return (
     <div className="min-h-screen">
-      <HeroBanner />
-      <GameGrid />
+      <HeroBanner games={games} config={config} />
       <footer className="text-center py-12 relative z-10 border-t border-white/5 bg-[#050912]">
         <div className="max-w-7xl mx-auto px-6">
           <p className="text-gray-500 text-sm font-medium">

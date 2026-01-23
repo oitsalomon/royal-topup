@@ -22,7 +22,22 @@ export async function POST(request: Request) {
         // 2. If not found, try Case-Insensitive Match (Postgres ILIKE behavior via mode: insensitive)
         if (!user) {
             user = await prisma.user.findFirst({
-                where: { username: { equals: username, mode: 'insensitive' } }
+                where: { username: { equals: username, mode: 'insensitive' } },
+                include: {
+                    gameIds: {
+                        include: { game: true }
+                    }
+                }
+            })
+        } else {
+            // Re-fetch with includes if found first try
+            user = await prisma.user.findUnique({
+                where: { id: user.id },
+                include: {
+                    gameIds: {
+                        include: { game: true }
+                    }
+                }
             })
         }
 
@@ -65,6 +80,7 @@ export async function POST(request: Request) {
             username: user.username,
             role: user.role,
             permissions: user.permissions,
+            gameIds: (user as any).gameIds, // Type assertion
             token: 'dummy-token'
         })
     } catch (error) {

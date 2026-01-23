@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Wallet, Coins, ArrowUpRight, ArrowDownLeft, Shield } from 'lucide-react'
 
 export default function DashboardClient({ initialData }: { initialData: any }) {
+    const [isLoading, setIsLoading] = useState(!initialData)
     const [data, setData] = useState<any>(initialData || {
         banks: [],
         gameAccounts: [],
@@ -13,6 +14,13 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
             withdraw: { count: 0, money_out: 0, chip_in: 0 }
         }
     })
+
+    // Fetch on Mount (Instant UX)
+    useEffect(() => {
+        if (!initialData) {
+            fetchStats()
+        }
+    }, [])
 
     // UI States
     const [showBankDetails, setShowBankDetails] = useState(false)
@@ -47,11 +55,12 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
         fetch('/api/internal/dashboard/stats')
             .then(res => res.json())
             .then(newData => {
-                if (newData.banks && Array.isArray(newData.banks)) {
+                if (newData.banks) {
                     setData(newData)
                 }
             })
             .catch(console.error)
+            .finally(() => setIsLoading(false))
     }
 
     const handleAdjustment = async (e: React.FormEvent) => {
@@ -179,6 +188,23 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
     const totalChipBalance = data?.totalStats?.chipBalance !== undefined
         ? Number(data.totalStats.chipBalance)
         : (data?.gameAccounts || []).reduce((acc: number, curr: any) => acc + (Number(curr.balance) || 0), 0)
+
+    if (isLoading) {
+        return (
+            <div className="space-y-8 animate-pulse">
+                <div className="h-10 w-48 bg-white/5 rounded-xl mb-8"></div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="h-40 bg-white/5 rounded-2xl"></div>
+                    <div className="h-40 bg-white/5 rounded-2xl"></div>
+                    <div className="h-40 bg-white/5 rounded-2xl"></div>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 h-96 bg-white/5 rounded-xl"></div>
+                    <div className="h-96 bg-white/5 rounded-xl"></div>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-8">

@@ -122,6 +122,28 @@ export default function LogsClient({ initialLogs, initialPagination, staffList }
                 />
             </div>
 
+            {/* Tabs */}
+            <div className="flex space-x-1 bg-white/5 p-1 rounded-xl mb-6 w-fit">
+                <button
+                    onClick={() => updateParams({ role: 'STAFF', page: 1 })}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${(!searchParams.get('role') || searchParams.get('role') === 'STAFF')
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        }`}
+                >
+                    Aktivitas Staff
+                </button>
+                <button
+                    onClick={() => updateParams({ role: 'MEMBER', page: 1 })}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${searchParams.get('role') === 'MEMBER'
+                        ? 'bg-blue-600 text-white shadow-lg'
+                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                        }`}
+                >
+                    Login Member
+                </button>
+            </div>
+
             <div className="glass rounded-2xl overflow-hidden">
                 <div className="overflow-x-auto min-h-[400px]">
                     <table className="w-full text-left">

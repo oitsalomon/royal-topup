@@ -4,16 +4,18 @@ import LogsClient from './LogsClient'
 export const dynamic = 'force-dynamic'
 
 interface AdminLogsPageProps {
-    searchParams: { [key: string]: string | string[] | undefined }
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
 export default async function AdminLogsPage({ searchParams }: AdminLogsPageProps) {
-    const page = Number(searchParams.page) || 1
+    const params = await searchParams
+    const page = Number(params.page) || 1
     const limit = 20
-    const search = typeof searchParams.search === 'string' ? searchParams.search : ''
-    const date = typeof searchParams.date === 'string' ? searchParams.date : ''
-    const user_id = typeof searchParams.user_id === 'string' ? searchParams.user_id : 'all'
-    const action = typeof searchParams.action === 'string' ? searchParams.action : 'all'
+    const search = typeof params.search === 'string' ? params.search : ''
+    const date = typeof params.date === 'string' ? params.date : ''
+    const user_id = typeof params.user_id === 'string' ? params.user_id : 'all'
+    const action = typeof params.action === 'string' ? params.action : 'all'
+    const role = typeof params.role === 'string' ? params.role : 'STAFF' // Default to STAFF as requested by user ("pisah")
 
     // Serialize Date objects in logs if necessary, 
     // but Prisma returns objects. Client components need JSON-serializable props.
@@ -21,7 +23,7 @@ export default async function AdminLogsPage({ searchParams }: AdminLogsPageProps
     // We might need to transform them to strings.
 
     const logsData = await getActivityLogs({
-        page, limit, search, date, user_id, action
+        page, limit, search, date, user_id, action, role
     })
 
     const staffList = await getStaffList()

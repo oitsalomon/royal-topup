@@ -19,6 +19,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
+        const userId = Number(request.headers.get('X-User-Id')) || 1
         const body = await request.json()
         const { type, action, amount, note, target_id } = body
         // type: 'MONEY' | 'CHIP'
@@ -113,7 +114,7 @@ export async function POST(request: Request) {
 
         await prisma.adjustment.create({
             data: {
-                user_id: 1,
+                user_id: userId,
                 amount: action === 'ADD' ? numAmount : -numAmount,
                 type,
                 reason: note || 'Manual Adjustment',

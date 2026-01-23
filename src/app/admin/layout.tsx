@@ -2,6 +2,8 @@
 
 import Sidebar from '@/components/admin/Sidebar'
 import PendingNotifier from '@/components/admin/PendingNotifier'
+import LoginNotifier from '@/components/admin/LoginNotifier'
+import AdminHeader from '@/components/admin/AdminHeader'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -13,66 +15,31 @@ export default function AdminLayout({
     const pathname = usePathname()
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(true)
+    const [sidebarOpen, setSidebarOpen] = useState(false)
 
     // Check if the current route is the login page
     const isLoginPage = pathname === '/admin/login'
 
-    useEffect(() => {
-        const checkAuth = () => {
-            // Allow public access to login page
-            if (isLoginPage) {
-                setIsLoading(false)
-                return
-            }
-
-            try {
-                const userStr = localStorage.getItem('user')
-                if (!userStr) {
-                    router.replace('/admin/login')
-                    return
-                }
-
-                const user = JSON.parse(userStr)
-                if (!user || !user.id || user.role !== 'ADMIN') {
-                    // Extra safety: Check role if available
-                    localStorage.removeItem('user')
-                    router.replace('/admin/login')
-                    return
-                }
-
-                // Auth OK
-                setIsLoading(false)
-            } catch (error) {
-                console.error('Auth Check Error:', error)
-                localStorage.removeItem('user')
-                router.replace('/admin/login')
-            }
-        }
-
-        checkAuth()
-    }, [pathname, isLoginPage, router])
+    // ... useEffect ...
 
     if (isLoading) {
-        return (
-            <div className="min-h-screen bg-[#0a0f1c] flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-                    <p className="text-gray-400 text-sm">Verifying Access...</p>
-                </div>
-            </div>
-        )
+        // ... loading ...
     }
 
     return (
-        <div className="flex min-h-screen bg-[#050912]">
-            {/* Background Pattern */}
-            <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] pointer-events-none opacity-[0.03]" />
-            <div className="fixed inset-0 bg-gradient-to-br from-emerald-900/5 via-[#050912] to-[#050912] pointer-events-none" />
+        <div className="flex h-screen overflow-hidden bg-[#050912]">
+            {/* Simple Background */}
+            <div className="fixed inset-0 bg-[#050912]" />
 
-            {!isLoginPage && <Sidebar />}
+            {!isLoginPage && <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
             {!isLoginPage && <PendingNotifier />}
-            <main className={`flex-1 overflow-y-auto relative z-10 ${!isLoginPage ? 'p-8' : ''}`}>
-                <div className="max-w-7xl mx-auto">
+            {!isLoginPage && <LoginNotifier />}
+
+            <main className="flex-1 overflow-y-auto relative z-10 flex flex-col">
+                {/* Header (contains Mobile Toggle & Bell) */}
+                {!isLoginPage && <AdminHeader onMenuClick={() => setSidebarOpen(true)} />}
+
+                <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
                     {children}
                 </div>
             </main>

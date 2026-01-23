@@ -10,7 +10,7 @@ export async function GET() {
     try {
         const staff = await prisma.user.findMany({
             where: {
-                role: { in: ['ADMIN', 'CS', 'VIEWER'] }
+                role: { in: ['ADMIN', 'CS', 'SUPER_ADMIN'] }
             },
             orderBy: { createdAt: 'desc' }
         })
@@ -143,25 +143,65 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
     try {
         const { searchParams } = new URL(request.url)
-        const id = searchParams.get('id')
+        const id = Number(searchParams.get('id'))
         const userId = getUserId(request)
 
         if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 })
 
-        const deletedUser = await prisma.user.delete({
-            where: { id: Number(id) }
+        // Perform Deep Clean / Cascade Delete manually
+        // Perform Deep Clean / Cascade Delete (Sequential to avoid Transaction Timeout)
+
+        // 1. Unlink Processed Transactions
+        await prisma.transaction.updateMany({
+            where: { processed_by_id: id },
+            data: { processed_by_id: null }
         })
 
+        // 2. Unlink Owned Transactions
+        await prisma.transaction.updateMany({
+            where: { user_id: id } as any, // Cast to any to avoid strict input type check if mismatched
+            data: { user_id: null } as any
+        })
+
+        // 3. Delete Activity Logs
+        await prisma.activityLog.deleteMany({
+            where: { user_id: id }
+        })
+
+        // 4. Unlink Managed Banks
+        await prisma.paymentMethod.updateMany({
+            where: { admin_id: id },
+            data: { admin_id: null }
+        })
+
+        const p = prisma as any
+
+        // 5. Delete Member Specific Data (if any)
+        await p.userGameId.deleteMany({ where: { user_id: id } })
+        await p.weeklyStats.deleteMany({ where: { user_id: id } })
+        await prisma.adjustment.deleteMany({ where: { user_id: id } })
+        await prisma.transfer.deleteMany({ where: { from_user_id: id } })
+        await prisma.transfer.deleteMany({ where: { to_user_id: id } })
+        await p.dcBos.deleteMany({ where: { user_id: id } })
+
+        // 6. Finally Delete User
+        const deletedUser = await prisma.user.delete({
+            where: { id }
+        })
+
+        // Log Action
         await prisma.activityLog.create({
             data: {
                 user_id: userId,
                 action: 'DELETE_STAFF',
-                details: `Deleted staff: ${deletedUser.username}`
+                details: `Deleted user: ${deletedUser.username} (Deep Clean)`
             }
         })
 
         return NextResponse.json({ success: true })
     } catch (error) {
-        return NextResponse.json({ error: 'Failed to delete staff' }, { status: 500 })
+        console.error('Delete User/Staff Error:', error)
+        const msg = error instanceof Error ? error.message : 'Unknown dependency error'
+        return NextResponse.json({ error: msg }, { status: 500 })
     }
 }

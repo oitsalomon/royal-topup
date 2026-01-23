@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTransactions } from '@/services/transactions'
+import { updateMemberStats } from '@/services/member'
 
 export async function POST(request: Request) {
     try {
@@ -11,18 +12,52 @@ export async function POST(request: Request) {
             payment_method_id, proof_image, type, target_payment_details
         } = body
 
+        // Try to identify user
+        let userId: number | null = null
+        if (body.user_id) userId = Number(body.user_id)
+
+        // If not explicit, lookup by Game ID
+        if (!userId && user_game_id) {
+            const linked = await prisma.userGameId.findFirst({
+                where: {
+                    game_id: Number(game_id),
+                    game_user_id: user_game_id?.trim()
+                }
+            })
+            if (linked) userId = linked.user_id
+        }
+
         // Prepare data
+        let finalAmountMoney = Number(amount_money)
+
+        // Fetch Payment Method Details (needed for Unique Code Check & Association)
+        let paymentMethodName = ''
+        if (type === 'TOPUP' && payment_method_id) {
+            const pm = await prisma.paymentMethod.findUnique({ where: { id: Number(payment_method_id) } })
+            if (pm) paymentMethodName = pm.name
+        }
+
+        // Add Unique Code (Random 1-199) ONLY for QRIS TOPUP
+        if (type === 'TOPUP') {
+            const isQRIS = paymentMethodName.toLowerCase().includes('qris')
+            if (isQRIS) {
+                const uniqueCode = Math.floor(Math.random() * 199) + 1
+                finalAmountMoney += uniqueCode
+            }
+        }
+
         const transactionData: any = {
             user_wa,
+            user_id: userId, // Link to user if found
             game_id: Number(game_id),
             user_game_id: user_game_id || '',
             nickname,
             amount_chip: Number(amount_chip),
-            amount_money: Number(amount_money),
-            proof_image,
+            amount_money: finalAmountMoney,
+            proof_image: proof_image || null, // Optional
             type, // TOPUP or WITHDRAW
             target_payment_details,
-            status: 'PENDING'
+            status: (type === 'WITHDRAW' || userId || proof_image) ? 'PENDING' : 'UNPAID'
         }
 
         // Handle Payment ID mapping based on Type
@@ -34,8 +69,38 @@ export async function POST(request: Request) {
         }
 
         const transaction = await prisma.transaction.create({
-            data: transactionData
+            data: transactionData,
+            include: {
+                paymentMethod: true
+            }
         })
+
+        // Update Member Stats (Async)
+        if (userId && type === 'TOPUP') {
+            updateMemberStats(userId, Number(amount_chip)).catch(e => console.error('Stats update failed:', e))
+
+            // AUTO-SAVE GAME IDLogic
+            if (user_game_id) {
+                prisma.userGameId.findFirst({
+                    where: {
+                        user_id: userId,
+                        game_id: Number(game_id),
+                        game_user_id: user_game_id.toString()
+                    }
+                }).then(existing => {
+                    if (!existing) {
+                        prisma.userGameId.create({
+                            data: {
+                                user_id: userId!,
+                                game_id: Number(game_id),
+                                game_user_id: user_game_id.toString(),
+                                nickname: nickname || ''
+                            }
+                        }).catch(e => console.error('Failed to auto-save game ID:', e))
+                    }
+                }).catch(e => console.error('Error checking existing game ID:', e))
+            }
+        }
 
         // Send notification to Telegram (Mocked for now)
         console.log(`[TELEGRAM] New ${type} transaction:`, transaction)

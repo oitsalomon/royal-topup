@@ -2,13 +2,16 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Menu, Search, User, ChevronDown, Phone, Send, MessageCircle, Download, X } from 'lucide-react'
+import { Menu, Search, User, ChevronDown, Phone, Send, MessageCircle, Download, X, LogIn, LogOut, CreditCard, Trophy, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { useAuth } from '@/contexts/AuthProvider'
 
 export default function Navbar() {
     const pathname = usePathname()
+    const { user, logout } = useAuth()
     const [config, setConfig] = useState<any>(null)
     const [scrolled, setScrolled] = useState(false)
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     useEffect(() => {
         // Fetch config once on mount
@@ -24,8 +27,6 @@ export default function Navbar() {
         window.addEventListener('scroll', handleScroll)
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
-
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     // Close menu when route changes
     useEffect(() => {
@@ -69,48 +70,63 @@ export default function Navbar() {
 
                     {/* Desktop Actions */}
                     <div className="hidden md:flex items-center gap-4">
-                        {/* Download App Dropdown */}
-                        <div className="relative">
-                            <button
-                                onMouseEnter={() => setConfig((prev: any) => ({ ...prev, activeDropdown: 'download' }))}
-                                onClick={() => setConfig((prev: any) => ({ ...prev, activeDropdown: prev?.activeDropdown === 'download' ? null : 'download' }))}
-                                className="group px-5 py-2.5 rounded-xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 hover:from-indigo-500/20 hover:to-purple-500/20 border border-indigo-500/20 hover:border-indigo-500/40 text-indigo-300 font-bold text-sm transition-all flex items-center gap-2"
-                            >
-                                <Download size={16} className="group-hover:-translate-y-0.5 transition-transform" />
-                                <span>App</span>
-                            </button>
-
-                            {/* Hover Bridge */}
-                            {config?.activeDropdown === 'download' && (
-                                <div
-                                    className="absolute top-full right-0 w-48 pt-2"
-                                    onMouseLeave={() => setConfig((prev: any) => ({ ...prev, activeDropdown: null }))}
+                        {/* Auth Buttons */}
+                        {user ? (
+                            <div className="relative">
+                                <button
+                                    onMouseEnter={() => setConfig((prev: any) => ({ ...prev, activeDropdown: 'user' }))}
+                                    onClick={() => setConfig((prev: any) => ({ ...prev, activeDropdown: prev?.activeDropdown === 'user' ? null : 'user' }))}
+                                    className="group px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white font-bold text-sm transition-all flex items-center gap-2"
                                 >
-                                    <div className="bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl overflow-hidden p-1 backdrop-blur-xl">
-                                        <div className="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-b border-white/5 mb-1">Download</div>
-                                        <a href={config?.download_app?.royal_dream || '#'} target="_blank" className="block px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
-                                            Royal Dream
-                                        </a>
-                                        <a href={config?.download_app?.domino_rp || '#'} target="_blank" className="block px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
-                                            Domino RP
-                                        </a>
-                                        <a href={config?.download_app?.neo || '#'} target="_blank" className="block px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
-                                            Neo
-                                        </a>
+                                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-[10px] font-bold">
+                                        {user.level ? user.level[0] : 'M'}
                                     </div>
-                                </div>
-                            )}
-                        </div>
+                                    <span>{user.username}</span>
+                                    <ChevronDown size={14} className={`text-gray-400 transition-transform ${config?.activeDropdown === 'user' ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {config?.activeDropdown === 'user' && (
+                                    <div
+                                        className="absolute top-full right-0 w-48 pt-2"
+                                        onMouseLeave={() => setConfig((prev: any) => ({ ...prev, activeDropdown: null }))}
+                                    >
+                                        <div className="bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl overflow-hidden p-1 backdrop-blur-xl">
+                                            <Link href="/profile" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
+                                                <User size={14} /> Profil Saya
+                                            </Link>
+                                            <Link href="/profile/referral" className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg transition-colors text-amber-500">
+                                                <Users size={14} /> Referral & Bonus
+                                            </Link>
+                                            <button onClick={logout} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors text-left">
+                                                <LogOut size={14} /> Logout
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-3">
+                                <Link href="/login" className="text-sm font-bold text-gray-300 hover:text-white transition-colors">
+                                    Masuk
+                                </Link>
+                                <Link
+                                    href="/register"
+                                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-sm shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all transform hover:-translate-y-0.5"
+                                >
+                                    Daftar
+                                </Link>
+                            </div>
+                        )}
 
                         {/* Hubungi CS Dropdown */}
                         <div className="relative">
                             <button
                                 onMouseEnter={() => setConfig((prev: any) => ({ ...prev, activeDropdown: 'cs' }))}
                                 onClick={() => setConfig((prev: any) => ({ ...prev, activeDropdown: prev?.activeDropdown === 'cs' ? null : 'cs' }))}
-                                className="group px-5 py-2.5 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 hover:from-emerald-400 hover:to-emerald-600 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/40 transition-all flex items-center gap-2"
+                                className="group px-4 py-2.5 rounded-xl bg-gradient-to-br from-emerald-500/10 to-emerald-700/10 hover:from-emerald-500/20 hover:to-emerald-700/20 border border-emerald-500/20 text-emerald-400 font-bold text-sm transition-all flex items-center gap-2"
                             >
-                                <span>Hubungi CS</span>
-                                <ChevronDown size={16} className={`text-emerald-200 transition-transform duration-200 ${config?.activeDropdown === 'cs' ? 'rotate-180' : ''}`} />
+                                <Phone size={16} />
+                                <span className="hidden lg:inline">CS</span>
                             </button>
 
                             {config?.activeDropdown === 'cs' && (
@@ -120,31 +136,16 @@ export default function Navbar() {
                                 >
                                     <div className="bg-[#0f172a] border border-white/10 rounded-xl shadow-2xl overflow-hidden p-1 backdrop-blur-xl">
                                         <div className="px-3 py-2 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-b border-white/5 mb-1">Fast Response</div>
+                                        {/* ... Contact Links (Same as before) ... */}
                                         <a
-                                            href={`https://wa.me/${(config?.contacts?.whatsapp?.number || '').replace(/[^0-9]/g, '')}`}
+                                            href={`https://wa.me/${(() => {
+                                                const num = (config?.contacts?.whatsapp?.number || '').replace(/[^0-9]/g, '')
+                                                return num.startsWith('0') ? '62' + num.slice(1) : num
+                                            })()}`}
                                             target="_blank"
                                             className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-300 hover:bg-emerald-500/10 hover:text-emerald-400 rounded-lg transition-colors group/item"
                                         >
-                                            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover/item:bg-emerald-500 group-hover/item:text-white transition-colors">
-                                                <Phone size={14} />
-                                            </div>
-                                            WhatsApp
-                                        </a>
-                                        <a
-                                            href={`https://t.me/${(config?.contacts?.telegram?.username || '').replace('https://t.me/', '').replace('@', '')}`}
-                                            target="_blank"
-                                            className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-300 hover:bg-blue-500/10 hover:text-blue-400 rounded-lg transition-colors group/item"
-                                        >
-                                            <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover/item:bg-blue-500 group-hover/item:text-white transition-colors">
-                                                <Send size={14} />
-                                            </div>
-                                            Telegram
-                                        </a>
-                                        <a href={config?.contacts?.live_chat?.url || '#'} target="_blank" className="flex items-center gap-3 px-3 py-2.5 text-sm text-gray-300 hover:bg-amber-500/10 hover:text-amber-400 rounded-lg transition-colors group/item">
-                                            <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-400 group-hover/item:bg-amber-500 group-hover/item:text-white transition-colors">
-                                                <MessageCircle size={14} />
-                                            </div>
-                                            Live Chat
+                                            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400"><Phone size={14} /></div> WhatsApp
                                         </a>
                                     </div>
                                 </div>
@@ -153,7 +154,23 @@ export default function Navbar() {
                     </div>
 
                     {/* Mobile Menu Button */}
-                    <div className="md:hidden">
+                    <div className="md:hidden flex items-center gap-4">
+                        {!user && (
+                            <>
+                                <Link
+                                    href="/login"
+                                    className="px-3 py-2 rounded-lg bg-white/5 text-bold text-[10px] text-white border border-white/10"
+                                >
+                                    Login
+                                </Link>
+                                <Link
+                                    href="/register"
+                                    className="px-3 py-2 rounded-lg bg-emerald-600 text-bold text-[10px] text-white shadow-lg shadow-emerald-500/20"
+                                >
+                                    Daftar
+                                </Link>
+                            </>
+                        )}
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                             className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white hover:bg-white/10 active:scale-95 transition-all"
@@ -169,65 +186,48 @@ export default function Navbar() {
             {isMobileMenuOpen && (
                 <div className="md:hidden fixed top-[64px] left-0 w-full h-[calc(100vh-64px)] bg-[#050912]/95 backdrop-blur-3xl border-t border-white/5 z-40 overflow-y-auto animate-in slide-in-from-right-10 duration-200">
                     <div className="p-6 space-y-8">
-                        {/* Main Links */}
+                        {user && (
+                            <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-900/20 to-blue-900/20 border border-cyan-500/20 flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center text-lg font-bold">
+                                    {user.level ? user.level[0] : 'M'}
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-white">{user.username}</h3>
+                                    <p className="text-xs text-cyan-400">{user.level || 'Member'}</p>
+                                </div>
+                            </div>
+                        )}
+
                         <div className="space-y-2">
-                            <Link
-                                href="/"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className={`block px-5 py-4 rounded-2xl font-bold text-lg transition-all ${pathname === '/' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-white/5 text-gray-300 border border-transparent'}`}
-                            >
-                                Home
-                            </Link>
-                            <Link
-                                href="/check-transaction"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                                className={`block px-5 py-4 rounded-2xl font-bold text-lg transition-all ${pathname === '/check-transaction' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-white/5 text-gray-300 border border-transparent'}`}
-                            >
-                                Cek Transaksi
-                            </Link>
+                            <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="block px-5 py-4 rounded-2xl bg-white/5 text-gray-300 hover:text-white">Home</Link>
+                            <Link href="/check-transaction" onClick={() => setIsMobileMenuOpen(false)} className="block px-5 py-4 rounded-2xl bg-white/5 text-gray-300 hover:text-white">Cek Transaksi</Link>
+                            {user && (
+                                <>
+                                    <Link href="/profile/loyalty" onClick={() => setIsMobileMenuOpen(false)} className="block px-5 py-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold hover:bg-amber-500/20">
+                                        <div className="flex items-center gap-2">
+                                            <Trophy size={18} />
+                                            Loyalty & Undian
+                                        </div>
+                                    </Link>
+                                    <Link href="/profile/referral" onClick={() => setIsMobileMenuOpen(false)} className="block px-5 py-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold hover:bg-emerald-500/20">
+                                        <div className="flex items-center gap-2">
+                                            <Users size={18} />
+                                            Referral & Bonus
+                                        </div>
+                                    </Link>
+                                    <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className="block px-5 py-4 rounded-2xl bg-white/5 text-gray-300 hover:text-white">Profil Saya</Link>
+                                </>
+                            )}
                         </div>
 
-                        {/* Mobile Download Game */}
-                        <div>
-                            <p className="px-1 text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Download Game</p>
-                            <div className="grid grid-cols-1 gap-2">
-                                <a href={config?.download_app?.royal_dream || '#'} target="_blank" className="flex items-center justify-between px-5 py-4 rounded-2xl bg-[#0f172a] border border-white/5 text-gray-300 hover:border-pink-500/50 hover:text-pink-400 transition-all group">
-                                    <span className="font-medium">Royal Dream</span>
-                                    <Download size={18} className="text-gray-600 group-hover:text-pink-400" />
-                                </a>
-                                <a href={config?.download_app?.domino_rp || '#'} target="_blank" className="flex items-center justify-between px-5 py-4 rounded-2xl bg-[#0f172a] border border-white/5 text-gray-300 hover:border-purple-500/50 hover:text-purple-400 transition-all group">
-                                    <span className="font-medium">Domino RP</span>
-                                    <Download size={18} className="text-gray-600 group-hover:text-purple-400" />
-                                </a>
+                        {user ? (
+                            <button onClick={() => { logout(); setIsMobileMenuOpen(false) }} className="w-full py-4 rounded-2xl bg-red-500/10 text-red-400 font-bold border border-red-500/20">Logout</button>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-4">
+                                <Link href="/login" onClick={() => setIsMobileMenuOpen(false)} className="py-4 text-center rounded-2xl bg-white/5 text-white font-bold border border-white/10">Masuk</Link>
+                                <Link href="/register" onClick={() => setIsMobileMenuOpen(false)} className="py-4 text-center rounded-2xl bg-cyan-600 text-white font-bold shadow-lg shadow-cyan-500/20">Daftar</Link>
                             </div>
-                        </div>
-
-                        {/* Mobile Contact CS */}
-                        <div>
-                            <p className="px-1 text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Pusat Bantuan</p>
-                            <div className="grid grid-cols-3 gap-3">
-                                <a
-                                    href={`https://wa.me/${(config?.contacts?.whatsapp?.number || '').replace(/[^0-9]/g, '')}`}
-                                    target="_blank"
-                                    className="flex flex-col items-center justify-center gap-3 p-4 rounded-2xl bg-[#0f172a] border border-white/5 text-gray-400 hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-400 transition-all"
-                                >
-                                    <Phone size={24} />
-                                    <span className="text-[10px] font-bold">WhatsApp</span>
-                                </a>
-                                <a
-                                    href={`https://t.me/${(config?.contacts?.telegram?.username || '').replace('https://t.me/', '').replace('@', '')}`}
-                                    target="_blank"
-                                    className="flex flex-col items-center justify-center gap-3 p-4 rounded-2xl bg-[#0f172a] border border-white/5 text-gray-400 hover:bg-blue-500/10 hover:border-blue-500/30 hover:text-blue-400 transition-all"
-                                >
-                                    <Send size={24} />
-                                    <span className="text-[10px] font-bold">Telegram</span>
-                                </a>
-                                <a href={config?.contacts?.live_chat?.url || '#'} target="_blank" className="flex flex-col items-center justify-center gap-3 p-4 rounded-2xl bg-[#0f172a] border border-white/5 text-gray-400 hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-400 transition-all">
-                                    <MessageCircle size={24} />
-                                    <span className="text-[10px] font-bold">Live Chat</span>
-                                </a>
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             )}

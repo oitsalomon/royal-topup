@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,142 +9,242 @@ datasource db {
 }
 
 model User {
-  id            Int       @id @default(autoincrement())
-  username      String    @unique
-  password      String
-  role          String    @default("VIEWER") // ADMIN, CS, VIEWER, SUPER_ADMIN
-  permissions   String    @default("") // Comma separated permissions
-  isActive      Boolean   @default(true)
-  lastLogin     DateTime?
-  statsResetAt  DateTime? // When stats were last reset
-  balance_money Float     @default(0)
-  balance_chip  Float     @default(0)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  // Relations
-  transactionsProcessed Transaction[] @relation("ProcessedBy")
-  transfersSent         Transfer[]    @relation("Sender")
-  transfersReceived     Transfer[]    @relation("Receiver")
-  adjustments           Adjustment[]
-  dcBos                 DcBos[]
-  activityLogs          ActivityLog[]
-  managedBanks          PaymentMethod[]
+  id                      Int                @id @default(autoincrement())
+  username                String             @unique
+  password                String
+  role                    String             @default("VIEWER")
+  permissions             String             @default("")
+  isActive                Boolean            @default(true)
+  lastLogin               DateTime?
+  statsResetAt            DateTime?
+  balance_money           Float              @default(0)
+  balance_chip            Float              @default(0)
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+  account_name            String?
+  account_number          String?            @unique
+  bank_name               String?
+  consecutive_weeks       Int                @default(0)
+  level                   UserLevel          @default(BRONZE)
+  tickets                 String[]           @default([])
+  total_exp               Int                @default(0)
+  whatsapp                String?            @unique
+  active_banner_id        String?
+  loyalty_points          Int                @default(0)
+  owned_banners           String[]           @default([])
+  balance_bonus           Float              @default(0)
+  referral_code           String?            @unique
+  referrer_id             Int?
+  wd_bonus_this_week      Boolean            @default(false)
+  weekly_personal_topup_B Float              @default(0)
+  activityLogs            ActivityLog[]
+  adjustments             Adjustment[]
+  dcBos                   DcBos[]
+  lotteryTickets          LotteryTicket[]
+  loyaltyLogs             LoyaltyLog[]
+  managedBanks            PaymentMethod[]
+  referralEarnedLogs      ReferralBonusLog[] @relation("ReferredUser")
+  referralBonusLogs       ReferralBonusLog[] @relation("Referrer")
+  transactionsProcessed   Transaction[]      @relation("ProcessedBy")
+  transactions            Transaction[]
+  transfersSent           Transfer[]         @relation("Sender")
+  transfersReceived       Transfer[]         @relation("Receiver")
+  referrer                User?              @relation("ReferralTree", fields: [referrer_id], references: [id])
+  referrals               User[]             @relation("ReferralTree")
+  gameIds                 UserGameId[]
+  userVouchers            UserVoucher[]
+  weeklyStats             WeeklyStats[]
+}
+
+model LoyaltyLog {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  amount      Int
+  source      String
+  description String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+}
+
+model LotteryTicket {
+  id          Int      @id @default(autoincrement())
+  user_id     Int
+  period      String
+  ticket_code String   @unique
+  is_winner   Boolean  @default(false)
+  prize_desc  String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [user_id], references: [id])
+
+  @@index([period])
+  @@index([user_id])
+}
+
+model UserVoucher {
+  id        Int       @id @default(autoincrement())
+  user_id   Int
+  type      String
+  quota     Int
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+  user      User      @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+}
+
+model ReferralBonusLog {
+  id               Int          @id @default(autoincrement())
+  transaction_id   Int?
+  referrer_id      Int
+  referred_user_id Int
+  chip_amount      Float
+  bonus_amount     Float
+  status           String       @default("SUCCESS")
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  referredUser     User         @relation("ReferredUser", fields: [referred_user_id], references: [id])
+  referrer         User         @relation("Referrer", fields: [referrer_id], references: [id])
+  transaction      Transaction? @relation(fields: [transaction_id], references: [id])
+
+  @@index([referrer_id])
+  @@index([transaction_id])
 }
 
 model Game {
-  id          Int      @id @default(autoincrement())
-  name        String
-  code        String   @unique
-  image       String?
-  category    String   @default("GAMES") // GAMES, APPS, OTHERS
-  isActive    Boolean  @default(true)
-  externalUrl String?  // If set, clicking this game redirects to this URL
-  store_name  String?  // The store this game belongs to
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  transactions Transaction[]
-  gameAccounts GameAccount[]
-  paymentMethods PaymentMethod[] // Implicit Many-to-Many
+  id             Int             @id @default(autoincrement())
+  name           String
+  code           String          @unique
+  image          String?
+  category       String          @default("GAMES")
+  isActive       Boolean         @default(true)
+  externalUrl    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  store_name     String?
+  gameAccounts   GameAccount[]
+  transactions   Transaction[]
+  userGameIds    UserGameId[]
+  paymentMethods PaymentMethod[] @relation("GameToPaymentMethod")
+
+  @@index([isActive, createdAt])
 }
 
 model PaymentMethod {
-  id            Int      @id @default(autoincrement())
-  name          String
-  type          String   // BANK, EWALLET
+  id             Int           @id @default(autoincrement())
+  name           String
+  type           String
   account_number String
-  account_name  String
-  image         String?
-  category      String   @default("BOTH") // DEPOSIT, WITHDRAW, BOTH
-  store_name    String?  // If null, appears in ALL stores. If set, only appears in that store.
-  
-  // Relations
-  games         Game[]   // Implicit Many-to-Many
-  
-  // Internal System Fields
-  balance       Float    @default(0)
-  isActive      Boolean  @default(true)
-  admin_id      Int?
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  transactions  Transaction[]
-  admin         User?    @relation(fields: [admin_id], references: [id])
-  
-  // Relations for History
-  adjustments Adjustment[]
-  transfersFrom Transfer[] @relation("TransferFromBank")
-  transfersTo   Transfer[] @relation("TransferToBank")
+  account_name   String
+  image          String?
+  category       String        @default("BOTH")
+  balance        Float         @default(0)
+  isActive       Boolean       @default(true)
+  admin_id       Int?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  store_name     String?
+  adjustments    Adjustment[]
+  admin          User?         @relation(fields: [admin_id], references: [id])
+  transactions   Transaction[]
+  transfersFrom  Transfer[]    @relation("TransferFromBank")
+  transfersTo    Transfer[]    @relation("TransferToBank")
+  games          Game[]        @relation("GameToPaymentMethod")
 }
 
 model GameAccount {
-  id        Int      @id @default(autoincrement())
-  game_id   Int
-  username  String
-  password  String?
-  role      String   @default("ALL") // DEPOSIT, WITHDRAW, ALL, GUDANG
-  balance   Float    @default(0)
-  isActive  Boolean  @default(true)
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int          @id @default(autoincrement())
+  game_id       Int
+  username      String
+  password      String?
+  role          String       @default("ALL")
+  balance       Float        @default(0)
+  isActive      Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  adjustments   Adjustment[]
+  game          Game         @relation(fields: [game_id], references: [id])
+  transfersFrom Transfer[]   @relation("TransferFromGame")
+  transfersTo   Transfer[]   @relation("TransferToGame")
 
-  game      Game     @relation(fields: [game_id], references: [id])
-  
-  // Relations for History
-  adjustments Adjustment[]
-  transfersFrom Transfer[] @relation("TransferFromGame")
-  transfersTo   Transfer[] @relation("TransferToGame")
+  @@index([isActive, balance])
 }
 
 model ActivityLog {
-  id        Int      @id @default(autoincrement())
-  user_id   Int
-  action    String   // LOGIN, LOGOUT, APPROVE_TX, ADJUSTMENT, TRANSFER
-  details   String?
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  action     String
+  details    String?
   ip_address String?
-  createdAt DateTime @default(now())
-
-  user      User     @relation(fields: [user_id], references: [id])
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [user_id], references: [id])
 
   @@index([createdAt])
   @@index([user_id])
 }
 
+model UserGameId {
+  id           Int      @id @default(autoincrement())
+  user_id      Int
+  game_id      Int
+  game_user_id String
+  createdAt    DateTime @default(now())
+  nickname     String?
+  game         Game     @relation(fields: [game_id], references: [id])
+  user         User     @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, game_id, game_user_id])
+}
+
+model WeeklyStats {
+  id                Int      @id @default(autoincrement())
+  user_id           Int
+  week_start        DateTime
+  total_turnover    Float    @default(0)
+  eligible_turnover Float    @default(0)
+  cashback_earned   Float    @default(0)
+  is_claimed        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, week_start])
+}
+
 model Transaction {
-  id              Int      @id @default(autoincrement())
-  user_wa         String
-  game_id         Int
-  user_game_id    String   @default("") // The user's ID in the game
-  nickname        String
-  amount_chip     Float
-  amount_money    Float
-  payment_method_id Int?
-  withdraw_method_id Int?
-  proof_image     String?
-  status          String   @default("PENDING") // PENDING, APPROVED_1, APPROVED_2, DECLINED
-  type            String   // TOPUP, WITHDRAW
-  
-  // For Withdraw
-  target_payment_details String? // e.g. "BCA 1234567890 A/N User"
-
-  processed_by_id Int?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  game            Game          @relation(fields: [game_id], references: [id])
-  paymentMethod   PaymentMethod? @relation(fields: [payment_method_id], references: [id])
-  withdrawMethod  WithdrawMethod? @relation(fields: [withdraw_method_id], references: [id])
-  processedBy     User?         @relation("ProcessedBy", fields: [processed_by_id], references: [id])
+  id                     Int                @id @default(autoincrement())
+  user_wa                String
+  game_id                Int
+  user_game_id           String             @default("")
+  nickname               String
+  amount_chip            Float
+  amount_money           Float
+  payment_method_id      Int?
+  withdraw_method_id     Int?
+  proof_image            String?
+  status                 String             @default("PENDING")
+  type                   String
+  target_payment_details String?
+  processed_by_id        Int?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  user_id                Int?
+  referralBonusLogs      ReferralBonusLog[]
+  game                   Game               @relation(fields: [game_id], references: [id])
+  paymentMethod          PaymentMethod?     @relation(fields: [payment_method_id], references: [id])
+  processedBy            User?              @relation("ProcessedBy", fields: [processed_by_id], references: [id])
+  user                   User?              @relation(fields: [user_id], references: [id])
+  withdrawMethod         WithdrawMethod?    @relation(fields: [withdraw_method_id], references: [id])
 
   @@index([status])
   @@index([type])
   @@index([createdAt])
   @@index([user_wa])
+  @@index([user_id])
+  @@index([processed_by_id])
+  @@index([type, status, createdAt])
+  @@index([status, createdAt])
 }
 
 model SystemConfig {
@@ -158,97 +255,91 @@ model SystemConfig {
 }
 
 model Transfer {
-  id           Int      @id @default(autoincrement())
-  from_user_id Int?     // Optional if system transfer
-  to_user_id   Int?     // Optional if system transfer
-  amount       Float
-  type         String   // CHIP, MONEY
-  note         String?
-  
-  // Internal Relations (Optional)
-  from_bank_id Int?
-  to_bank_id   Int?
+  id                   Int            @id @default(autoincrement())
+  from_user_id         Int?
+  to_user_id           Int?
+  amount               Float
+  type                 String
+  note                 String?
+  from_bank_id         Int?
+  to_bank_id           Int?
   from_game_account_id Int?
   to_game_account_id   Int?
-
-  createdAt    DateTime @default(now())
-
-  sender       User?    @relation("Sender", fields: [from_user_id], references: [id])
-  receiver     User?    @relation("Receiver", fields: [to_user_id], references: [id])
-  
-  fromBank     PaymentMethod? @relation("TransferFromBank", fields: [from_bank_id], references: [id])
-  toBank       PaymentMethod? @relation("TransferToBank", fields: [to_bank_id], references: [id])
-  fromGameAccount GameAccount? @relation("TransferFromGame", fields: [from_game_account_id], references: [id])
-  toGameAccount   GameAccount? @relation("TransferToGame", fields: [to_game_account_id], references: [id])
+  createdAt            DateTime       @default(now())
+  fromBank             PaymentMethod? @relation("TransferFromBank", fields: [from_bank_id], references: [id])
+  fromGameAccount      GameAccount?   @relation("TransferFromGame", fields: [from_game_account_id], references: [id])
+  sender               User?          @relation("Sender", fields: [from_user_id], references: [id])
+  toBank               PaymentMethod? @relation("TransferToBank", fields: [to_bank_id], references: [id])
+  toGameAccount        GameAccount?   @relation("TransferToGame", fields: [to_game_account_id], references: [id])
+  receiver             User?          @relation("Receiver", fields: [to_user_id], references: [id])
 }
 
 model Adjustment {
-  id        Int      @id @default(autoincrement())
-  user_id   Int
-  amount    Float
-  type      String   // CHIP, MONEY
-  reason    String
-  
-  // Linked Internal Account (Optional)
-  bank_id          Int?
-  game_account_id  Int?
-
-  createdAt DateTime @default(now())
-
-  user      User     @relation(fields: [user_id], references: [id])
-  bank      PaymentMethod? @relation(fields: [bank_id], references: [id])
-  gameAccount GameAccount? @relation(fields: [game_account_id], references: [id])
+  id              Int            @id @default(autoincrement())
+  user_id         Int
+  amount          Float
+  type            String
+  reason          String
+  bank_id         Int?
+  game_account_id Int?
+  createdAt       DateTime       @default(now())
+  bank            PaymentMethod? @relation(fields: [bank_id], references: [id])
+  gameAccount     GameAccount?   @relation(fields: [game_account_id], references: [id])
+  user            User           @relation(fields: [user_id], references: [id])
 }
 
 model DcBos {
   id        Int      @id @default(autoincrement())
   user_id   Int
   amount    Float
-  type      String   // CHIP, MONEY
+  type      String
   note      String?
   createdAt DateTime @default(now())
-
   user      User     @relation(fields: [user_id], references: [id])
 }
 
 model Package {
   id        Int      @id @default(autoincrement())
-  name      String   // e.g. "120 M"
-  chip      Float    // e.g. 120
-  price     Float    // e.g. 10000
+  name      String
+  chip      Float
+  price     Float
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model WithdrawMethod {
-  id        Int      @id @default(autoincrement())
-  name      String   // e.g. "BCA", "DANA", "GOPAY"
-  type      String   // "BANK" or "EWALLET"
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  id           Int           @id @default(autoincrement())
+  name         String
+  type         String
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   transactions Transaction[]
 }
 
 model StorePromoConfig {
-  id            Int      @id @default(autoincrement())
-  store_name    String   @unique // e.g. "Nova Store"
-  isPromoActive Boolean  @default(false)
-  promoTitle    String   @default("Special Promo")
-
+  id            Int            @id @default(autoincrement())
+  store_name    String         @unique
+  isPromoActive Boolean        @default(false)
+  promoTitle    String         @default("Special Promo")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   packages      PromoPackage[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
 }
 
 model PromoPackage {
-  id                Int      @id @default(autoincrement())
-  store_promo_id    Int
-  name              String
-  chip              Float
-  price             Float
-  
-  storePromo        StorePromoConfig @relation(fields: [store_promo_id], references: [id], onDelete: Cascade)
+  id             Int              @id @default(autoincrement())
+  store_promo_id Int
+  name           String
+  chip           Float
+  price          Float
+  storePromo     StorePromoConfig @relation(fields: [store_promo_id], references: [id], onDelete: Cascade)
+}
+
+enum UserLevel {
+  BRONZE
+  SILVER
+  GOLD
+  DIAMOND
 }

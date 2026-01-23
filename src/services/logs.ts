@@ -8,6 +8,7 @@ interface GetLogsParams {
     date?: string
     user_id?: string
     action?: string
+    role?: string
 }
 
 export async function getActivityLogs({
@@ -16,7 +17,8 @@ export async function getActivityLogs({
     search = '',
     date = '',
     user_id = 'all',
-    action = 'all'
+    action = 'all',
+    role = 'all'
 }: GetLogsParams) {
     const skip = (page - 1) * limit
 
@@ -45,6 +47,14 @@ export async function getActivityLogs({
 
     if (action !== 'all') {
         whereClause.action = action
+    }
+
+    if (role && role !== 'all') {
+        if (role === 'STAFF') {
+            whereClause.user = { role: { in: ['ADMIN', 'CS', 'SUPER_ADMIN'] } }
+        } else if (role === 'MEMBER') {
+            whereClause.user = { role: 'VIEWER' }
+        }
     }
 
     const [logs, total] = await Promise.all([

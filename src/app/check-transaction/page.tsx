@@ -162,6 +162,20 @@ export default function CheckTransaction() {
                                     </span>
                                 </div>
                             </div>
+
+                            {result.status === 'DECLINED' && (
+                                <div className="mt-8">
+                                    <a
+                                        href="/"
+                                        className="block w-full text-center py-4 bg-gradient-to-r from-red-600 to-pink-600 rounded-xl font-bold text-white hover:shadow-lg hover:shadow-red-500/25 transition-all transform hover:-translate-y-1"
+                                    >
+                                        Ajukan Ulang / Pilih Game Lain
+                                    </a>
+                                    <p className="text-center text-xs text-gray-500 mt-3">
+                                        Silakan perbaiki data atau upload bukti yang valid dan ajukan ulang.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>

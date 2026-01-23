@@ -146,9 +146,14 @@ export default function AdminStaff() {
             })
             if (res.ok) {
                 fetchStaff()
+                alert('Staff berhasil dihapus')
+            } else {
+                const err = await res.json()
+                alert(`Gagal menghapus: ${err.error || 'Unknown error'}`)
             }
         } catch (error) {
             console.error(error)
+            alert('Terjadi kesalahan saat menghapus')
         }
     }
 

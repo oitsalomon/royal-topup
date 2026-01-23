@@ -1,8 +1,21 @@
 import WithdrawForm from '@/components/WithdrawForm'
 
+
+export async function generateMetadata({ params }: { params: Promise<{ game: string }> }) {
+    const { game: slug } = await params
+    const decodedSlug = decodeURIComponent(slug)
+    const normalizedSlug = decodedSlug.replace(/-/g, ' ').toUpperCase()
+
+    return {
+        title: `Withdraw ${normalizedSlug} | Bongkar Chip Aman`,
+        description: `Layanan Withdraw ${normalizedSlug} terpercaya, proses cepat cair ke rekening/e-wallet. Bongkar Chip ${normalizedSlug} aman 24 jam.`,
+        keywords: [`Withdraw ${normalizedSlug}`, `Bongkar Chip ${normalizedSlug}`, `Jual Chip ${normalizedSlug}`, "Withdraw Game", "Clover Store"],
+    }
+}
+
 export default async function WithdrawPage({ params }: { params: Promise<{ game: string }> }) {
     const { game } = await params
-    const gameName = game.replace('-', ' ').toUpperCase()
+    const gameName = game.replace(/-/g, ' ').toUpperCase()
 
     return (
         <div className="min-h-screen bg-black pt-24 pb-20">

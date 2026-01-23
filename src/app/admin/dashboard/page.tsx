@@ -4,8 +4,9 @@ import DashboardClient from './DashboardClient'
 export const dynamic = 'force-dynamic'
 
 export default async function AdminDashboardPage() {
-    // Fetch data on server side for instant load
-    const data = await getDashboardStats()
+    // 1. Fetch data on the server (Instant Load)
+    // No more "Loading..." skeleton on the client
+    const initialData = await getDashboardStats()
 
-    return <DashboardClient initialData={data} />
+    return <DashboardClient initialData={initialData} />
 }

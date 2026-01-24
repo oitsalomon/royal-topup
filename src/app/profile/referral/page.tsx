@@ -212,9 +212,14 @@ export default function ReferralPage() {
 
                         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex gap-4">
                             <Info className="text-amber-500 shrink-0" size={20} />
-                            <p className="text-xs text-amber-500/80 leading-relaxed">
-                                Bagikan link di atas kepada teman Anda. Bonus akan otomatis masuk ke <strong>Dompet Bonus</strong> setiap kali teman yang Anda undang sukses melakukan Top Up.
-                            </p>
+                            <div className="space-y-1">
+                                <p className="text-xs text-amber-500/80 leading-relaxed">
+                                    Bagikan link di atas kepada teman Anda. Bonus akan otomatis masuk ke <strong>Dompet Bonus</strong> setiap kali teman yang Anda undang sukses melakukan Top Up.
+                                </p>
+                                <p className="text-xs text-amber-400 font-bold italic">
+                                    💡 Tips Cuan: Ajak temanmu untuk menyebarkan link referral MEREKA juga! Semakin ramai komunitas Clover Store, semakin besar peluang cuan bersama! 🚀
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>

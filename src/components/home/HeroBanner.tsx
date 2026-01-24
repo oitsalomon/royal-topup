@@ -75,11 +75,11 @@ export default function HeroBanner({ games, config }: HeroBannerProps) {
                             <div className="flex flex-col md:flex-row items-center gap-2 md:gap-3 text-center">
                                 <span className="flex items-center gap-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
                                     <Gift className="w-3 h-3 text-amber-500" />
-                                    Program Referral
+                                    Undang Teman = Cuan!
                                 </span>
                                 <span className="hidden md:block w-px h-3 bg-white/10"></span>
                                 <span className="text-gray-300 text-xs">
-                                    Dapatkan Cashback <span className="text-amber-400 font-bold">Rp 750 / 1B Chip</span> Seumur Hidup!
+                                    Dapatkan Bonus <span className="text-amber-400 font-bold">Rp 750 / 1B Chip</span> Seumur Hidup!
                                 </span>
                                 <ArrowRight className="w-3 h-3 text-emerald-400 group-hover:translate-x-1 transition-transform" />
                             </div>

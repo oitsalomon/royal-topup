@@ -17,24 +17,47 @@ export async function GET(request: Request) {
         const weekStart = new Date(now.setDate(diff))
         weekStart.setHours(0, 0, 0, 0)
 
-        // 2. Fetch User & Stats
-        const user = await prisma.user.findUnique({
-            where: { id: Number(userId) },
-            include: {
-                weeklyStats: {
-                    where: { week_start: weekStart }
-                },
-                gameIds: {
-                    include: { game: true }
+        // 2. Fetch User & Stats & Referrals in Parallel
+        const id = Number(userId)
+
+        const [user, referralStats, totalReferralVolume] = await Promise.all([
+            // Query 1: User Data
+            prisma.user.findUnique({
+                where: { id },
+                include: {
+                    weeklyStats: {
+                        where: { week_start: weekStart }
+                    },
+                    gameIds: {
+                        include: { game: true }
+                    }
                 }
-            }
-        })
+            }),
+
+            // Query 2: Referral Count
+            (prisma as any).user.aggregate({
+                where: { referrer_id: id },
+                _count: { id: true }
+            }),
+
+            // Query 3: Referral Volume
+            (prisma as any).transaction.aggregate({
+                where: {
+                    user: { referrer_id: id },
+                    status: 'APPROVED_2',
+                    type: 'TOPUP'
+                },
+                _sum: { amount_chip: true }
+            })
+        ])
 
         if (!user) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 })
         }
 
-        const stats = user.weeklyStats[0] || {
+        // Safe cast for user to access potentially un-typed fields
+        const safeUser = user as any
+        const stats = safeUser.weeklyStats[0] || {
             week_start: weekStart,
             total_turnover: 0,
             eligible_turnover: 0,
@@ -70,38 +93,23 @@ export async function GET(request: Request) {
             ? Math.min(100, (stats.total_turnover / nextLevelTarget) * 100)
             : 100
 
-        // 4. Referral Stats Summary
-        const referralStats = await prisma.user.aggregate({
-            where: { referrer_id: user.id },
-            _count: { id: true }
-        })
-
-        const totalReferralVolume = await prisma.transaction.aggregate({
-            where: {
-                user: { referrer_id: user.id },
-                status: 'APPROVED_2',
-                type: 'TOPUP'
-            },
-            _sum: { amount_chip: true }
-        })
-
         return NextResponse.json({
             user: {
-                username: user.username,
-                level: user.level,
-                total_exp: user.total_exp,
-                bank_name: user.bank_name,
-                account_number: user.account_number,
-                loyalty_points: user.loyalty_points,
-                referral_code: user.referral_code,
-                balance_bonus: user.balance_bonus,
-                weekly_personal_topup_B: user.weekly_personal_topup_B,
-                wd_bonus_this_week: user.wd_bonus_this_week
+                username: safeUser.username,
+                level: safeUser.level,
+                total_exp: safeUser.total_exp,
+                bank_name: safeUser.bank_name,
+                account_number: safeUser.account_number,
+                loyalty_points: safeUser.loyalty_points,
+                referral_code: safeUser.referral_code,
+                balance_bonus: safeUser.balance_bonus,
+                weekly_personal_topup_B: safeUser.weekly_personal_topup_B,
+                wd_bonus_this_week: safeUser.wd_bonus_this_week
             },
             stats,
             referralSummary: {
-                totalReferrals: referralStats._count.id,
-                totalVolumeB: totalReferralVolume._sum.amount_chip || 0
+                totalReferrals: referralStats._count?.id || 0,
+                totalVolumeB: totalReferralVolume._sum?.amount_chip || 0
             },
             levelProgress: {
                 current: stats.total_turnover,
@@ -109,7 +117,7 @@ export async function GET(request: Request) {
                 percent: progressPercent,
                 nextLevel: nextLevelName
             },
-            gameIds: user.gameIds // Return full object for compatibility with AuthProvider
+            gameIds: safeUser.gameIds // Return full object for compatibility with AuthProvider
         })
 
     } catch (error) {

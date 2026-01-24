@@ -40,8 +40,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (stored) {
                     const parsedUser = JSON.parse(stored)
                     setUser(parsedUser)
+                    setIsLoading(false) // Unblock UI immediately with cached data
 
-                    // Fetch fresh data (Game IDs, Stats)
+                    // Fetch fresh data (Game IDs, Stats) in background
                     try {
                         const res = await fetch(`/api/members/me?id=${parsedUser.id}`)
                         if (res.ok) {
@@ -52,17 +53,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                                 ...data.user, // level, etc
                                 gameIds: data.gameIds // fresh game IDs
                             }
+                            // Only update state if data actually changed to avoid re-renders? 
+                            // For simplicity, just update. React handles ref consistency often.
                             setUser(updatedUser)
                             localStorage.setItem('royal_member', JSON.stringify(updatedUser))
+                        } else if (res.status === 401 || res.status === 404) {
+                            // Token invalid or user deleted
+                            localStorage.removeItem('royal_member')
+                            setUser(null)
+                            router.push('/login')
                         }
                     } catch (err) {
                         console.error('Failed to refresh user data', err)
                     }
+                } else {
+                    // No stored user
+                    setIsLoading(false)
                 }
             } catch (e) {
                 console.error('Failed to load user', e)
                 localStorage.removeItem('royal_member')
-            } finally {
                 setIsLoading(false)
             }
         }

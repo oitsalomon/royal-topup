@@ -13,8 +13,10 @@ import { formatChip } from '@/lib/utils'
 export default function ProfilePage() {
     const { user, isLoading: authLoading, logout } = useAuth()
     const router = useRouter()
-    const [stats, setStats] = useState<any>(null)
-    const [loading, setLoading] = useState(true)
+
+    // Use local state for extended stats (like referralSummary, weeklyStats if needed in future)
+    // But for now, use "user" from context for instant render
+    const [extendedStats, setExtendedStats] = useState<any>(null)
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -22,25 +24,12 @@ export default function ProfilePage() {
         }
     }, [authLoading, user, router])
 
+    // Optional: Fetch fresh extended stats in background (non-blocking)
     useEffect(() => {
         if (user?.id) {
-            fetchStats()
+            fetch(`/api/members/me?id=${user.id}`).then(res => res.json()).then(data => setExtendedStats(data)).catch(console.error)
         }
     }, [user?.id])
-
-    const fetchStats = async () => {
-        try {
-            const res = await fetch(`/api/members/me?id=${user?.id}`)
-            if (res.ok) {
-                const data = await res.json()
-                setStats(data)
-            }
-        } catch (error) {
-            console.error('Failed to fetch stats', error)
-        } finally {
-            setLoading(false)
-        }
-    }
 
     const [config, setConfig] = useState<any>(null)
 
@@ -62,7 +51,7 @@ export default function ProfilePage() {
         }
     }
 
-    if (authLoading || loading) {
+    if (authLoading) {
         return (
             <div className="min-h-screen pt-24 pb-12 flex items-center justify-center bg-[#050912]">
                 <div className="flex flex-col items-center gap-4">
@@ -73,9 +62,11 @@ export default function ProfilePage() {
         )
     }
 
-    if (!stats) return null
+    if (!user) return null
 
-    const { user: userData, gameIds } = stats
+    // Merge context user with extended stats if available
+    const userData = { ...user, ...(extendedStats?.user || {}) }
+    const gameIds = extendedStats?.gameIds || user.gameIds || []
 
     // Helper for Level Styling
     const getLevelStyle = (level: string) => {
@@ -114,8 +105,14 @@ export default function ProfilePage() {
     const style = getLevelStyle(userData.level)
 
     // Calculate Progress to Next Level (Mock logic for visual)
-    const nextLevelExp = 10000000 // Example fixed target
-    const progressPercent = Math.min((userData.total_exp / nextLevelExp) * 100, 100)
+    // If extendedStats has levelProgress, use it. Otherwise calc locally.
+    let progressPercent = 0
+    if (extendedStats?.levelProgress?.percent !== undefined) {
+        progressPercent = extendedStats.levelProgress.percent
+    } else {
+        const nextLevelExp = 10000000 // Placeholder local logic if needed
+        progressPercent = Math.min((userData.total_exp / nextLevelExp) * 100, 100)
+    }
 
     return (
         <div className="min-h-screen pt-24 pb-20 px-4 md:px-8 bg-[#050912]">

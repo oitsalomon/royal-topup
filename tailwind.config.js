@@ -9,6 +9,8 @@ module.exports = {
         extend: {
             fontFamily: {
                 outfit: ['var(--font-outfit)', 'sans-serif'],
+                cormorant: ['var(--font-cormorant)', 'serif'],
+                montserrat: ['var(--font-montserrat)', 'sans-serif'],
             },
             colors: {
                 background: "var(--background)",

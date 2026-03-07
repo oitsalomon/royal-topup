@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Outfit } from "next/font/google";
+import { Outfit, Cormorant_Garamond, Montserrat } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import FloatingChat from "@/components/FloatingChat";
@@ -9,6 +9,8 @@ import { AuthProvider } from "@/contexts/AuthProvider";
 import { GoogleAnalytics } from '@next/third-parties/google'
 
 const outfit = Outfit({ subsets: ["latin"], variable: '--font-outfit' });
+const cormorant = Cormorant_Garamond({ subsets: ["latin"], variable: '--font-cormorant', weight: ['400', '500', '600', '700'] });
+const montserrat = Montserrat({ subsets: ["latin"], variable: '--font-montserrat', weight: ['400', '500', '600', '700'] });
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ? new URL(process.env.NEXT_PUBLIC_BASE_URL) : new URL('https://royalclover.store');
 
@@ -115,7 +117,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className={`${outfit.className} ${outfit.variable} bg-[#0a0a0a] text-white min-h-screen antialiased selection:bg-cyan-500/30`}>
+      <body className={`${outfit.variable} ${cormorant.variable} ${montserrat.variable} font-montserrat bg-[#0a0a0a] text-white min-h-screen antialiased selection:bg-amber-500/30`}>
         <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] pointer-events-none opacity-20" />
         <div className="fixed inset-0 bg-gradient-to-tr from-cyan-500/10 via-purple-500/10 to-blue-500/10 pointer-events-none" />
         <AuthProvider>

@@ -228,11 +228,11 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                     </div>
 
                     {/* Section 1: Data Akun */}
-                    <div className="glass rounded-3xl p-8 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500" />
-                        <h3 className="text-xl font-bold text-white flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400">
-                                <Shield size={20} />
+                    <div className="bg-[#0a0a0a] border border-white/5 shadow-2xl rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+                        <h3 className="text-xl font-cormorant font-bold text-white flex items-center gap-3 mb-6">
+                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                                <Shield size={16} />
                             </div>
                             1. Data Akun Game
                         </h3>
@@ -275,11 +275,11 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                     </div>
 
                     {/* Section 2: Nominal */}
-                    <div className="glass rounded-3xl p-8 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
-                        <h3 className="text-xl font-bold text-white flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
-                                <Coins size={20} />
+                    <div className="bg-[#0a0a0a] border border-white/5 shadow-2xl rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+                        <h3 className="text-xl font-cormorant font-bold text-white flex items-center gap-3 mb-6">
+                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                                <Coins size={16} />
                             </div>
                             2. Nominal Withdraw
                         </h3>
@@ -308,8 +308,8 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                         </div>
 
                         {(amountB || amountM) && (
-                            <div className="mt-3 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex justify-between items-center">
-                                <span className="text-blue-400 text-sm">Estimasi Uang Diterima:</span>
+                            <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl flex justify-between items-center">
+                                <span className="text-amber-400 text-sm">Estimasi Uang Diterima:</span>
                                 <span className="text-xl font-bold text-white">
                                     Rp {(() => {
                                         const totalM = (Number(amountB) * 1000) + Number(amountM)
@@ -322,11 +322,11 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                     </div>
 
                     {/* Section 3: Rekening Penerima */}
-                    <div className="glass rounded-3xl p-8 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-purple-500" />
-                        <h3 className="text-xl font-bold text-white flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
-                                <Wallet size={20} />
+                    <div className="bg-[#0a0a0a] border border-white/5 shadow-2xl rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+                        <h3 className="text-xl font-cormorant font-bold text-white flex items-center gap-3 mb-6">
+                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                                <Wallet size={16} />
                             </div>
                             3. Rekening Penerima
                         </h3>
@@ -338,8 +338,8 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                                     type="button"
                                     onClick={() => setFormData({ ...formData, payment_method_id: wm.id.toString() })}
                                     className={`px-4 py-3 rounded-xl border transition-all duration-300 ${formData.payment_method_id === wm.id.toString()
-                                        ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-500/25'
-                                        : 'bg-black/40 border-white/10 text-gray-300 hover:border-white/30 hover:bg-white/5'
+                                        ? 'bg-amber-950/40 border-amber-500 text-white shadow-[0_0_15px_rgba(251,191,36,0.1)]'
+                                        : 'bg-black/40 border-white/10 text-gray-400 hover:border-amber-500/30'
                                         }`}
                                 >
                                     <span className="font-medium">{wm.name}</span>
@@ -375,16 +375,16 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
 
                     {/* Section 4: Bukti Transfer Chip - ONLY IF NOT LOGGED IN */}
                     {!user && (
-                        <div className="glass rounded-3xl p-8 relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-green-500" />
-                            <h3 className="text-xl font-bold text-white flex items-center gap-3 mb-6">
-                                <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400">
-                                    <Upload size={20} />
+                        <div className="bg-[#0a0a0a] border border-white/5 shadow-2xl rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+                            <h3 className="text-xl font-cormorant font-bold text-white flex items-center gap-3 mb-6">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                                    <Upload size={16} />
                                 </div>
                                 4. Bukti Kirim Chip
                             </h3>
 
-                            <div className="border-2 border-dashed border-white/10 rounded-2xl p-10 text-center hover:border-green-500/50 hover:bg-green-500/5 transition-all cursor-pointer relative group">
+                            <div className="border-2 border-dashed border-white/10 rounded-2xl p-10 text-center hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all cursor-pointer relative group">
                                 <input
                                     type="file"
                                     accept="image/*"
@@ -393,16 +393,16 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                                     required
                                 />
                                 {formData.proof_image ? (
-                                    <div className="flex flex-col items-center text-green-400 animate-in fade-in zoom-in duration-300">
-                                        <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
+                                    <div className="flex flex-col items-center text-emerald-400 animate-in fade-in zoom-in duration-300">
+                                        <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
                                             <Check className="w-8 h-8" />
                                         </div>
                                         <span className="font-bold text-lg">Bukti Berhasil Diupload</span>
                                         <span className="text-sm opacity-70 mt-1">Klik untuk mengganti</span>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col items-center text-gray-400 group-hover:text-green-400 transition-colors">
-                                        <div className="w-16 h-16 rounded-full bg-white/5 group-hover:bg-green-500/20 flex items-center justify-center mb-4 transition-colors">
+                                    <div className="flex flex-col items-center text-gray-400 group-hover:text-emerald-400 transition-colors">
+                                        <div className="w-16 h-16 rounded-full bg-white/5 group-hover:bg-emerald-500/20 flex items-center justify-center mb-4 transition-colors">
                                             <Upload className="w-8 h-8" />
                                         </div>
                                         <span className="font-bold text-lg">Upload Screenshot Game</span>
@@ -416,7 +416,7 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                     <button
                         type="submit"
                         disabled={submitting}
-                        className="w-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 text-white font-bold text-lg py-5 rounded-2xl hover:shadow-lg hover:shadow-cyan-500/25 transition-all transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
+                        className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-bold uppercase tracking-widest text-sm py-5 rounded-none border border-amber-400 hover:shadow-[0_0_30px_rgba(251,191,36,0.3)] transition-all transform hover:-translate-y-1 hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
                     >
                         <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                         <span className="relative">Kirim Permintaan Withdraw</span>
@@ -426,7 +426,7 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
             ) : (
                 <div className="h-[50vh] flex items-center justify-center">
                     {isLoading ? (
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500" />
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500" />
                     ) : (
                         <div className="text-center p-8 bg-white/5 rounded-2xl border border-white/10 max-w-md mx-auto">
                             <Shield size={64} className="mx-auto text-gray-600 mb-6" />
@@ -434,7 +434,7 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                             <p className="text-gray-400 mb-6">Halaman Withdraw khusus untuk member terdaftar.</p>
                             <button
                                 onClick={() => router.push('/login')}
-                                className="px-8 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl text-white font-bold hover:shadow-lg hover:shadow-cyan-500/20 transition-all"
+                                className="px-8 py-3 bg-gradient-to-r from-amber-500 to-yellow-600 rounded-none border border-amber-400 text-black font-bold tracking-widest uppercase hover:shadow-[0_0_20px_rgba(251,191,36,0.2)] transition-all"
                             >
                                 Login Sekarang
                             </button>

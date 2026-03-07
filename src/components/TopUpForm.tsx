@@ -331,11 +331,11 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                 {/* ... (Existing Form Content) ... */}
 
                 {/* Section 1: Data Akun */}
-                <div className="glass rounded-3xl p-8 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500" />
-                    <h3 className="text-xl font-bold text-white flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400">
-                            <Shield size={20} />
+                <div className="bg-[#0a0a0a] border border-white/5 shadow-2xl rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+                    <h3 className="text-xl font-cormorant font-bold text-white flex items-center gap-3 mb-6">
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                            <Shield size={16} />
                         </div>
                         1. Masukkan Data Akun
                     </h3>
@@ -426,20 +426,20 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                 </div>
 
                 {/* Section 2: Nominal */}
-                <div className="glass rounded-3xl p-8 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
-                    <h3 className="text-xl font-bold text-white flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
-                            <Zap size={20} />
+                <div className="bg-[#0a0a0a] border border-white/5 shadow-2xl rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+                    <h3 className="text-xl font-cormorant font-bold text-white flex items-center gap-3 mb-6">
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                            <Zap size={16} />
                         </div>
                         {promoConfig ? promoConfig.promoTitle : '2. Masukkan Nominal Top Up'}
                     </h3>
 
                     {promoConfig && promoConfig.packages.length > 0 ? (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                        <div className="space-y-4">
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                 {promoConfig.packages.map((pkg) => (
-                                    <button
+                                        <button
                                         key={pkg.id}
                                         type="button"
                                         onClick={() => {
@@ -447,21 +447,21 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                                             setSelectedPrice(pkg.price)
                                         }}
                                         className={`relative p-4 rounded-xl border transition-all duration-300 text-left group overflow-hidden ${Number(formData.amount_chip) === pkg.chip
-                                            ? 'bg-gradient-to-br from-blue-600 to-cyan-500 border-transparent shadow-lg text-white transform scale-105'
-                                            : 'bg-black/40 border-white/10 hover:border-blue-500/50 hover:bg-white/5'
+                                            ? 'bg-amber-950/40 border-amber-500 text-white shadow-[0_0_15px_rgba(251,191,36,0.2)] transform scale-105'
+                                            : 'bg-black/40 border-white/5 hover:border-amber-500/30'
                                             }`}
                                     >
                                         <div className="relative z-10">
-                                            <p className={`text-lg font-bold mb-1 ${Number(formData.amount_chip) === pkg.chip ? 'text-white' : 'text-cyan-400'}`}>
+                                            <p className={`text-lg font-bold mb-1 ${Number(formData.amount_chip) === pkg.chip ? 'text-amber-400' : 'text-gray-300'}`}>
                                                 {pkg.chip} M
                                             </p>
-                                            <p className={`text-sm ${Number(formData.amount_chip) === pkg.chip ? 'text-white/90' : 'text-gray-400'}`}>
+                                            <p className={`text-sm ${Number(formData.amount_chip) === pkg.chip ? 'text-white/90' : 'text-gray-500'}`}>
                                                 Rp {pkg.price.toLocaleString()}
                                             </p>
                                         </div>
                                         {Number(formData.amount_chip) === pkg.chip && (
-                                            <div className="absolute right-0 top-0 p-2 text-white/20">
-                                                <Zap size={48} />
+                                            <div className="absolute right-0 top-0 p-2 text-amber-500/20">
+                                                <Zap size={40} />
                                             </div>
                                         )}
                                     </button>
@@ -540,11 +540,11 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                 </div>
 
                 {/* Section 3: Pembayaran */}
-                <div className="glass rounded-3xl p-8 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-purple-500" />
-                    <h3 className="text-xl font-bold text-white flex items-center gap-3 mb-6">
-                        <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400">
-                            <Wallet size={20} />
+                <div className="bg-[#0a0a0a] border border-white/5 shadow-2xl rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+                    <h3 className="text-xl font-cormorant font-bold text-white flex items-center gap-3 mb-6">
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                            <Wallet size={16} />
                         </div>
                         3. Metode Pembayaran
                     </h3>
@@ -555,13 +555,13 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                                 key={pm.id}
                                 type="button"
                                 onClick={() => setFormData({ ...formData, payment_method_id: pm.id.toString() })}
-                                className={`flex items-center justify-between px-6 py-4 rounded-2xl border transition-all duration-300 ${formData.payment_method_id === pm.id.toString()
-                                    ? 'bg-purple-600 border-purple-500 text-white shadow-lg shadow-purple-500/25'
-                                    : 'bg-black/40 border-white/10 text-gray-300 hover:border-white/30 hover:bg-white/5'
+                                className={`flex items-center justify-between px-6 py-4 rounded-xl border transition-all duration-200 ${formData.payment_method_id === pm.id.toString()
+                                    ? 'bg-amber-950/40 border-amber-500 text-white shadow-[0_0_15px_rgba(251,191,36,0.1)]'
+                                    : 'bg-black/40 border-white/5 text-gray-400 hover:border-amber-500/30'
                                     }`}
                             >
                                 <span className="font-bold">{pm.name}</span>
-                                <span className={`text-xs px-2 py-1 rounded ${formData.payment_method_id === pm.id.toString() ? 'bg-white/20' : 'bg-white/10'
+                                <span className={`text-xs px-2 py-1 rounded ${formData.payment_method_id === pm.id.toString() ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5'
                                     }`}>{pm.type}</span>
                             </button>
                         ))}
@@ -612,11 +612,11 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
 
                 {/* Section 4: Upload Bukti - Only show if NOT QRIS and NOT User */}
                 {!selectedPayment?.name?.toLowerCase().includes('qris') && !user && (
-                    <div className="glass rounded-3xl p-8 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-green-500" />
-                        <h3 className="text-xl font-bold text-white flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400">
-                                <Upload size={20} />
+                    <div className="bg-[#0a0a0a] border border-white/5 shadow-2xl rounded-2xl p-6 md:p-8 relative overflow-hidden">
+                        <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+                        <h3 className="text-xl font-cormorant font-bold text-white flex items-center gap-3 mb-6">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                                <Upload size={16} />
                             </div>
                             4. Upload Bukti Transfer
                         </h3>
@@ -653,12 +653,12 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                 <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 text-white font-bold text-lg py-5 rounded-2xl hover:shadow-lg hover:shadow-cyan-500/25 transition-all transform hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
+                    className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-bold uppercase tracking-widest text-sm py-5 rounded-none border border-amber-400 hover:shadow-[0_0_30px_rgba(251,191,36,0.3)] transition-all transform hover:-translate-y-1 hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
                 >
                     <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
                     <span className="relative flex items-center justify-center gap-2">
                         {submitting ? 'Sedang Memproses...' : selectedPayment?.name?.toLowerCase().includes('qris') ? 'Lanjut Pembayaran' : 'Kirim Pesanan Sekarang'}
-                        {!submitting && <Zap size={20} fill="currentColor" />}
+                        {!submitting && <Zap size={18} fill="currentColor" />}
                     </span>
                 </button>
             </form>

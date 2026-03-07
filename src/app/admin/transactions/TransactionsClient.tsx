@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Check, X, Clock, Pencil, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Check, X, Clock, Pencil, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface Transaction {
@@ -118,7 +118,7 @@ export default function TransactionsClient({
         }
     }
 
-    // Auto-refresh every 5s (Silent)
+    // Auto-refresh every 2s (Silent) for faster updates as requested by user
     useEffect(() => {
         const interval = setInterval(() => {
             const fetchSilent = async () => {
@@ -141,7 +141,7 @@ export default function TransactionsClient({
                 } catch (e) { console.error('Silent refresh failed', e) }
             }
             fetchSilent()
-        }, 5000)
+        }, 2000)
         return () => clearInterval(interval)
     }, [filterDate, filterBank, filterType, page, searchQuery])
 
@@ -267,7 +267,17 @@ export default function TransactionsClient({
         <div>
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-white">Manajemen Transaksi</h1>
+                    <div className="flex items-center gap-3">
+                        <h1 className="text-3xl font-bold text-white">Manajemen Transaksi</h1>
+                        <button 
+                            onClick={fetchData} 
+                            disabled={loading}
+                            className={`p-2 bg-amber-500/10 text-amber-500 rounded-lg hover:bg-amber-500/20 transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            title="Refresh Data"
+                        >
+                            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+                        </button>
+                    </div>
                     <p className="text-gray-400 mt-1">Kelola Top Up dan Withdraw (Showing Page {page} of {totalPages})</p>
                 </div>
 
@@ -327,38 +337,38 @@ export default function TransactionsClient({
                         switch (level) {
                             case 'DIAMOND':
                                 return {
-                                    cardClass: 'bg-gradient-to-r from-cyan-600/20 via-[#0a0f1c] to-[#0a0f1c] border-cyan-400/50 shadow-[inset_4px_0_0_0_rgba(34,211,238,1)]',
-                                    badgeClass: 'bg-cyan-400 text-black font-bold shadow-[0_0_15px_rgba(34,211,238,0.6)] animate-pulse',
+                                    cardClass: 'bg-[#050505] border-cyan-500/30 hover:border-cyan-500/60 shadow-[inset_2px_0_0_0_rgba(34,211,238,1)]',
+                                    badgeClass: 'bg-cyan-500/10 text-cyan-400 font-bold border border-cyan-500/20',
                                     textClass: 'text-cyan-300'
                                 }
                             case 'PLATINUM':
                                 return {
-                                    cardClass: 'bg-gradient-to-r from-fuchsia-950/40 via-[#0a0f1c] to-[#0a0f1c] border-fuchsia-500/50 shadow-[inset_4px_0_0_0_rgba(217,70,239,1)]',
-                                    badgeClass: 'bg-fuchsia-500 text-black font-bold shadow-[0_0_10px_rgba(217,70,239,0.5)]',
+                                    cardClass: 'bg-[#050505] border-fuchsia-500/30 hover:border-fuchsia-500/60 shadow-[inset_2px_0_0_0_rgba(217,70,239,1)]',
+                                    badgeClass: 'bg-fuchsia-500/10 text-fuchsia-400 font-bold border border-fuchsia-500/20',
                                     textClass: 'text-fuchsia-400'
                                 }
                             case 'GOLD':
                                 return {
-                                    cardClass: 'bg-gradient-to-r from-yellow-950/40 via-[#0a0f1c] to-[#0a0f1c] border-yellow-500/50 shadow-[inset_4px_0_0_0_rgba(234,179,8,1)]',
-                                    badgeClass: 'bg-yellow-500 text-black font-bold shadow-[0_0_10px_rgba(234,179,8,0.5)]',
-                                    textClass: 'text-yellow-400'
+                                    cardClass: 'bg-[#050505] border-amber-500/30 hover:border-amber-500/60 shadow-[inset_2px_0_0_0_rgba(251,191,36,1)]',
+                                    badgeClass: 'bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20',
+                                    textClass: 'text-amber-400'
                                 }
                             case 'SILVER':
                                 return {
-                                    cardClass: 'bg-gradient-to-r from-slate-600/40 via-[#0a0f1c] to-[#0a0f1c] border-slate-400/50 shadow-[inset_4px_0_0_0_rgba(148,163,184,1)]',
-                                    badgeClass: 'bg-slate-300 text-black font-bold',
+                                    cardClass: 'bg-[#050505] border-slate-400/30 hover:border-slate-400/60 shadow-[inset_2px_0_0_0_rgba(148,163,184,1)]',
+                                    badgeClass: 'bg-slate-500/10 text-slate-300 font-bold border border-slate-500/20',
                                     textClass: 'text-slate-300'
                                 }
                             case 'BRONZE':
                                 return {
-                                    cardClass: 'bg-gradient-to-r from-orange-900/40 via-[#0a0f1c] to-[#0a0f1c] border-orange-600/50 shadow-[inset_4px_0_0_0_rgba(234,88,12,1)]',
-                                    badgeClass: 'bg-orange-600 text-white font-bold',
+                                    cardClass: 'bg-[#050505] border-orange-600/30 hover:border-orange-600/60 shadow-[inset_2px_0_0_0_rgba(234,88,12,1)]',
+                                    badgeClass: 'bg-orange-600/10 text-orange-500 font-bold border border-orange-600/20',
                                     textClass: 'text-orange-500'
                                 }
                             default: // GUEST / MEMBER
                                 return {
-                                    cardClass: 'bg-[#0a0f1c] border-white/5 hover:border-white/10',
-                                    badgeClass: 'bg-white/10 text-gray-400 border border-white/10',
+                                    cardClass: 'bg-[#0a0a0a] border-white/5 hover:border-white/10 shadow-[inset_2px_0_0_0_rgba(255,255,255,0.1)]',
+                                    badgeClass: 'bg-white/5 text-gray-400 border border-white/10',
                                     textClass: 'text-gray-400'
                                 }
                         }
@@ -367,7 +377,7 @@ export default function TransactionsClient({
                     const style = getLevelData(tx.user?.level)
 
                     return (
-                        <div key={tx.id} className={`rounded-xl overflow-hidden transition-all group border relative ${style.cardClass}`}>
+                        <div key={tx.id} className={`rounded-xl overflow-hidden transition-colors group border relative ${style.cardClass}`}>
                             <div className="p-3 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center relative z-10">
                                 {/* 1. Identity (Col Span 3) */}
                                 <div className="lg:col-span-3 min-w-0 pl-2">

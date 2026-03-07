@@ -15,33 +15,40 @@ export default function TransactionTabs({ gameCode, gameName, gameId }: Transact
     const [activeTab, setActiveTab] = useState<'TOPUP' | 'WITHDRAW'>('TOPUP')
 
     return (
-        <div className="space-y-8">
-            {/* Tab Navigation */}
-            <div className="flex gap-4 p-1 bg-white/5 rounded-2xl border border-white/10">
+        <div className="space-y-6">
+            {/* Minimalist Tab Navigation */}
+            <div className="flex border-b border-white/10 relative">
                 <button
                     onClick={() => setActiveTab('TOPUP')}
-                    className={`flex-1 py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === 'TOPUP'
-                        ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/20'
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    className={`flex-1 py-4 flex items-center justify-center gap-2 transition-all duration-300 relative ${activeTab === 'TOPUP'
+                        ? 'text-amber-400 font-bold'
+                        : 'text-gray-500 hover:text-gray-300'
                         }`}
                 >
                     <ArrowUpCircle size={20} />
-                    <span className="font-bold">Top Up</span>
+                    <span>Top Up</span>
+                    {activeTab === 'TOPUP' && (
+                        <div className="absolute bottom-0 left-0 w-full h-[2px] bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]" />
+                    )}
                 </button>
+                <div className="w-[1px] bg-white/5 my-3" />
                 <button
                     onClick={() => setActiveTab('WITHDRAW')}
-                    className={`flex-1 py-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === 'WITHDRAW'
-                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/20'
-                        : 'text-gray-400 hover:text-white hover:bg-white/5'
+                    className={`flex-1 py-4 flex items-center justify-center gap-2 transition-all duration-300 relative ${activeTab === 'WITHDRAW'
+                        ? 'text-amber-400 font-bold'
+                        : 'text-gray-500 hover:text-gray-300'
                         }`}
                 >
                     <ArrowDownCircle size={20} />
-                    <span className="font-bold">Withdraw</span>
+                    <span>Bongkar (WD)</span>
+                    {activeTab === 'WITHDRAW' && (
+                        <div className="absolute bottom-0 left-0 w-full h-[2px] bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.5)]" />
+                    )}
                 </button>
             </div>
 
-            {/* Content */}
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Content Container (No unnecessary animations for speed) */}
+            <div className="pt-4">
                 {activeTab === 'TOPUP' ? (
                     <TopUpForm gameCode={gameCode} gameName={gameName} gameId={gameId} />
                 ) : (

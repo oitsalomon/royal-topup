@@ -68,13 +68,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <div className="p-6 flex flex-col h-full overflow-hidden">
                     <div className="mb-8 flex items-center justify-between px-2">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-800 flex items-center justify-center shadow-lg shadow-emerald-900/30">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg shadow-amber-900/30">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src="/images/clover-logo.png" alt="Logo" className="w-8 h-8 object-contain" />
                             </div>
                             <div>
                                 <h1 className="text-xl font-bold text-white tracking-wide font-outfit">CLOVER</h1>
-                                <p className="text-[10px] text-emerald-400 font-bold tracking-widest uppercase">
+                                <p className="text-[10px] text-amber-400 font-bold tracking-widest uppercase">
                                     Admin v2.3
                                 </p>
                             </div>
@@ -98,11 +98,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                                     href={link.href}
                                     onClick={() => onClose()} // Close on click (mobile)
                                     className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${isActive
-                                        ? 'bg-gradient-to-r from-emerald-900/40 to-emerald-900/20 text-emerald-400 border border-emerald-500/20 shadow-lg shadow-emerald-900/10'
+                                        ? 'bg-gradient-to-r from-amber-900/40 to-amber-900/20 text-amber-400 border border-amber-500/20 shadow-lg shadow-amber-900/10'
                                         : 'text-gray-300 hover:bg-white/5 hover:text-white'
                                         }`}
                                 >
-                                    <Icon size={20} className={isActive ? 'text-emerald-400' : 'text-gray-500 group-hover:text-emerald-300'} />
+                                    <Icon size={20} className={isActive ? 'text-amber-400' : 'text-gray-500 group-hover:text-amber-300'} />
                                     <span className={`text-sm font-medium tracking-wide ${isActive ? 'font-bold' : ''}`}>{link.label}</span>
                                 </Link>
                             )

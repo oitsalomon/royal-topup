@@ -216,7 +216,7 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
                 <div className="flex gap-3">
                     <button
                         onClick={() => setShowAdjustmentModal(true)}
-                        className="px-5 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-xl text-sm font-bold transition-all border border-emerald-500/20 hover:border-emerald-500/30 flex items-center gap-2"
+                        className="px-5 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-xl text-sm font-bold transition-all border border-amber-500/20 hover:border-amber-500/30 flex items-center gap-2"
                     >
                         + Adjustment
                     </button>
@@ -231,21 +231,21 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
 
             {/* 1. High Level Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="relative group overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-[#111827] to-[#1f2937] border border-white/5 shadow-xl">
+                <div className="relative group overflow-hidden rounded-2xl p-6 bg-[#050505] border border-white/5 shadow-xl">
                     <div className="absolute top-0 right-0 p-4 opacity-50">
-                        <div className="w-16 h-16 bg-emerald-500/10 rounded-full blur-2xl" />
+                        <div className="w-16 h-16 bg-amber-500/10 rounded-full blur-2xl" />
                     </div>
                     <div>
                         <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Total Uang (Bank)</p>
                         <p className="text-3xl font-black text-white tracking-tight">Rp {totalBankBalance.toLocaleString()}</p>
                     </div>
-                    <div className="mt-4 flex items-center gap-2 text-emerald-400 text-xs font-medium bg-emerald-500/5 w-fit px-2 py-1 rounded-lg border border-emerald-500/10">
+                    <div className="mt-4 flex items-center gap-2 text-amber-400 text-xs font-medium bg-amber-500/5 w-fit px-2 py-1 rounded-lg border border-amber-500/10">
                         <Wallet size={14} />
                         <span>Aset Liquid</span>
                     </div>
                 </div>
 
-                <div className="relative group overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-[#111827] to-[#1f2937] border border-white/5 shadow-xl">
+                <div className="relative group overflow-hidden rounded-2xl p-6 bg-[#050505] border border-white/5 shadow-xl">
                     <div className="absolute top-0 right-0 p-4 opacity-50">
                         <div className="w-16 h-16 bg-blue-500/10 rounded-full blur-2xl" />
                     </div>
@@ -281,7 +281,7 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
                         </div>
                     </div>
                 ) : (
-                    <div className="relative group overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-[#111827] to-[#1f2937] border border-white/5 shadow-xl opacity-75">
+                    <div className="relative group overflow-hidden rounded-2xl p-6 bg-[#050505] border border-white/5 shadow-xl opacity-75">
                         <div className="flex items-center justify-between h-full">
                             <div>
                                 <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Status Antrian</p>
@@ -305,7 +305,7 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
                             className="w-full flex items-center justify-between text-sm font-bold text-white mb-4 group"
                         >
                             <div className="flex items-center gap-2">
-                                <Wallet size={16} className="text-green-400" />
+                                <Wallet size={16} className="text-amber-400" />
                                 <span>Rincian Bank</span>
                             </div>
                             <span className="text-xs text-gray-500 group-hover:text-white transition-colors">
@@ -324,7 +324,7 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
                                             </div>
                                             <p className="text-xs text-gray-500 truncate">{bank.account_name}</p>
                                         </div>
-                                        <p className={`font-mono font-bold text-sm ${bank.balance < 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                        <p className={`font-mono font-bold text-sm ${bank.balance < 0 ? 'text-red-400' : 'text-amber-400'}`}>
                                             Rp {bank.balance.toLocaleString()}
                                         </p>
                                     </div>
@@ -377,9 +377,9 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
                     <h3 className="text-sm font-bold text-white mb-4">Ringkasan Hari Ini</h3>
 
                     <div className="space-y-4">
-                        <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/10">
+                        <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/10">
                             <div className="flex justify-between items-center mb-2">
-                                <span className="text-xs text-green-400 font-bold flex items-center gap-1">
+                                <span className="text-xs text-amber-400 font-bold flex items-center gap-1">
                                     <ArrowDownLeft size={14} /> Top Up
                                 </span>
                                 <span className="text-xs text-gray-400">{data?.dailyStats?.topup?.count || 0} Form</span>

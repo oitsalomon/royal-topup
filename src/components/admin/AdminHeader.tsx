@@ -19,11 +19,11 @@ export default function AdminHeader({ onMenuClick }: AdminHeaderProps) {
                     <Menu size={20} />
                 </button>
                 <div className="md:hidden font-bold text-white text-lg tracking-wide">
-                    CLOVER <span className="text-emerald-500 text-xs align-top">ADMIN</span>
+                    CLOVER <span className="text-amber-500 text-xs align-top">ADMIN</span>
                 </div>
 
                 {/* Desktop Search (Optional Filler) */}
-                <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-black/20 border border-white/5 rounded-full text-gray-400 text-sm w-64 focus-within:border-emerald-500/30 transition-colors">
+                <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-black/20 border border-white/5 rounded-full text-gray-400 text-sm w-64 focus-within:border-amber-500/30 transition-colors">
                     <Search size={16} />
                     <input
                         type="text"
@@ -40,7 +40,7 @@ export default function AdminHeader({ onMenuClick }: AdminHeaderProps) {
                 </button>
 
                 {/* Profile Placeholder (Optional) */}
-                <div className="w-8 h-8 rounded-full bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-xs font-bold text-emerald-400">
+                <div className="w-8 h-8 rounded-full bg-amber-600/20 border border-amber-500/30 flex items-center justify-center text-xs font-bold text-amber-400">
                     AD
                 </div>
             </div>

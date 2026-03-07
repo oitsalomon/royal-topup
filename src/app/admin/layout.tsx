@@ -27,9 +27,9 @@ export default function AdminLayout({
     }
 
     return (
-        <div className="flex h-screen overflow-hidden bg-[#050912]">
+        <div className="flex h-screen overflow-hidden bg-[#000000]">
             {/* Simple Background */}
-            <div className="fixed inset-0 bg-[#050912]" />
+            <div className="fixed inset-0 bg-[#000000]" />
 
             {!isLoginPage && <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
             {!isLoginPage && <PendingNotifier />}

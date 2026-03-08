@@ -59,6 +59,7 @@ export default function TransactionsClient({
     const [filterBank, setFilterBank] = useState('all')
     const [filterType, setFilterType] = useState('all')
     const [searchQuery, setSearchQuery] = useState('')
+    const [localSearchQuery, setLocalSearchQuery] = useState('') // OPTIMIZATION: local search state for smooth typing
     const [page, setPage] = useState(initialPagination.page)
 
     // Selection
@@ -136,30 +137,36 @@ export default function TransactionsClient({
                     const data = await res.json()
 
                     if (data && data.data) {
-                        setTransactions(data.data)
+                        // OPTIMIZATION: Only update state if data actually changed to prevent heavy DOM re-renders every interval
+                        setTransactions(prev => {
+                            if (JSON.stringify(prev) === JSON.stringify(data.data)) return prev;
+                            return data.data;
+                        })
                     }
                 } catch (e) { console.error('Silent refresh failed', e) }
             }
             fetchSilent()
-        }, 2000)
+        }, 3500) // OPTIMIZATION: Changed to 3.5s to reduce network and browser processing load while remaining live
         return () => clearInterval(interval)
     }, [filterDate, filterBank, filterType, page, searchQuery])
 
     // Fetch on filter change
-    // Debounce Search Effect
+    useEffect(() => {
+        // Only fetch if it's not the initial mount conditions (SSR handles that)
+        if (page === 1 && !searchQuery && !filterDate && filterBank === 'all' && filterType === 'all') return
+        fetchData()
+    }, [page, filterDate, filterBank, filterType, searchQuery])
+
+    // OPTIMIZATION: Debounce Search Effect Separately
+    // This allows typing to be extremely smooth without triggering 20-item map re-renders on every keystroke
     useEffect(() => {
         const timer = setTimeout(() => {
-            if (page === 1 && !searchQuery && !filterDate && filterBank === 'all' && filterType === 'all') return
-
-            // If search query changed, reset page to 1
-            // We need a ref or prev state to know if SEARCH changed vs PAGE changed. 
-            // For simplicity, we just fetch here.
-
-            fetchData()
+            setSearchQuery(localSearchQuery)
+            if (localSearchQuery !== searchQuery) setPage(1)
         }, 500) // 500ms delay
 
         return () => clearTimeout(timer)
-    }, [page, filterDate, filterBank, filterType, searchQuery])
+    }, [localSearchQuery])
 
     // RESTORED HELPER FUNCTIONS
     const getAuthHeaders = () => {
@@ -287,12 +294,8 @@ export default function TransactionsClient({
                         type="text"
                         placeholder="Cari ID/Nickname/WA..."
                         className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white text-sm outline-none focus:border-cyan-500 min-w-[200px]"
-                        defaultValue={searchQuery}
-                        onChange={(e) => {
-                            const val = e.target.value
-                            setSearchQuery(val) // Update local state immediately for UI
-                            // Debounce fetch trigger is handled in useEffect
-                        }}
+                        value={localSearchQuery}
+                        onChange={(e) => setLocalSearchQuery(e.target.value)}
                     />
                     <input
                         type="date"

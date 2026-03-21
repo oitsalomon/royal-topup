@@ -224,6 +224,62 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
+                {/* Social Media Section */}
+                <div className="bg-[#111111] rounded-2xl border border-white/5 p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-pink-500/20 flex items-center justify-center text-pink-400">
+                            <MessageCircle size={20} />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-white">Sosial Media</h2>
+                            <p className="text-sm text-gray-400">Tautan sosial media untuk ditampilkan di footer website</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-2">Facebook</label>
+                            <input
+                                type="text"
+                                placeholder="https://facebook.com/..."
+                                value={config.socials?.facebook || ''}
+                                onChange={(e) => updateConfig('socials', 'facebook', e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-2">Instagram</label>
+                            <input
+                                type="text"
+                                placeholder="https://instagram.com/..."
+                                value={config.socials?.instagram || ''}
+                                onChange={(e) => updateConfig('socials', 'instagram', e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-2">TikTok</label>
+                            <input
+                                type="text"
+                                placeholder="https://tiktok.com/@..."
+                                value={config.socials?.tiktok || ''}
+                                onChange={(e) => updateConfig('socials', 'tiktok', e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-2">Blogger / Website Lain</label>
+                            <input
+                                type="text"
+                                placeholder="https://..."
+                                value={config.socials?.blogger || ''}
+                                onChange={(e) => updateConfig('socials', 'blogger', e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                            />
+                        </div>
+                    </div>
+                </div>
+
                 <div className="flex justify-end pt-4">
                     <button
                         onClick={handleSave}

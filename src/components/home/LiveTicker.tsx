@@ -7,6 +7,8 @@ export default function LiveTicker() {
     const [isVisible, setIsVisible] = useState(false)
 
     const types = ['TOPUP', 'BONGKAR', 'ORDER']
+    const [realActivities, setRealActivities] = useState<any[]>([])
+    
     // Root names and prefixes for infinite generation
     const nameRoots = ['Agus', 'Wahyu', 'Rini', 'Budi', 'Joko', 'Siti', 'Yanto', 'Dewi', 'Putra', 'Rizky', 'Hendra', 'Sari', 'Ayu', 'Dimas', 'Eko', 'Fitri', 'Gilang', 'Intan']
     const prefixes = ['0812', '0813', '0852', '0853', '0821', '0822', '0896', '0895', '0819']
@@ -31,6 +33,23 @@ export default function LiveTicker() {
     }
 
     const createRandomActivity = () => {
+        // 40% chance to show a real transaction if we have them
+        if (realActivities.length > 0 && Math.random() < 0.4) {
+            const real = realActivities[Math.floor(Math.random() * realActivities.length)]
+            let text
+            if (real.type === 'TOPUP') {
+                text = <span key={`r1-${real.id}`}><strong className="text-white">{real.name}</strong> baru saja order <span className="text-emerald-400 font-bold">{real.amountStr}</span></span>
+            } else {
+                text = <span key={`r2-${real.id}`}><strong className="text-white">{real.name}</strong> berhasil tarik dana <span className="text-red-400 font-bold">{real.amountStr}</span></span>
+            }
+            return {
+                id: Date.now() + Math.random(),
+                text,
+                type: real.type
+            }
+        }
+
+        // Otherwise generate fake
         const type = types[Math.floor(Math.random() * types.length)]
         const name = generateIdentity()
         
@@ -52,6 +71,16 @@ export default function LiveTicker() {
     }
 
     useEffect(() => {
+        // Fetch real transactions once on mount
+        fetch('/api/public/recent-transactions')
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setRealActivities(data)
+                }
+            })
+            .catch(err => console.error("Failed to fetch recent real transactions", err))
+
         const showNext = () => {
             setCurrentActivity(createRandomActivity())
             setIsVisible(true)

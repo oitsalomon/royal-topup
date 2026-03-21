@@ -4,10 +4,11 @@ import { useState, useEffect } from 'react'
 
 export default function LiveTicker() {
     // Generate fake entries
-    const [activities, setActivities] = useState<{ id: number; text: React.ReactNode; time: string; type: string }[]>([])
+    const [currentActivity, setCurrentActivity] = useState<{ id: number; text: React.ReactNode; type: string } | null>(null)
+    const [isVisible, setIsVisible] = useState(false)
 
     const types = ['TOPUP', 'BONGKAR', 'ORDER']
-    const names = ['Agus', 'Wahyu', 'Rini', 'Budi', 'Joko', 'Siti', 'Yanto', 'Dewi', 'Putra', 'Rizky', '0812****', '0852****', '0813****']
+    const names = ['Agus_**', 'Wahyu_**', 'Rini_**', 'Budi_**', 'Joko_**', 'Siti_**', 'Yanto_**', 'Dewi_**', 'Putra_**', 'Rizky_**', '0812****', '0852****', '0813****']
     const amountsTopup = ['1B', '2B', '5B', '10B', '20B', '50B', '100B', '200B']
     const amountsBongkar = ['50B', '100B', '200B', '500B', '1T', '2T', '5T']
     
@@ -21,63 +22,56 @@ export default function LiveTicker() {
         const amount = amountArr[Math.floor(Math.random() * amountArr.length)]
         
         let text
-        if (type === 'TOPUP') {
-            text = <span key={1}><strong className="text-white">{name}</strong> baru saja order <span className="text-emerald-400 font-bold">{amount} Emas</span></span>
-        } else if (type === 'BONGKAR') {
-            text = <span key={2}><strong className="text-white">{name}</strong> berhasil bongkar <span className="text-red-400 font-bold">{amount} Chip</span></span>
+        if (type === 'TOPUP' || type === 'ORDER') {
+            text = <span key={1}><strong className="text-white">{name}</strong> baru saja order <span className="text-emerald-400 font-bold">{amount}</span></span>
         } else {
-            text = <span key={3}><strong className="text-white">{name}</strong> pesanan sukses <span className="text-yellow-400 font-bold">{amount} MD</span></span>
+            text = <span key={2}><strong className="text-white">{name}</strong> berhasil bongkar <span className="text-red-400 font-bold">{amount}</span></span>
         }
 
         return {
             id: Date.now() + Math.random(),
             text,
-            time: 'Baru saja',
             type
         }
     }
 
-    // Initial load
+    // Interval to cycle notifications
     useEffect(() => {
-        const initial = Array.from({ length: 6 }).map(() => createRandomActivity())
-        setActivities(initial)
+        const showNext = () => {
+            setCurrentActivity(createRandomActivity())
+            setIsVisible(true)
+            
+            // Hide after 3.5 seconds
+            setTimeout(() => {
+                setIsVisible(false)
+            }, 3500)
+        }
 
-        // Add new item every 3-6 seconds
-        const intervalId = setInterval(() => {
-            setActivities(prev => {
-                const newArr = [createRandomActivity(), ...prev]
-                if (newArr.length > 10) newArr.pop() // keep max 10
-                return newArr
-            })
-        }, Math.floor(Math.random() * 3000) + 3000)
+        // Initial delay
+        const initialTimeout = setTimeout(showNext, 2000)
 
-        return () => clearInterval(intervalId)
+        // Then repeat every 6 seconds
+        const intervalId = setInterval(showNext, 6000)
+
+        return () => {
+            clearTimeout(initialTimeout)
+            clearInterval(intervalId)
+        }
     }, [])
 
     return (
-        <div className="relative w-full overflow-hidden bg-[#0f172a] border-y border-white/5 py-4">
-            <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#0f172a] to-transparent z-10"></div>
-            <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#0f172a] to-transparent z-10"></div>
-            
-            <div className="flex items-center gap-8 animate-marquee whitespace-nowrap">
-                {activities.map((act) => (
-                    <div key={act.id} className="inline-flex items-center gap-2 bg-[#1e293b]/60 px-4 py-2 rounded-full border border-white/5">
-                        <div className={`w-2 h-2 rounded-full animate-pulse ${act.type === 'BONGKAR' ? 'bg-red-500' : 'bg-green-500'}`}></div>
-                        <span className="text-sm text-gray-300 font-medium">
-                            {act.text}
-                        </span>
+        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-40 transition-all duration-500 pointer-events-none ${isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-4 scale-95'}`}>
+            {currentActivity && (
+                <div className="bg-[#1e293b]/90 backdrop-blur-md border border-white/10 shadow-2xl px-6 py-3 rounded-2xl flex items-center gap-3">
+                    <div className="relative">
+                        <div className={`w-3 h-3 rounded-full ${currentActivity.type === 'BONGKAR' ? 'bg-red-500' : 'bg-emerald-500'} animate-ping absolute opacity-50`}></div>
+                        <div className={`w-3 h-3 rounded-full ${currentActivity.type === 'BONGKAR' ? 'bg-red-500' : 'bg-emerald-500'} relative z-10`}></div>
                     </div>
-                ))}
-                {/* Duplicate for infinite scrolling effect */}
-                {activities.map((act) => (
-                    <div key={`dup-${act.id}`} className="inline-flex items-center gap-2 bg-[#1e293b]/60 px-4 py-2 rounded-full border border-white/5">
-                        <div className={`w-2 h-2 rounded-full animate-pulse ${act.type === 'BONGKAR' ? 'bg-red-500' : 'bg-green-500'}`}></div>
-                        <span className="text-sm text-gray-300 font-medium">
-                            {act.text}
-                        </span>
-                    </div>
-                ))}
-            </div>
+                    <span className="text-sm font-medium text-gray-200">
+                        {currentActivity.text}
+                    </span>
+                </div>
+            )}
         </div>
     )
 }

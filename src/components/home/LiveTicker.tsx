@@ -3,22 +3,36 @@
 import { useState, useEffect } from 'react'
 
 export default function LiveTicker() {
-    // Generate fake entries
     const [currentActivity, setCurrentActivity] = useState<{ id: number; text: React.ReactNode; type: string } | null>(null)
     const [isVisible, setIsVisible] = useState(false)
 
     const types = ['TOPUP', 'BONGKAR', 'ORDER']
-    const names = ['Agus_**', 'Wahyu_**', 'Rini_**', 'Budi_**', 'Joko_**', 'Siti_**', 'Yanto_**', 'Dewi_**', 'Putra_**', 'Rizky_**', '0812****', '0852****', '0813****']
-    const amountsTopup = ['1B', '2B', '5B', '10B', '20B', '50B', '100B', '200B']
-    const bongkarMultiplier = 60000 // 1B = Rp 60.000
-    const bongkarAmountsB = [1, 2, 3, 5, 10, 15, 20, 40, 50] // Max 50B (Rp 3.000.000) so it stays realistic
+    // Root names and prefixes for infinite generation
+    const nameRoots = ['Agus', 'Wahyu', 'Rini', 'Budi', 'Joko', 'Siti', 'Yanto', 'Dewi', 'Putra', 'Rizky', 'Hendra', 'Sari', 'Ayu', 'Dimas', 'Eko', 'Fitri', 'Gilang', 'Intan']
+    const prefixes = ['0812', '0813', '0852', '0853', '0821', '0822', '0896', '0895', '0819']
     
-    // Create random activity
+    const amountsTopup = ['1B', '2B', '5B', '10B', '20B', '30B', '40B', '50B', '100B', '200B']
+    const bongkarMultiplier = 60000 
+    const bongkarAmountsB = [1, 2, 3, 5, 10, 15, 20, 25, 30, 40, 50] 
+    
+    // Generate a completely random identity so it never looks suspicious
+    const generateIdentity = () => {
+        const usePhoneNumber = Math.random() > 0.5
+        if (usePhoneNumber) {
+            const prefix = prefixes[Math.floor(Math.random() * prefixes.length)]
+            const suffix = Math.floor(Math.random() * 900) + 100 // 3 random digits
+            return `${prefix}****${suffix}`
+        } else {
+            const root = nameRoots[Math.floor(Math.random() * nameRoots.length)]
+            const suffixChars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+            const randomSuffix = Array.from({ length: 2 }).map(() => suffixChars[Math.floor(Math.random() * suffixChars.length)]).join('')
+            return `${root}_${randomSuffix}**`
+        }
+    }
+
     const createRandomActivity = () => {
         const type = types[Math.floor(Math.random() * types.length)]
-        const name = names[Math.floor(Math.random() * names.length)]
-        
-        const isBongkar = type === 'BONGKAR'
+        const name = generateIdentity()
         
         let text
         if (type === 'TOPUP' || type === 'ORDER') {
@@ -37,23 +51,21 @@ export default function LiveTicker() {
         }
     }
 
-    // Interval to cycle notifications
     useEffect(() => {
         const showNext = () => {
             setCurrentActivity(createRandomActivity())
             setIsVisible(true)
             
-            // Hide after 3.5 seconds
+            // Hide after 4 seconds
             setTimeout(() => {
                 setIsVisible(false)
-            }, 3500)
+            }, 4000)
         }
 
         // Initial delay
         const initialTimeout = setTimeout(showNext, 2000)
-
-        // Then repeat every 6 seconds
-        const intervalId = setInterval(showNext, 6000)
+        // Repeat every 7 seconds (4s visible + 3s hidden)
+        const intervalId = setInterval(showNext, 7000)
 
         return () => {
             clearTimeout(initialTimeout)
@@ -62,14 +74,14 @@ export default function LiveTicker() {
     }, [])
 
     return (
-        <div className={`fixed top-20 left-1/2 -translate-x-1/2 z-40 transition-all duration-500 pointer-events-none ${isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-4 scale-95'}`}>
+        <div className={`fixed bottom-6 left-6 z-50 transition-all duration-500 pointer-events-none ${isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-4 scale-95'}`}>
             {currentActivity && (
-                <div className="bg-[#1e293b]/90 backdrop-blur-md border border-white/10 shadow-2xl px-6 py-3 rounded-2xl flex items-center gap-3">
-                    <div className="relative">
-                        <div className={`w-3 h-3 rounded-full ${currentActivity.type === 'BONGKAR' ? 'bg-red-500' : 'bg-emerald-500'} animate-ping absolute opacity-50`}></div>
-                        <div className={`w-3 h-3 rounded-full ${currentActivity.type === 'BONGKAR' ? 'bg-red-500' : 'bg-emerald-500'} relative z-10`}></div>
+                <div className="bg-[#0f172a]/95 backdrop-blur-xl border border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.5)] px-5 py-3.5 rounded-2xl flex items-center gap-4 max-w-[320px]">
+                    <div className="relative shrink-0 flex items-center justify-center">
+                        <div className={`w-3 h-3 rounded-full ${currentActivity.type === 'BONGKAR' ? 'bg-red-500' : 'bg-emerald-500'} animate-ping absolute opacity-60`}></div>
+                        <div className={`w-2.5 h-2.5 rounded-full ${currentActivity.type === 'BONGKAR' ? 'bg-red-500' : 'bg-emerald-500'} relative z-10 box-content border-2 border-[#0f172a]`}></div>
                     </div>
-                    <span className="text-sm font-medium text-gray-200">
+                    <span className="text-[13px] leading-snug font-medium text-gray-200">
                         {currentActivity.text}
                     </span>
                 </div>

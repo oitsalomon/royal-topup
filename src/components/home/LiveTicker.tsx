@@ -15,7 +15,7 @@ export default function LiveTicker() {
     
     const amountsTopup = ['1B', '2B', '5B', '10B', '20B', '30B', '40B', '50B', '100B', '200B']
     const bongkarMultiplier = 60000 
-    const bongkarAmountsB = [1, 2, 3, 5, 10, 15, 20, 25, 30, 40, 50] 
+    const bongkarAmountsB = [1, 2, 3, 5, 10, 15, 20, 25, 30, 40, 50, 100, 150, 200, 300, 400, 500] 
     
     // Generate a completely random identity so it never looks suspicious
     const generateIdentity = () => {

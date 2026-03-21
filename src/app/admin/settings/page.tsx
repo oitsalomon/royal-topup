@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Header from '@/components/admin/Header'
-import { Save, Loader2, Smartphone, MessageCircle, CreditCard } from 'lucide-react'
+import { Save, Loader2, Smartphone, MessageCircle, CreditCard, Flame } from 'lucide-react'
 
 export default function SettingsPage() {
     const [config, setConfig] = useState<any>(null)
@@ -187,6 +187,73 @@ export default function SettingsPage() {
                                 className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-colors"
                             />
                         </div>
+                    </div>
+                </div>
+
+                {/* Flash Sale Section */}
+                <div className="bg-[#111111] rounded-2xl border border-white/5 p-6 border-l-4 border-l-amber-500">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
+                            <Flame size={20} className="animate-pulse" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold text-white">Promo Rush Hour (Flash Sale)</h2>
+                            <p className="text-sm text-gray-400">Ubah seluruh website ke mode diskon terbatas</p>
+                        </div>
+                    </div>
+
+                    <div className="grid gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-2">Harga Promo per 1B (Rp)</label>
+                                <input
+                                    type="number"
+                                    value={config.flash_sale?.promo_price || 63000}
+                                    onChange={(e) => updateConfig('flash_sale', 'promo_price', Number(e.target.value))}
+                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-amber-500 focus:outline-none transition-colors"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-2">Minimal Pembelian (dalam B)</label>
+                                <input
+                                    type="number"
+                                    value={config.flash_sale?.min_amount_b || 1}
+                                    onChange={(e) => updateConfig('flash_sale', 'min_amount_b', Number(e.target.value))}
+                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-amber-500 focus:outline-none transition-colors"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-2">Batas Waktu Berakhir</label>
+                                <input
+                                    type="datetime-local"
+                                    value={config.flash_sale?.end_time ? new Date(config.flash_sale.end_time).toISOString().slice(0, 16) : ''}
+                                    onChange={(e) => {
+                                        const date = new Date(e.target.value)
+                                        updateConfig('flash_sale', 'end_time', date.getTime())
+                                    }}
+                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-amber-500 focus:outline-none transition-colors [color-scheme:dark]"
+                                />
+                            </div>
+                            <div className="flex items-center gap-3 pt-6">
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        className="sr-only peer"
+                                        checked={config.flash_sale?.active || false}
+                                        onChange={(e) => updateConfig('flash_sale', 'active', e.target.checked)}
+                                    />
+                                    <div className="w-14 h-7 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-amber-500"></div>
+                                    <span className="ml-3 text-sm font-bold text-white uppercase tracking-widest">{config.flash_sale?.active ? 'PROMO AKTIF' : 'NONAKTIF'}</span>
+                                </label>
+                            </div>
+                        </div>
+                        {config.flash_sale?.active && (
+                            <div className="bg-amber-500/10 border border-amber-500/30 p-4 rounded-xl">
+                                <p className="text-amber-400 text-sm">
+                                    ⚠️ <strong>Peringatan:</strong> Mode Flash Sale sedang aktif! Pengunjung akan melihat antarmuka diskon dan timer hitung mundur. Pastikan Anda sudah menyimpan pembaruan.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
 

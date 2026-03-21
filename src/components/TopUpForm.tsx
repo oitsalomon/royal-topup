@@ -43,6 +43,11 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
     const linkedGameAccounts = user?.gameIds?.filter((g: any) => g.game.code === gameCode) || []
     const [useSavedId, setUseSavedId] = useState(false)
 
+    // Flash Sale Config State
+    const [config, setConfig] = useState<any>(null)
+    const [isFlashSale, setIsFlashSale] = useState(false)
+    const [flashEndTime, setFlashEndTime] = useState(0)
+
     const [formData, setFormData] = useState({
         user_wa: '',
         id_game: '',
@@ -105,6 +110,18 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
             .then(data => {
                 if (Array.isArray(data)) {
                     setPackages(data)
+                }
+            })
+            .catch(err => console.error(err))
+
+        // Fetch Config for Flash Sale
+        fetch('/api/config')
+            .then(res => res.json())
+            .then(data => {
+                setConfig(data)
+                if (data?.flash_sale?.active && data?.flash_sale?.end_time > Date.now()) {
+                    setIsFlashSale(true)
+                    setFlashEndTime(data.flash_sale.end_time)
                 }
             })
             .catch(err => console.error(err))
@@ -488,7 +505,13 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                                             let chipsM = 0
 
                                             // Thresholds for Special Bulk Prices
-                                            if (money >= 3150000) {
+                                            const flashPrice = config?.flash_sale?.promo_price || 63000
+                                            const minAmountB = config?.flash_sale?.min_amount_b || 1
+                                            
+                                            // Apply Flash Sale Override if active and meets minimum
+                                            if (isFlashSale && money >= (flashPrice * minAmountB)) {
+                                                chipsM = (money / flashPrice) * 1000
+                                            } else if (money >= 3150000) {
                                                 chipsM = (money / 63000) * 1000
                                             } else if (money >= 1280000) {
                                                 chipsM = (money / 64000) * 1000
@@ -519,6 +542,30 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                                     />
                                 </div>
                             </div>
+                            
+                            {isFlashSale && (
+                                <div className="mt-2 p-4 bg-red-950/40 border border-red-500/30 rounded-xl relative overflow-hidden">
+                                    <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent animate-pulse" />
+                                    <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                                        <div className="bg-red-500/20 p-2 rounded-lg text-red-500 shrink-0">
+                                            <Zap size={20} className="animate-pulse" /> 
+                                        </div>
+                                        <div>
+                                            <p className="text-red-400 text-xs sm:text-sm font-bold tracking-wide">
+                                                ⚡ RUSH HOUR PROMO (S/D {new Date(flashEndTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute:'2-digit' })})
+                                            </p>
+                                            <p className="text-gray-400 text-xs mt-1">
+                                                Dapatkan Harga Rp {(config?.flash_sale?.promo_price || 63000).toLocaleString('id-ID')} / 1B untuk min pembelian {(config?.flash_sale?.min_amount_b || 1)}B.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {Number(formData.amount_chip) >= (config?.flash_sale?.min_amount_b || 1) * 1000 && (
+                                        <div className="mt-3 px-3 py-1.5 bg-green-500/20 text-green-400 text-xs font-bold rounded-lg inline-block border border-green-500/30">
+                                            ✓ Promo Otomatis Diterapkan pada Pesanan Anda!
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {Number(formData.amount_chip) > 0 && (
                                 <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex justify-between items-center animate-in fade-in slide-in-from-top-2">

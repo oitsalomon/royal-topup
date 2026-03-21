@@ -1,5 +1,6 @@
 'use client'
-import { ArrowRight, Zap, Star, Sparkles, Gem, Quote, Gift } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ArrowRight, Zap, Star, Sparkles, Gem, Quote, Gift, Flame } from 'lucide-react'
 import Image from 'next/image'
 import { useAuth } from '@/contexts/AuthProvider'
 import Link from 'next/link'
@@ -12,16 +13,57 @@ interface HeroBannerProps {
 export default function HeroBanner({ games, config }: HeroBannerProps) {
     const { user } = useAuth()
 
+    const flashSale = config?.flash_sale || {}
+    const [timeLeft, setTimeLeft] = useState<{h: number, m: number, s: number} | null>(null)
+    const [isFlashSaleActive, setIsFlashSaleActive] = useState(false)
+
+    useEffect(() => {
+        if (!flashSale.active || !flashSale.end_time) {
+            setIsFlashSaleActive(false)
+            return
+        }
+        
+        const updateTimer = () => {
+            const now = Date.now()
+            const end = flashSale.end_time
+            if (now >= end) {
+                setIsFlashSaleActive(false)
+                setTimeLeft(null)
+                return
+            }
+            setIsFlashSaleActive(true)
+            const diff = end - now
+            const h = Math.floor(diff / (1000 * 60 * 60))
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+            const s = Math.floor((diff % (1000 * 60)) / 1000)
+            setTimeLeft({h, m, s})
+        }
+        
+        updateTimer()
+        const interval = setInterval(updateTimer, 1000)
+        return () => clearInterval(interval)
+    }, [flashSale])
+
     return (
         <div className="bg-black text-white font-montserrat min-h-screen">
             {/* HERO SECTION */}
             <section className="relative min-h-[90vh] flex flex-col items-center justify-center overflow-hidden pt-20 pb-24">
                 {/* Background FX */}
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-[10%] left-[50%] -translate-x-1/2 w-[800px] h-[800px] bg-amber-500/10 rounded-full blur-[150px] animate-pulse" />
+                <div className="absolute inset-0 pointer-events-none transition-colors duration-1000">
+                    <div className={`absolute top-[10%] left-[50%] -translate-x-1/2 w-[800px] h-[800px] rounded-full blur-[150px] animate-pulse ${isFlashSaleActive ? 'bg-red-600/20' : 'bg-amber-500/10'}`} />
                     <div className="absolute inset-0 bg-[url('/images/noise.png')] opacity-[0.03] mix-blend-overlay" />
-                    <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black to-black" />
+                    <div className={`absolute inset-0 bg-gradient-to-b from-black/20 via-black to-black`} />
                 </div>
+
+                {/* Floating Flash Sale Timer */}
+                {isFlashSaleActive && timeLeft && (
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-gradient-to-r from-red-600 to-amber-600 px-6 py-2 rounded-b-2xl shadow-[0_0_30px_rgba(239,68,68,0.5)] border border-t-0 border-amber-400 z-50 animate-in slide-in-from-top duration-500">
+                        <span className="text-white font-bold tracking-widest uppercase text-xs sm:text-sm flex items-center gap-2">
+                            <Flame className="w-4 h-4 animate-pulse" />
+                            RUSH HOUR BERAKHIR DALAM: <span className="font-mono text-amber-200 ml-1">{timeLeft.h.toString().padStart(2, '0')}:{timeLeft.m.toString().padStart(2, '0')}:{timeLeft.s.toString().padStart(2, '0')}</span>
+                        </span>
+                    </div>
+                )}
 
                 <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                     
@@ -109,12 +151,25 @@ export default function HeroBanner({ games, config }: HeroBannerProps) {
 
             {/* PRICING SECTION */}
             <section className="relative py-24 bg-[#050505] border-t border-white/5 overflow-hidden">
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-500/5 blur-[120px] rounded-full pointer-events-none" />
+                <div className={`absolute top-0 right-0 w-[500px] h-[500px] blur-[120px] rounded-full pointer-events-none transition-all duration-1000 ${isFlashSaleActive ? 'bg-red-500/10' : 'bg-amber-500/5'}`} />
                 
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10" id="pricing">
                     <div className="text-center mb-16">
-                        <h2 className="font-cormorant text-4xl md:text-6xl text-amber-400 mb-4">Harga Spesial Sultan</h2>
-                        <p className="text-gray-400 uppercase tracking-widest text-sm">Semakin Banyak Beli, Semakin Murah!</p>
+                        {isFlashSaleActive ? (
+                            <>
+                                <h2 className="font-cormorant text-4xl md:text-6xl text-red-500 animate-pulse mb-4 flex items-center justify-center gap-3">
+                                    <Flame size={48} /> RUSH HOUR PROMO
+                                </h2>
+                                <p className="text-amber-400 uppercase tracking-widest text-sm font-bold">
+                                    HARGA GILA Rp {(flashSale.promo_price || 63000).toLocaleString('id-ID')} / 1B (MIN. {flashSale.min_amount_b || 1}B)
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <h2 className="font-cormorant text-4xl md:text-6xl text-amber-400 mb-4">Harga Spesial Sultan</h2>
+                                <p className="text-gray-400 uppercase tracking-widest text-sm">Semakin Banyak Beli, Semakin Murah!</p>
+                            </>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -124,17 +179,27 @@ export default function HeroBanner({ games, config }: HeroBannerProps) {
                             { tier: 'Partai Besar', range: '20-49B', price: 'Rp 64.000', label: 'Platinum', popular: true },
                             { tier: 'Raja Sultan', range: '50B+', price: 'Rp 63.000', label: 'Diamond', popular: false }
                         ].map((pkg, idx) => (
-                            <div key={idx} className={`relative p-8 border ${pkg.popular ? 'border-amber-400 bg-amber-950/20 translate-y-[-10px]' : 'border-white/10 bg-black/40'} flex flex-col items-center justify-center text-center transition-all duration-300 hover:border-amber-500/50 hover:bg-neutral-900 group backdrop-blur-sm`}>
+                            <div key={idx} className={`relative p-8 border ${pkg.popular ? (isFlashSaleActive ? 'border-red-500 bg-red-950/20 translate-y-[-10px]' : 'border-amber-400 bg-amber-950/20 translate-y-[-10px]') : 'border-white/10 bg-black/40'} flex flex-col items-center justify-center text-center transition-all duration-300 group backdrop-blur-sm ${isFlashSaleActive ? 'hover:border-red-500/50' : 'hover:border-amber-500/50'}`}>
                                 {pkg.popular && (
-                                    <div className="absolute -top-3 px-4 py-1 bg-gradient-to-r from-amber-400 to-amber-600 text-black text-[10px] font-bold uppercase tracking-widest rotate-2">
+                                    <div className={`absolute -top-3 px-4 py-1 text-black text-[10px] font-bold uppercase tracking-widest rotate-2 ${isFlashSaleActive ? 'bg-gradient-to-r from-red-400 to-red-600' : 'bg-gradient-to-r from-amber-400 to-amber-600'}`}>
                                         Disarankan
                                     </div>
                                 )}
-                                <p className="text-amber-500/80 font-bold tracking-widest text-xs uppercase mb-2">{pkg.label}</p>
+                                <p className={`${isFlashSaleActive ? 'text-red-500/80' : 'text-amber-500/80'} font-bold tracking-widest text-xs uppercase mb-2`}>{pkg.label}</p>
                                 <h3 className="font-cormorant text-3xl text-white mb-2">{pkg.range}</h3>
                                 <p className="text-gray-500 text-sm mb-6">{pkg.tier}</p>
-                                <div className="text-2xl font-bold text-amber-400 bg-clip-text tracking-wider">{pkg.price}<span className="text-sm text-gray-500 font-normal"> / 1B</span></div>
-                                <div className="mt-8 w-12 h-[1px] bg-amber-500/30 group-hover:w-full group-hover:bg-amber-500/50 transition-all duration-500" />
+                                
+                                <div className={`text-2xl font-bold bg-clip-text tracking-wider flex flex-col items-center ${isFlashSaleActive ? 'text-red-400' : 'text-amber-400'}`}>
+                                    {isFlashSaleActive ? (
+                                        <>
+                                            <span className="text-gray-600 line-through text-lg font-normal">{pkg.price}</span>
+                                            <span className="text-red-500 text-3xl animate-pulse mt-1">Rp {(flashSale.promo_price || 63000).toLocaleString('id-ID')}<span className="text-sm text-gray-400 font-normal"> / 1B</span></span>
+                                        </>
+                                    ) : (
+                                        <span>{pkg.price}<span className="text-sm text-gray-500 font-normal"> / 1B</span></span>
+                                    )}
+                                </div>
+                                <div className={`mt-8 w-12 h-[1px] group-hover:w-full transition-all duration-500 ${isFlashSaleActive ? 'bg-red-500/30 group-hover:bg-red-500/50' : 'bg-amber-500/30 group-hover:bg-amber-500/50'}`} />
                             </div>
                         ))}
                     </div>

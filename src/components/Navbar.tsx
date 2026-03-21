@@ -63,9 +63,7 @@ export default function Navbar() {
                         <Link href="/" className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${pathname === '/' ? 'text-white bg-white/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
                             Home
                         </Link>
-                        <Link href="/topup" className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${pathname === '/topup' ? 'text-white bg-white/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
-                            Top Up
-                        </Link>
+
                         <Link href="/check-transaction" className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${pathname === '/check-transaction' ? 'text-white bg-white/5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
                             Cek Transaksi
                         </Link>
@@ -203,7 +201,7 @@ export default function Navbar() {
 
                         <div className="space-y-2">
                             <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="block px-5 py-4 rounded-2xl bg-white/5 text-gray-300 hover:text-white">Home</Link>
-                            <Link href="/topup" onClick={() => setIsMobileMenuOpen(false)} className="block px-5 py-4 rounded-2xl bg-white/5 text-gray-300 hover:text-white">Top Up</Link>
+
                             <Link href="/check-transaction" onClick={() => setIsMobileMenuOpen(false)} className="block px-5 py-4 rounded-2xl bg-white/5 text-gray-300 hover:text-white">Cek Transaksi</Link>
                             {user && (
                                 <>

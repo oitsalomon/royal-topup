@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getTransactions } from '@/services/transactions'
 import { updateMemberStats } from '@/services/member'
+import { getSystemConfig } from '@/services/config'
 
 export async function POST(request: Request) {
     try {
@@ -58,6 +59,28 @@ export async function POST(request: Request) {
             type, // TOPUP or WITHDRAW
             target_payment_details,
             status: (type === 'WITHDRAW' || userId || proof_image) ? 'PENDING' : 'UNPAID'
+        }
+
+        // BACKEND VERIFICATION FOR FLASH SALE
+        if (type === 'TOPUP') {
+            const config = (await getSystemConfig()) as any
+            const flashSale = config?.flash_sale || {}
+            const flashPrice = flashSale?.promo_price || 63000
+            
+            // claimedRate is how much money they paid per 1B
+            const claimedRate = finalAmountMoney / (Number(amount_chip) / 1000)
+
+            // If they are getting the flash price rate or better, BUT they haven't spent enough for the normal bulk tier (50B = 3.15M)
+            if (claimedRate <= flashPrice && finalAmountMoney < 3150000) {
+                // They must be relying on Flash Sale.
+                if (!flashSale?.active || flashSale?.end_time <= Date.now()) {
+                    return NextResponse.json({ error: 'Promo Rush Hour sudah berakhir atau tidak aktif.' }, { status: 400 })
+                }
+                const minAmountMoney = flashPrice * (flashSale?.min_amount_b || 1)
+                if (finalAmountMoney < minAmountMoney) {
+                    return NextResponse.json({ error: 'Pemesanan tidak mencapai minimal Promo Rush Hour.' }, { status: 400 })
+                }
+            }
         }
 
         // Handle Payment ID mapping based on Type

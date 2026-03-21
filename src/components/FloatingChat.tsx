@@ -11,7 +11,7 @@ export default function FloatingChat() {
     const pathname = usePathname()
 
     useEffect(() => {
-        fetch('/api/config')
+        fetch('/api/config', { cache: 'no-store' })
             .then(res => res.json())
             .then(data => {
                 if (data?.contacts?.whatsapp?.number) {
@@ -25,7 +25,10 @@ export default function FloatingChat() {
     if (!isVisible) return null
 
     const handleChat = () => {
-        const cleanNumber = whatsappNumber.replace(/[^0-9]/g, '')
+        let cleanNumber = whatsappNumber.replace(/[^0-9]/g, '')
+        if (cleanNumber.startsWith('0')) {
+            cleanNumber = '62' + cleanNumber.slice(1)
+        }
         window.open(`https://wa.me/${cleanNumber}`, '_blank')
     }
 

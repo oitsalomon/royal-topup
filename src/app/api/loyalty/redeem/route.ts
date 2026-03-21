@@ -7,10 +7,6 @@ const getUserId = (req: Request) => {
 }
 
 const REWARDS = {
-    TICKET_1: { type: 'TICKET', cost: 5, value: 1 },
-    TICKET_6: { type: 'TICKET', cost: 25, value: 6 },
-    TICKET_15: { type: 'TICKET', cost: 50, value: 15 },
-
     // Vouchers
     VOUCHER_WD_1: { type: 'VOUCHER', cost: 40, quota: 1, name: 'Voucher Potong Admin WD (1x)' },
     VOUCHER_WD_3: { type: 'VOUCHER', cost: 110, quota: 3, name: 'Paket Voucher Potong Admin WD (3x)' },
@@ -96,21 +92,7 @@ export async function POST(request: Request) {
             })
 
             // Grant Item
-            if (reward.type === 'TICKET') {
-                // @ts-ignore
-                const count = reward.value || 1
-                // Create tickets
-                for (let i = 0; i < count; i++) {
-                    const code = `TCK-${Date.now()}-${userId}-${Math.floor(Math.random() * 1000)}`
-                    await tx.lotteryTicket.create({
-                        data: {
-                            user_id: userId,
-                            period: period || 'GENERAL',
-                            ticket_code: code
-                        }
-                    })
-                }
-            } else if (reward.type === 'VOUCHER') {
+            if (reward.type === 'VOUCHER') {
                 await tx.userVoucher.create({
                     data: {
                         user_id: userId,

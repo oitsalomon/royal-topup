@@ -24,7 +24,14 @@ export async function getMembers(
         where.level = level as any
     }
 
-    const [members, total] = await Promise.all([
+    const now = new Date()
+    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 1)) // Monday
+    startOfWeek.setHours(0, 0, 0, 0)
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+
+    const [members, total, totalMembers, activeMembersCount, activeMembersTodayCount] = await Promise.all([
         prisma.user.findMany({
             where,
             skip,
@@ -40,7 +47,20 @@ export async function getMembers(
                 }
             }
         }),
-        prisma.user.count({ where })
+        prisma.user.count({ where }),
+        prisma.user.count({ where: { role: 'VIEWER' } }),
+        prisma.user.count({
+            where: {
+                role: 'VIEWER',
+                lastLogin: { gte: startOfWeek }
+            }
+        }),
+        prisma.user.count({
+            where: {
+                role: 'VIEWER',
+                lastLogin: { gte: today }
+            }
+        })
     ])
 
     // Aggregate Transactions for these members
@@ -75,33 +95,6 @@ export async function getMembers(
         }
 
         return { ...member, totalTopUp, totalWithdraw, lastActivity }
-    })
-
-    // Calculate Stats
-    // 1. Total Members
-    const totalMembers = await prisma.user.count({ where: { role: 'VIEWER' } })
-
-    // 2. Active Members (This Week)
-    const now = new Date()
-    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 1)) // Monday
-    startOfWeek.setHours(0, 0, 0, 0)
-
-    const activeMembersCount = await prisma.user.count({
-        where: {
-            role: 'VIEWER',
-            lastLogin: { gte: startOfWeek }
-        }
-    })
-
-    // 3. Active Members (Today)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    const activeMembersTodayCount = await prisma.user.count({
-        where: {
-            role: 'VIEWER',
-            lastLogin: { gte: today }
-        }
     })
 
     return {

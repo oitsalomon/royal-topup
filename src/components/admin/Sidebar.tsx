@@ -39,7 +39,6 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         { href: '/admin/members', label: 'Member / User', icon: User },
         { href: '/admin/referrals', label: 'Monitoring Referral', icon: Users }, // New Link
         { href: '/admin/referral-withdrawals', label: 'Withdraw Referral', icon: Wallet }, // New Dedicated Page
-        { href: '/admin/lottery', label: 'Lottery System', icon: Ticket }, // New Link
         { href: '/admin/staff', label: 'Staff', icon: Shield },
         { href: '/admin/adjustments', label: 'Riwayat Adjustment', icon: Coins },
         { href: '/admin/transfers', label: 'Riwayat Transfer', icon: TrendingUp },
@@ -96,6 +95,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                                 <Link
                                     key={link.href}
                                     href={link.href}
+                                    prefetch={false}
                                     onClick={() => onClose()} // Close on click (mobile)
                                     className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${isActive
                                         ? 'bg-gradient-to-r from-amber-900/40 to-amber-900/20 text-amber-400 border border-amber-500/20 shadow-lg shadow-amber-900/10'

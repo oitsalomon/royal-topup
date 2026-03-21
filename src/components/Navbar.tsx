@@ -15,7 +15,7 @@ export default function Navbar() {
 
     useEffect(() => {
         // Fetch config once on mount
-        fetch('/api/config')
+        fetch('/api/config', { cache: 'no-store' })
             .then(res => res.json())
             .then(data => setConfig(data))
             .catch(err => console.error("Failed to load config", err))

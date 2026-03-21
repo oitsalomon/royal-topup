@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { getSystemConfig, updateSystemConfig } from '@/services/config'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
     const config = await getSystemConfig()
     return NextResponse.json(config)

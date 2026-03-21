@@ -10,7 +10,8 @@ export default function LiveTicker() {
     const types = ['TOPUP', 'BONGKAR', 'ORDER']
     const names = ['Agus_**', 'Wahyu_**', 'Rini_**', 'Budi_**', 'Joko_**', 'Siti_**', 'Yanto_**', 'Dewi_**', 'Putra_**', 'Rizky_**', '0812****', '0852****', '0813****']
     const amountsTopup = ['1B', '2B', '5B', '10B', '20B', '50B', '100B', '200B']
-    const amountsBongkar = ['50B', '100B', '200B', '500B', '1T', '2T', '5T']
+    const bongkarMultiplier = 60000 // 1B = Rp 60.000
+    const bongkarAmountsB = [1, 2, 3, 5, 10, 15, 20, 40, 50] // Max 50B (Rp 3.000.000) so it stays realistic
     
     // Create random activity
     const createRandomActivity = () => {
@@ -18,14 +19,15 @@ export default function LiveTicker() {
         const name = names[Math.floor(Math.random() * names.length)]
         
         const isBongkar = type === 'BONGKAR'
-        const amountArr = isBongkar ? amountsBongkar : amountsTopup
-        const amount = amountArr[Math.floor(Math.random() * amountArr.length)]
         
         let text
         if (type === 'TOPUP' || type === 'ORDER') {
+            const amount = amountsTopup[Math.floor(Math.random() * amountsTopup.length)]
             text = <span key={1}><strong className="text-white">{name}</strong> baru saja order <span className="text-emerald-400 font-bold">{amount}</span></span>
         } else {
-            text = <span key={2}><strong className="text-white">{name}</strong> berhasil bongkar <span className="text-red-400 font-bold">{amount}</span></span>
+            const amountB = bongkarAmountsB[Math.floor(Math.random() * bongkarAmountsB.length)]
+            const totalRupiah = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amountB * bongkarMultiplier)
+            text = <span key={2}><strong className="text-white">{name}</strong> berhasil tarik dana <span className="text-red-400 font-bold">{totalRupiah}</span></span>
         }
 
         return {

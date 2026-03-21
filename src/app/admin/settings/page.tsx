@@ -223,16 +223,31 @@ export default function SettingsPage() {
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-400 mb-2">Batas Waktu Berakhir</label>
-                                <input
-                                    type="datetime-local"
-                                    value={config.flash_sale?.end_time ? new Date(config.flash_sale.end_time).toISOString().slice(0, 16) : ''}
+                                <label className="block text-sm font-medium text-gray-400 mb-2">Durasi Promo (Pilih untuk Mereset Waktu)</label>
+                                <select
                                     onChange={(e) => {
-                                        const date = new Date(e.target.value)
-                                        updateConfig('flash_sale', 'end_time', date.getTime())
+                                        const hours = Number(e.target.value)
+                                        if (hours > 0) {
+                                            updateConfig('flash_sale', 'end_time', Date.now() + (hours * 60 * 60 * 1000))
+                                        }
                                     }}
-                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-amber-500 focus:outline-none transition-colors [color-scheme:dark]"
-                                />
+                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-amber-500 focus:outline-none transition-colors"
+                                >
+                                    <option value="0">-- Atur Durasi --</option>
+                                    <option value="0.5">30 Menit</option>
+                                    <option value="1">1 Jam</option>
+                                    <option value="2">2 Jam</option>
+                                    <option value="5">5 Jam</option>
+                                    <option value="12">12 Jam</option>
+                                    <option value="24">24 Jam</option>
+                                </select>
+                                {config.flash_sale?.end_time ? (
+                                    <p className="text-xs text-emerald-400 mt-2 font-medium">
+                                        ⚡ Saat ini diatur agar berakhir pada:<br/>{new Date(config.flash_sale.end_time).toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' })}
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-gray-500 mt-2">Belum ada durasi yang diatur.</p>
+                                )}
                             </div>
                             <div className="flex items-center gap-3 pt-6">
                                 <label className="relative inline-flex items-center cursor-pointer">

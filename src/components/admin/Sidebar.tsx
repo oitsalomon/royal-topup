@@ -31,6 +31,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         { href: '/admin/transactions', label: 'Transaksi', icon: Receipt },
         { href: '/admin/manual-transaction', label: 'Input Manual', icon: FileText },
         { href: '/admin/games', label: 'Kelola Game', icon: Gamepad2 },
+        { href: '/admin/rtp', label: 'Manajemen RTP', icon: TrendingUp },
         { href: '/admin/packages', label: 'Manajemen Paket', icon: Package },
         { href: '/admin/promos', label: 'Kelola Promo', icon: Gift },
         { href: '/admin/banks', label: 'Panel Bank', icon: Wallet },

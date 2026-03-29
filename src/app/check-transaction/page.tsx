@@ -6,6 +6,7 @@ import { Search, Loader2, CheckCircle, XCircle, Clock, AlertCircle } from 'lucid
 
 interface Transaction {
     id: number
+    trx_id: string | null
     status: string
     amount_chip: number
     amount_money: number
@@ -127,7 +128,7 @@ export default function CheckTransaction() {
                                 {getStatusText(result.status)}
                             </h2>
                             <div className="mt-3 px-4 py-1.5 rounded-full bg-white/5 border border-white/5 text-[10px] font-bold text-gray-500 tracking-widest uppercase">
-                                ID: #{result.id}
+                                TRX ID: {result.trx_id || `#${result.id}`}
                             </div>
                         </div>
 

@@ -48,7 +48,14 @@ export async function POST(request: Request) {
             }
         }
 
+        // Generate Unique TRX ID
+        const now = new Date()
+        const dateStr = now.toISOString().slice(2, 10).replace(/-/g, '') // YYMMDD
+        const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase() // 4 chars
+        const trx_id = `CL-${dateStr}-${randomStr}`
+
         const transactionData: any = {
+            trx_id,
             user_wa,
             user_id: userId, // Link to user if found
             game_id: Number(game_id),
@@ -104,25 +111,31 @@ export async function POST(request: Request) {
         // Send Telegram Notification
         if (type === 'TOPUP') {
             sendTopupNotif({
-                id: transaction.id,
-                userName: transaction.nickname || transaction.user?.username || 'Guest',
-                gameId: transaction.user_game_id || String(transaction.game_id),
-                chipAmount: transaction.amount_chip,
-                totalPrice: transaction.amount_money,
-                paymentMethod: transaction.paymentMethod?.name || 'Manual',
-                createdAt: transaction.createdAt
+                id: (transaction as any).id,
+                trxId: (transaction as any).trx_id || String((transaction as any).id),
+                userName: (transaction as any).nickname || (transaction as any).user?.username || 'Guest',
+                accountName: (transaction as any).user?.account_name,
+                gameId: (transaction as any).user_game_id || String((transaction as any).game_id),
+                chipAmount: (transaction as any).amount_chip,
+                totalPrice: (transaction as any).amount_money,
+                paymentMethod: (transaction as any).paymentMethod?.name || 'Manual',
+                createdAt: (transaction as any).createdAt,
+                isGuest: !(transaction as any).user_id,
+                proofImage: (transaction as any).proof_image
             }).catch(e => console.error('Telegram TOPUP notif failed:', e))
         } else if (type === 'WITHDRAW') {
             sendWithdrawNotif({
-                id: transaction.id,
-                userName: transaction.nickname || transaction.user?.username || 'Guest',
-                gameId: transaction.user_game_id || String(transaction.game_id),
-                chipAmount: transaction.amount_chip,
-                totalPrice: transaction.amount_money,
-                bankName: transaction.withdrawMethod?.name || 'Bank',
-                bankAccount: transaction.target_payment_details || '-',
-                bankHolder: transaction.nickname || '-',
-                createdAt: transaction.createdAt
+                id: (transaction as any).id,
+                trxId: (transaction as any).trx_id || String((transaction as any).id),
+                userName: (transaction as any).nickname || (transaction as any).user?.username || 'Guest',
+                gameId: (transaction as any).user_game_id || String((transaction as any).game_id),
+                chipAmount: (transaction as any).amount_chip,
+                totalPrice: (transaction as any).amount_money,
+                bankName: (transaction as any).withdrawMethod?.name || 'Bank',
+                bankAccount: (transaction as any).target_payment_details || '-',
+                bankHolder: (transaction as any).nickname || '-',
+                createdAt: (transaction as any).createdAt,
+                isGuest: !(transaction as any).user_id
             }).catch(e => console.error('Telegram WITHDRAW notif failed:', e))
         }
 

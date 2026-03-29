@@ -59,6 +59,7 @@ export async function getTransactions({
 
     if (search) {
         where.OR = [
+            { trx_id: { contains: search, mode: 'insensitive' } },
             { nickname: { contains: search, mode: 'insensitive' } },
             { user_game_id: { contains: search, mode: 'insensitive' } },
             { user_wa: { contains: search, mode: 'insensitive' } }

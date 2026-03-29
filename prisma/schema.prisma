@@ -214,6 +214,7 @@ model WeeklyStats {
 
 model Transaction {
   id                     Int                @id @default(autoincrement())
+  trx_id                 String?            @unique
   user_wa                String
   game_id                Int
   user_game_id           String             @default("")

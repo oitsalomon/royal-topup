@@ -24,6 +24,7 @@ function formatChip(amount: number): string {
 // Kirim notif order BARU (TOPUP)
 export async function sendTopupNotif(trx: {
   id: string | number;
+  trxId: string;
   userName: string;
   gameId: string;
   chipAmount: number;
@@ -31,15 +32,24 @@ export async function sendTopupNotif(trx: {
   paymentMethod: string;
   uniqueCode?: number;
   createdAt: Date;
+  isGuest?: boolean;
+  proofImage?: string | null;
+  accountName?: string | null;
 }) {
   const total = trx.uniqueCode
     ? trx.totalPrice + trx.uniqueCode
     : trx.totalPrice;
 
+  const header = trx.isGuest 
+    ? `⚠️ <b>ORDER BARU — BELI CHIP (NON-MEMBER)</b>`
+    : `🔔 <b>ORDER BARU — BELI CHIP</b>`;
+
   const text =
-    `🔔 <b>ORDER BARU — BELI CHIP</b>\n` +
+    `${header}\n` +
     `━━━━━━━━━━━━━━━━━━━━\n` +
+    `🆔 TRX: <code>${trx.trxId}</code>\n` +
     `👤 User: <b>${trx.userName}</b>\n` +
+    (trx.accountName ? `💳 Pengirim: <b>${trx.accountName}</b>\n` : '') +
     `🎮 ID Game: <code>${trx.gameId}</code>\n` +
     `💎 Chip: <b>${formatChip(trx.chipAmount)}</b>\n` +
     `💰 Total: <b>${formatRupiah(total)}</b>\n` +
@@ -55,12 +65,17 @@ export async function sendTopupNotif(trx: {
     ],
   ];
 
+  if (trx.proofImage) {
+      return sendPhoto(trx.proofImage, text, inline_keyboard);
+  }
+
   return sendMessage(text, inline_keyboard);
 }
 
 // Kirim notif order BARU (WITHDRAW)
 export async function sendWithdrawNotif(trx: {
   id: string | number;
+  trxId: string;
   userName: string;
   gameId: string;
   chipAmount: number;
@@ -69,10 +84,16 @@ export async function sendWithdrawNotif(trx: {
   bankAccount: string;
   bankHolder: string;
   createdAt: Date;
+  isGuest?: boolean;
 }) {
+  const header = trx.isGuest 
+    ? `💸 <b>REQUEST WD — JUAL CHIP (NON-MEMBER)</b>`
+    : `💸 <b>REQUEST WD — JUAL CHIP</b>`;
+
   const text =
-    `💸 <b>REQUEST WD — JUAL CHIP</b>\n` +
+    `${header}\n` +
     `━━━━━━━━━━━━━━━━━━━━\n` +
+    `🆔 TRX: <code>${trx.trxId}</code>\n` +
     `👤 User: <b>${trx.userName}</b>\n` +
     `🎮 ID Game: <code>${trx.gameId}</code>\n` +
     `💎 Chip: <b>${formatChip(trx.chipAmount)}</b>\n` +
@@ -145,5 +166,32 @@ async function sendMessage(
   });
 
   const data = await res.json();
-  return data; // return message_id untuk disimpan ke DB
+  return data; 
+}
+
+// Kirim Photo dengan Caption
+async function sendPhoto(
+  photoUrl: string,
+  caption: string,
+  inline_keyboard: { text: string; callback_data: string }[][]
+) {
+  const body: Record<string, unknown> = {
+    chat_id: CHAT_ID,
+    photo: photoUrl,
+    caption,
+    parse_mode: 'HTML',
+  };
+
+  if (inline_keyboard.length > 0) {
+    body.reply_markup = { inline_keyboard };
+  }
+
+  const res = await fetch(`${BASE_URL}/sendPhoto`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  const data = await res.json();
+  return data;
 }

@@ -344,38 +344,40 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
 
     return (
         <>
-            <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8">
-                {/* ... (Existing Form Content) ... */}
-
+            <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-10 pb-10">
                 {/* Section 1: Data Akun */}
-                <div className="bg-[#0a0a0a] border border-white/5 shadow-2xl rounded-2xl p-6 md:p-8 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
-                    <h3 className="text-xl font-cormorant font-bold text-white flex items-center gap-3 mb-6">
-                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
-                            <Shield size={16} />
+                <div className="v4-glass p-8 md:p-10 rounded-[32px] shadow-2xl relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    
+                    <h3 className="v4-font-syne text-xl font-extrabold text-white flex items-center gap-4 mb-8 uppercase tracking-widest relative z-10">
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 border border-purple-500/30">
+                            <Shield size={20} />
                         </div>
-                        1. Masukkan Data Akun
+                        1. Data <span className="v4-text-gradient">Akun</span>
                     </h3>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-400 ml-1">ID Game</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">ID Game</label>
                             {useSavedId && linkedGameAccounts.length > 0 ? (
-                                <div className="space-y-2">
-                                    <select
-                                        className="w-full bg-[#161b22] border border-cyan-500/50 rounded-xl px-5 py-4 text-white font-bold outline-none focus:ring-2 focus:ring-cyan-500/50 appearance-none"
-                                        value={formData.id_game}
-                                        onChange={handleSavedIdChange}
-                                    >
-                                        {linkedGameAccounts.map((acc: any) => (
-                                            <option key={acc.id} value={acc.game_user_id}>
-                                                {acc.game_user_id} ({acc.nickname})
-                                            </option>
-                                        ))}
-                                        <option value="MANUAL">+ Gunakan ID Lain (Baru)</option>
-                                    </select>
-                                    <p className="text-xs text-cyan-400 ml-1 flex items-center gap-1">
-                                        <Shield size={12} /> ID Tersimpan
+                                <div className="space-y-3">
+                                    <div className="relative">
+                                        <select
+                                            className="w-full bg-black/40 border border-purple-500/30 rounded-2xl px-6 py-4 text-white font-black outline-none focus:ring-1 focus:ring-purple-500/50 appearance-none cursor-pointer v4-font-mono"
+                                            value={formData.id_game}
+                                            onChange={handleSavedIdChange}
+                                        >
+                                            {linkedGameAccounts.map((acc: any) => (
+                                                <option key={acc.id} value={acc.game_user_id}>
+                                                    {acc.game_user_id} ({acc.nickname})
+                                                </option>
+                                            ))}
+                                            <option value="MANUAL">+ Gunakan ID Lain (Baru)</option>
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-purple-400">▼</div>
+                                    </div>
+                                    <p className="text-[9px] font-black uppercase tracking-tighter text-purple-400 ml-1 flex items-center gap-1.5 bg-purple-500/10 w-fit px-3 py-1 rounded-full border border-purple-500/20">
+                                        <Shield size={10} /> ID Tersimpan & Aman
                                     </p>
                                 </div>
                             ) : (
@@ -383,7 +385,7 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                                     <input
                                         type="text"
                                         required
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
+                                        className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder-gray-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 outline-none transition-all v4-font-mono font-medium"
                                         placeholder="Contoh: 12345678"
                                         value={formData.id_game}
                                         onChange={e => setFormData({ ...formData, id_game: e.target.value })}
@@ -399,62 +401,65 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                                                     nickname: linkedGameAccounts[0].nickname || ''
                                                 }))
                                             }}
-                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs bg-cyan-900/50 text-cyan-400 px-3 py-1.5 rounded-lg hover:bg-cyan-900/80 transition-colors"
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest bg-purple-900/50 text-purple-400 px-3 py-2 rounded-xl border border-purple-500/30 hover:bg-purple-900/80 transition-all"
                                         >
-                                            Pilih ID Tersimpan
+                                            Pilih Tersimpan
                                         </button>
                                     )}
                                 </div>
                             )}
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-400 ml-1">Nickname</label>
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">Nickname</label>
                             {useSavedId && linkedGameAccounts.length > 0 ? (
-                                <div className="w-full bg-cyan-900/20 border border-cyan-500/50 rounded-xl px-5 py-4 text-cyan-400 font-bold flex items-center justify-between">
-                                    <span>{formData.nickname}</span>
-                                    <span className="text-xs bg-cyan-500/20 px-2 py-1 rounded text-cyan-300 flex items-center gap-1">
-                                        <Shield size={12} /> Terverifikasi
+                                <div className="w-full bg-purple-500/10 border border-purple-500/30 rounded-2xl px-6 py-4 text-purple-400 font-black flex items-center justify-between">
+                                    <span className="v4-font-syne text-lg">{formData.nickname}</span>
+                                    <span className="text-[9px] font-black bg-purple-500/20 px-3 py-1 rounded-full text-purple-300 flex items-center gap-1 border border-purple-500/30 uppercase tracking-widest">
+                                        Verified
                                     </span>
                                 </div>
                             ) : (
                                 <input
                                     type="text"
                                     required
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
+                                    className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder-gray-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 outline-none transition-all font-bold uppercase"
                                     placeholder="Contoh: Sultan88"
                                     value={formData.nickname}
                                     onChange={e => setFormData({ ...formData, nickname: e.target.value })}
                                 />
                             )}
                         </div>
-                        <div className="md:col-span-2 space-y-2">
-                            <label className="text-sm font-medium text-gray-400 ml-1">Nomor WhatsApp</label>
+                        <div className="md:col-span-2 space-y-3">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1">WhatsApp</label>
                             <input
                                 type="text"
                                 required
-                                className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none transition-all"
+                                className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder-gray-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/20 outline-none transition-all v4-font-mono font-medium"
                                 placeholder="08xxxxxxxxxx"
                                 value={formData.user_wa}
                                 onChange={e => setFormData({ ...formData, user_wa: e.target.value })}
                             />
-                            <p className="text-xs text-gray-500 ml-1">*Bukti transaksi akan dikirim ke nomor ini</p>
+                            <p className="text-[10px] text-gray-600 font-medium italic ml-1">*Bukti transaksi akan dikirim otomatis ke nomor ini</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Section 2: Nominal */}
-                <div className="bg-[#0a0a0a] border border-white/5 shadow-2xl rounded-2xl p-6 md:p-8 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
-                    <h3 className="text-xl font-cormorant font-bold text-white flex items-center gap-3 mb-6">
-                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
-                            <Zap size={16} />
+                <div className="v4-glass p-8 md:p-10 rounded-[32px] shadow-2xl relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    
+                    <h3 className="v4-font-syne text-xl font-extrabold text-white flex items-center gap-4 mb-10 uppercase tracking-widest relative z-10">
+                        <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 border border-cyan-500/30">
+                            <Zap size={20} />
                         </div>
-                        {promoConfig ? promoConfig.promoTitle : '2. Masukkan Nominal Top Up'}
+                        {promoConfig ? promoConfig.promoTitle : (
+                            <>Pilih <span className="v4-text-gradient">Nominal</span></>
+                        )}
                     </h3>
 
                     {promoConfig && promoConfig.packages.length > 0 ? (
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                        <div className="space-y-6 relative z-10">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
                                 {promoConfig.packages.map((pkg) => (
                                         <button
                                         key={pkg.id}
@@ -463,41 +468,42 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                                             setFormData(prev => ({ ...prev, amount_chip: pkg.chip.toString() }))
                                             setSelectedPrice(pkg.price)
                                         }}
-                                        className={`relative p-4 rounded-xl border transition-all duration-300 text-left group overflow-hidden ${Number(formData.amount_chip) === pkg.chip
-                                            ? 'bg-amber-950/40 border-amber-500 text-white shadow-[0_0_15px_rgba(251,191,36,0.2)] transform scale-105'
-                                            : 'bg-black/40 border-white/5 hover:border-amber-500/30'
+                                        className={`relative p-6 rounded-[24px] border transition-all duration-500 text-left group/item overflow-hidden ${Number(formData.amount_chip) === pkg.chip
+                                            ? 'bg-gradient-to-br from-cyan-600/20 to-blue-600/20 border-cyan-500 text-white shadow-xl shadow-cyan-500/20 scale-[1.03]'
+                                            : 'bg-black/40 border-white/5 hover:border-cyan-500/30'
                                             }`}
                                     >
                                         <div className="relative z-10">
-                                            <p className={`text-lg font-bold mb-1 ${Number(formData.amount_chip) === pkg.chip ? 'text-amber-400' : 'text-gray-300'}`}>
-                                                {pkg.chip} M
+                                            <p className={`v4-font-syne text-2xl font-black mb-1 ${Number(formData.amount_chip) === pkg.chip ? 'v4-text-gradient' : 'text-gray-400 group-hover/item:text-white'}`}>
+                                                {pkg.chip} <span className="text-xs uppercase opacity-70">M</span>
                                             </p>
-                                            <p className={`text-sm ${Number(formData.amount_chip) === pkg.chip ? 'text-white/90' : 'text-gray-500'}`}>
-                                                Rp {pkg.price.toLocaleString()}
+                                            <p className={`text-xs font-black tracking-widest ${Number(formData.amount_chip) === pkg.chip ? 'text-white' : 'text-gray-600 group-hover/item:text-cyan-400'}`}>
+                                                IDR {pkg.price.toLocaleString()}
                                             </p>
                                         </div>
                                         {Number(formData.amount_chip) === pkg.chip && (
-                                            <div className="absolute right-0 top-0 p-2 text-amber-500/20">
-                                                <Zap size={40} />
+                                            <div className="absolute right-0 top-0 p-2 text-cyan-500/10 pointer-events-none">
+                                                <Zap size={80} fill="currentColor" />
                                             </div>
                                         )}
+                                        <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-cyan-500 rounded-t-full transition-transform duration-500 ${Number(formData.amount_chip) === pkg.chip ? 'scale-x-100' : 'scale-x-0'}`}></div>
                                     </button>
                                 ))}
                             </div>
                             {(!formData.amount_chip || Number(formData.amount_chip) === 0) && (
-                                <p className="text-sm text-yellow-500 text-center animate-pulse">🔥 Silakan pilih paket promo di atas!</p>
+                                <p className="text-[10px] font-black uppercase text-cyan-500 text-center animate-pulse tracking-[0.2em] py-4 bg-cyan-500/5 rounded-2xl border border-cyan-500/10">🔥 SILAKAN PILIH PAKET PROMO DI ATAS! 🔥</p>
                             )}
                         </div>
                     ) : (
-                        <div className="space-y-4">
+                        <div className="space-y-6 relative z-10">
                             <div>
-                                <label className="text-sm font-medium text-gray-400 ml-1 mb-2 block">Masukkan Nominal Uang (Rp)</label>
-                                <div className="relative">
-                                    <span className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 font-bold">Rp</span>
+                                <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest ml-1 mb-4 block">Masukkan Nominal Uang (Rp)</label>
+                                <div className="relative group/input">
+                                    <span className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-600 font-black group-focus-within/input:text-cyan-400 transition-colors">Rp</span>
                                     <input
                                         type="number"
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white placeholder-gray-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all pl-12"
-                                        placeholder="Contoh: 100000"
+                                        className="w-full bg-black/40 border border-white/5 rounded-3xl px-6 py-6 text-white placeholder-gray-700 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 outline-none transition-all pl-14 v4-font-mono text-xl font-bold"
+                                        placeholder="Min 10.000"
                                         onChange={(e) => {
                                             const money = Number(e.target.value)
                                             setSelectedPrice(money)
@@ -540,44 +546,50 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                                             setFormData(prev => ({ ...prev, amount_chip: chipsM.toString() }))
                                         }}
                                     />
+                                    <div className="absolute right-6 top-1/2 -translate-y-1/2 text-cyan-400 opacity-20 group-focus-within/input:opacity-100 transition-opacity">
+                                        <Zap size={24} fill="currentColor" />
+                                    </div>
                                 </div>
                             </div>
                             
                             {isFlashSale && (
-                                <div className="mt-2 p-4 bg-red-950/40 border border-red-500/30 rounded-xl relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent animate-pulse" />
-                                    <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                                        <div className="bg-red-500/20 p-2 rounded-lg text-red-500 shrink-0">
-                                            <Zap size={20} className="animate-pulse" /> 
+                                <div className="mt-4 p-6 bg-gradient-to-br from-red-600/10 to-transparent border border-red-500/20 rounded-[24px] relative overflow-hidden group/flash">
+                                    <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-red-500 to-transparent scale-x-0 group-hover/flash:scale-x-100 transition-transform duration-700" />
+                                    <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-5">
+                                        <div className="bg-red-500/20 w-12 h-12 rounded-xl flex items-center justify-center text-red-500 shrink-0 border border-red-500/30">
+                                            <Zap size={24} className="animate-pulse" /> 
                                         </div>
                                         <div>
-                                            <p className="text-red-400 text-xs sm:text-sm font-bold tracking-wide">
-                                                ⚡ RUSH HOUR PROMO (S/D {new Date(flashEndTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute:'2-digit' })})
+                                            <p className="v4-font-syne text-red-400 text-sm font-black uppercase tracking-widest mb-1">
+                                                ⚡ RUSH HOUR PROMO <span className="text-white opacity-40 mx-2">|</span> S/D {new Date(flashEndTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute:'2-digit' })}
                                             </p>
-                                            <p className="text-gray-400 text-xs mt-1">
+                                            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-tight">
                                                 Dapatkan Harga Rp {(config?.flash_sale?.promo_price || 63000).toLocaleString('id-ID')} / 1B untuk min pembelian {(config?.flash_sale?.min_amount_b || 1)}B.
                                             </p>
                                         </div>
                                     </div>
                                     {Number(formData.amount_chip) >= (config?.flash_sale?.min_amount_b || 1) * 1000 && (
-                                        <div className="mt-3 px-3 py-1.5 bg-green-500/20 text-green-400 text-xs font-bold rounded-lg inline-block border border-green-500/30">
-                                            ✓ Promo Otomatis Diterapkan pada Pesanan Anda!
+                                        <div className="mt-4 px-4 py-2 bg-green-500/10 text-green-400 text-[10px] font-black uppercase tracking-[0.1em] rounded-xl inline-flex items-center gap-2 border border-green-500/20 animate-in fade-in zoom-in">
+                                            <Check size={14} strokeWidth={4} /> Promo Otomatis Aktif!
                                         </div>
                                     )}
                                 </div>
                             )}
 
                             {Number(formData.amount_chip) > 0 && (
-                                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex justify-between items-center animate-in fade-in slide-in-from-top-2">
-                                    <span className="text-blue-400 text-sm">Anda Mendapatkan:</span>
-                                    <div className="text-right">
-                                        <span className="text-2xl font-bold text-white block">
+                                <div className="p-8 rounded-[32px] bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-cyan-500/20 flex flex-col md:flex-row justify-between items-center gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                                    <div className="space-y-1">
+                                        <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest pl-1">Anda Mendapatkan:</span>
+                                        <span className="v4-font-syne text-5xl font-extrabold text-white block">
                                             {Number(formData.amount_chip) >= 1000
-                                                ? `${(Math.floor((Number(formData.amount_chip) / 1000) * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} B`
-                                                : `${Number(formData.amount_chip).toLocaleString()} M`}
+                                                ? <>{(Math.floor((Number(formData.amount_chip) / 1000) * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="v4-text-gradient">B</span></>
+                                                : <>{Number(formData.amount_chip).toLocaleString()} <span className="v4-text-gradient">M</span></>}
                                         </span>
-                                        <span className="text-xs text-gray-500">
-                                            (Rp {selectedPrice.toLocaleString()})
+                                    </div>
+                                    <div className="text-center md:text-right bg-white/5 px-6 py-4 rounded-2xl border border-white/5 backdrop-blur-sm">
+                                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Total Bayar:</span>
+                                        <span className="text-2xl font-black text-white v4-font-mono">
+                                            Rp {selectedPrice.toLocaleString()}
                                         </span>
                                     </div>
                                 </div>
@@ -587,88 +599,106 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                 </div>
 
                 {/* Section 3: Pembayaran */}
-                <div className="bg-[#0a0a0a] border border-white/5 shadow-2xl rounded-2xl p-6 md:p-8 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
-                    <h3 className="text-xl font-cormorant font-bold text-white flex items-center gap-3 mb-6">
-                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
-                            <Wallet size={16} />
+                <div className="v4-glass p-8 md:p-10 rounded-[32px] shadow-2xl relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    
+                    <h3 className="v4-font-syne text-xl font-extrabold text-white flex items-center gap-4 mb-10 uppercase tracking-widest relative z-10">
+                        <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 border border-purple-500/30">
+                            <Wallet size={20} />
                         </div>
-                        3. Metode Pembayaran
+                        Pilih <span className="v4-text-gradient">Pembayaran</span>
                     </h3>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 relative z-10">
                         {paymentMethods.map((pm) => (
                             <button
                                 key={pm.id}
                                 type="button"
                                 onClick={() => setFormData({ ...formData, payment_method_id: pm.id.toString() })}
-                                className={`flex items-center justify-between px-6 py-4 rounded-xl border transition-all duration-200 ${formData.payment_method_id === pm.id.toString()
-                                    ? 'bg-amber-950/40 border-amber-500 text-white shadow-[0_0_15px_rgba(251,191,36,0.1)]'
-                                    : 'bg-black/40 border-white/5 text-gray-400 hover:border-amber-500/30'
+                                className={`flex items-center justify-between px-8 py-5 rounded-2xl border transition-all duration-500 group/pm overflow-hidden relative ${formData.payment_method_id === pm.id.toString()
+                                    ? 'bg-gradient-to-r from-purple-600/20 to-indigo-600/20 border-purple-500 text-white shadow-xl shadow-purple-500/20'
+                                    : 'bg-black/40 border-white/5 text-gray-500 hover:border-purple-500/30 hover:bg-white/5'
                                     }`}
                             >
-                                <span className="font-bold">{pm.name}</span>
-                                <span className={`text-xs px-2 py-1 rounded ${formData.payment_method_id === pm.id.toString() ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5'
-                                    }`}>{pm.type}</span>
+                                <div className="flex flex-col items-start relative z-10">
+                                    <span className={`text-sm font-black uppercase tracking-widest ${formData.payment_method_id === pm.id.toString() ? 'text-white' : 'text-gray-400'}`}>{pm.name}</span>
+                                    <span className="text-[9px] font-bold text-gray-500 group-hover/pm:text-purple-400 transition-colors uppercase mt-1">{pm.type}</span>
+                                </div>
+                                {formData.payment_method_id === pm.id.toString() && (
+                                    <div className="relative z-10 w-8 h-8 rounded-full bg-purple-500 flex items-center justify-center text-white animate-in zoom-in duration-300">
+                                        <Check size={16} strokeWidth={4} />
+                                    </div>
+                                )}
+                                <div className={`absolute bottom-0 left-0 h-1 bg-purple-500 transition-all duration-500 ${formData.payment_method_id === pm.id.toString() ? 'w-full' : 'w-0'}`}></div>
                             </button>
                         ))}
                     </div>
 
                     {selectedPayment && (
-                        <div className="mt-6 p-6 bg-gradient-to-br from-gray-900 to-black border border-white/10 rounded-2xl text-center relative overflow-hidden group">
-                            <div className="absolute inset-0 bg-purple-500/5 group-hover:bg-purple-500/10 transition-colors" />
-                            <p className="text-sm text-gray-400 mb-4 relative z-10">Silakan transfer / scan ke:</p>
+                        <div className="mt-10 p-10 rounded-[40px] bg-gradient-to-br from-black to-slate-900 border border-white/10 text-center relative overflow-hidden group/box">
+                            <div className="absolute inset-0 bg-purple-500/5 group-hover/box:bg-purple-500/10 transition-colors duration-700" />
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-40 h-px bg-gradient-to-r from-transparent via-purple-500/50 to-transparent" />
+                            
+                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-8 relative z-10">Intruksi Pembayaran</p>
 
                             {selectedPayment.image ? (
                                 selectedPayment.name?.toLowerCase().includes('qris') ? (
-                                    <div className="flex flex-col items-center relative z-10 animate-in fade-in zoom-in duration-300 py-4">
-                                        <div className="bg-white/10 p-4 rounded-full mb-4">
-                                            <Zap size={40} className="text-yellow-400 animate-pulse" />
+                                    <div className="flex flex-col items-center relative z-10 animate-in fade-in zoom-in duration-500 py-6">
+                                        <div className="w-20 h-20 rounded-3xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 border border-cyan-500/30 mb-8 animate-pulse shadow-2xl shadow-cyan-500/20">
+                                            <Zap size={40} fill="currentColor" />
                                         </div>
-                                        <div className="text-center space-y-2 max-w-sm">
-                                            <h4 className="text-lg font-bold text-white">Langkah Selanjutnya</h4>
-                                            <p className="text-sm text-gray-300 leading-relaxed">
-                                                QRIS akan <strong>Pop-Up</strong> di layar Anda setelah klik tombol <strong className="text-cyan-400">Lanjut Pembayaran</strong>.
-                                                <br />Harap scan QRIS tersebut untuk menyelesaikan pembayaran.
+                                        <div className="text-center space-y-4 max-w-sm">
+                                            <h4 className="v4-font-syne text-2xl font-black text-white uppercase tracking-tight">QRIS Otomatis</h4>
+                                            <p className="text-xs text-gray-500 font-medium leading-relaxed uppercase tracking-widest opacity-70">
+                                                QRIS akan <strong className="text-cyan-400">Muncul Di Layar</strong> setelah Anda menekan tombol konfirmasi di bawah.
                                             </p>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col items-center relative z-10 animate-in fade-in zoom-in duration-300">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img
-                                            src={selectedPayment.image}
-                                            alt="Payment"
-                                            className="w-56 h-auto object-contain rounded-xl border-4 border-white shadow-2xl mb-4"
-                                        />
-                                        <div className="space-y-1">
-                                            <p className="text-xl font-bold text-white">{selectedPayment.name}</p>
-                                            <p className="text-sm text-purple-400">A/N {selectedPayment.account_name}</p>
+                                    <div className="flex flex-col items-center relative z-10 animate-in fade-in zoom-in duration-500">
+                                        <div className="relative p-4 bg-white rounded-[32px] shadow-2xl mb-8 group-hover/box:scale-105 transition-transform duration-500">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={selectedPayment.image}
+                                                alt="Payment"
+                                                className="w-56 h-auto object-contain rounded-2xl"
+                                            />
+                                            <div className="absolute -inset-2 bg-purple-500/20 blur-xl opacity-0 group-hover/box:opacity-100 transition-opacity -z-10" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <p className="v4-font-syne text-3xl font-black text-white uppercase tracking-tight">{selectedPayment.name}</p>
+                                            <p className="text-xs font-black text-purple-400 uppercase tracking-[0.2em] bg-purple-500/10 px-6 py-2 rounded-full border border-purple-500/20">A/N {selectedPayment.account_name}</p>
                                         </div>
                                     </div>
                                 )
                             ) : (
-                                <div className="relative z-10 animate-in fade-in">
-                                    <p className="text-3xl font-bold text-white tracking-wider mb-1 font-mono">{selectedPayment.account_number}</p>
-                                    <p className="text-sm text-purple-400">A/N {selectedPayment.account_name}</p>
+                                <div className="relative z-10 animate-in fade-in py-6">
+                                    <div className="bg-white/5 border border-white/5 rounded-[32px] px-10 py-8 inline-block shadow-2xl">
+                                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">No. Rekening / VA</p>
+                                        <p className="v4-font-mono text-4xl md:text-5xl font-black text-white tracking-widest mb-6 break-all">{selectedPayment.account_number}</p>
+                                        <div className="h-px w-20 bg-purple-500/30 mx-auto mb-6" />
+                                        <p className="text-xs font-black text-purple-400 uppercase tracking-[0.2em]">A/N {selectedPayment.account_name}</p>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     )}
                 </div>
 
-                {/* Section 4: Upload Bukti - Only show if NOT QRIS and NOT User */}
+                {/* Section 4: Upload Bukti */}
                 {!selectedPayment?.name?.toLowerCase().includes('qris') && !user && (
-                    <div className="bg-[#0a0a0a] border border-white/5 shadow-2xl rounded-2xl p-6 md:p-8 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
-                        <h3 className="text-xl font-cormorant font-bold text-white flex items-center gap-3 mb-6">
-                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                                <Upload size={16} />
+                    <div className="v4-glass p-8 md:p-10 rounded-[32px] shadow-2xl relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        
+                        <h3 className="v4-font-syne text-xl font-extrabold text-white flex items-center gap-4 mb-10 uppercase tracking-widest relative z-10">
+                            <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400 border border-green-500/30">
+                                <Upload size={20} />
                             </div>
-                            4. Upload Bukti Transfer
+                            Kirim <span className="v4-text-gradient">Bukti Transfer</span>
                         </h3>
 
-                        <div className="border-2 border-dashed border-white/10 rounded-2xl p-10 text-center hover:border-green-500/50 hover:bg-green-500/5 transition-all cursor-pointer relative group">
+                        <div className="border border-white/5 rounded-[32px] p-12 text-center bg-black/40 hover:border-green-500/30 hover:bg-green-500/5 transition-all duration-500 cursor-pointer relative group/upload overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-b from-green-500/5 to-transparent opacity-0 group-hover/upload:opacity-100 transition-opacity" />
                             <input
                                 type="file"
                                 accept="image/*"
@@ -677,37 +707,39 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                                 required={!selectedPayment?.name?.toLowerCase().includes('qris')}
                             />
                             {formData.proof_image ? (
-                                <div className="flex flex-col items-center text-green-400 animate-in fade-in zoom-in duration-300">
-                                    <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mb-4">
-                                        <Check className="w-8 h-8" />
+                                <div className="flex flex-col items-center text-green-400 animate-in fade-in zoom-in duration-500 relative z-10">
+                                    <div className="w-20 h-20 rounded-full bg-green-500/20 border-2 border-green-500/30 flex items-center justify-center mb-6 shadow-2xl shadow-green-500/20">
+                                        <Check className="w-10 h-10" strokeWidth={3} />
                                     </div>
-                                    <span className="font-bold text-lg">Bukti Berhasil Diupload</span>
-                                    <span className="text-sm opacity-70 mt-1">Klik untuk mengganti</span>
+                                    <span className="v4-font-syne text-2xl font-black uppercase tracking-tight">Terupload!</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-50 mt-2">Klik untuk ganti bukti</span>
                                 </div>
                             ) : (
-                                <div className="flex flex-col items-center text-gray-400 group-hover:text-green-400 transition-colors">
-                                    <div className="w-16 h-16 rounded-full bg-white/5 group-hover:bg-green-500/20 flex items-center justify-center mb-4 transition-colors">
-                                        <Upload className="w-8 h-8" />
+                                <div className="flex flex-col items-center text-gray-500 group-hover/upload:text-green-400 transition-all relative z-10">
+                                    <div className="w-20 h-20 rounded-[24px] bg-white/5 group-hover/upload:bg-green-500/20 flex items-center justify-center mb-6 transition-all border border-white/5 group-hover/upload:border-green-500/30">
+                                        <Upload className="w-10 h-10" />
                                     </div>
-                                    <span className="font-bold text-lg">Klik atau Drop File Disini</span>
-                                    <span className="text-sm opacity-50 mt-1">Format: JPG, PNG, JPEG</span>
+                                    <span className="v4-font-syne text-2xl font-black uppercase tracking-tight">Upload Bukti</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest opacity-50 mt-2">Format: JPG, PNG, JPEG (MAX 5MB)</span>
                                 </div>
                             )}
                         </div>
                     </div>
                 )}
 
-                <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full bg-gradient-to-r from-amber-500 to-yellow-600 text-black font-bold uppercase tracking-widest text-sm py-5 rounded-none border border-amber-400 hover:shadow-[0_0_30px_rgba(251,191,36,0.3)] transition-all transform hover:-translate-y-1 hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
-                >
-                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                    <span className="relative flex items-center justify-center gap-2">
-                        {submitting ? 'Sedang Memproses...' : selectedPayment?.name?.toLowerCase().includes('qris') ? 'Lanjut Pembayaran' : 'Kirim Pesanan Sekarang'}
-                        {!submitting && <Zap size={18} fill="currentColor" />}
-                    </span>
-                </button>
+                <div className="pt-6">
+                    <button
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full py-7 v4-btn-main rounded-[32px] font-black text-white shadow-2xl shadow-purple-500/40 transition-all transform hover:-translate-y-2 active:scale-95 disabled:opacity-50 text-lg tracking-[0.3em] uppercase group"
+                    >
+                        <span className="relative flex items-center justify-center gap-4">
+                            {submitting ? 'MEMPROSES...' : selectedPayment?.name?.toLowerCase().includes('qris') ? 'LANJUT PEMBAYARAN' : 'KONFIRMASI PESANAN'}
+                            {!submitting && <Zap size={22} fill="currentColor" className="group-hover:animate-bounce" />}
+                        </span>
+                    </button>
+                    <p className="text-center mt-6 text-[9px] font-bold text-gray-600 uppercase tracking-[0.2em]">Sistem otomatis 24 jam • Aman & Terpercaya</p>
+                </div>
             </form>
 
             <AlertModal

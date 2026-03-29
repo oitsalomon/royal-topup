@@ -1,0 +1,101 @@
+/* src/app/global-v4.css */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root {
+  --bg: #07080f;
+  --bg2: #0d0f1a;
+  --bg3: #13162a;
+  --bg4: #1a1e38;
+  --purple: #7c3aed;
+  --purple2: #a855f7;
+  --purple3: #c084fc;
+  --cyan: #06b6d4;
+  --cyan2: #22d3ee;
+  --green: #10b981;
+  --green2: #34d399;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --white: #f8faff;
+  --muted: #64748b;
+  --muted2: #334155;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --glow-purple: rgba(124,58,237,0.3);
+  --glow-cyan: rgba(6,182,212,0.25);
+  --glow-green: rgba(16,185,129,0.25);
+  --max-width: 1280px;
+}
+
+.v4-container {
+  width: 100%;
+  max-width: var(--max-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+body.v4-theme {
+  background: var(--bg);
+  color: var(--white);
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+.v4-font-syne { font-family: 'Syne', sans-serif; }
+.v4-font-mono { font-family: 'JetBrains Mono', monospace; }
+
+/* AMBIENT BG (Global) */
+.v4-ambient {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.v4-ambient-1 {
+  position: absolute;
+  top: -10%; left: -10%;
+  width: 60vw; height: 60vw;
+  background: radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%);
+  animation: v4-drift1 15s ease-in-out infinite;
+}
+.v4-ambient-2 {
+  position: absolute;
+  bottom: 10%; right: -5%;
+  width: 50vw; height: 50vw;
+  background: radial-gradient(circle, rgba(6,182,212,0.06) 0%, transparent 70%);
+  animation: v4-drift2 20s ease-in-out infinite;
+}
+.v4-ambient-3 {
+  position: absolute;
+  top: 40%; left: 20%;
+  width: 40vw; height: 40vw;
+  background: radial-gradient(circle, rgba(16,185,129,0.04) 0%, transparent 70%);
+  animation: v4-drift3 25s ease-in-out infinite;
+}
+
+@keyframes v4-drift1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,40px)} }
+@keyframes v4-drift2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-20px,-30px)} }
+@keyframes v4-drift3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(20px,-20px)} }
+
+/* Shared Glass Styles */
+.v4-glass {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  backdrop-filter: blur(20px);
+}
+
+.v4-btn-main {
+  background: linear-gradient(135deg, var(--purple), var(--cyan));
+  color: white;
+  box-shadow: 0 4px 14px var(--glow-purple);
+  transition: all 0.2s;
+}
+.v4-btn-main:active { transform: scale(0.97); }
+
+.v4-text-gradient {
+  background: linear-gradient(135deg, var(--purple2), var(--cyan2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

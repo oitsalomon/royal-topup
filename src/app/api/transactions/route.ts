@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getTransactions } from '@/services/transactions'
 import { updateMemberStats } from '@/services/member'
 import { getSystemConfig } from '@/services/config'
+import { sendTopupNotif, sendWithdrawNotif } from '@/lib/telegram'
 
 export async function POST(request: Request) {
     try {
@@ -94,9 +95,36 @@ export async function POST(request: Request) {
         const transaction = await prisma.transaction.create({
             data: transactionData,
             include: {
-                paymentMethod: true
+                paymentMethod: true,
+                withdrawMethod: true,
+                user: true
             }
         })
+
+        // Send Telegram Notification
+        if (type === 'TOPUP') {
+            sendTopupNotif({
+                id: transaction.id,
+                userName: transaction.nickname || transaction.user?.username || 'Guest',
+                gameId: transaction.user_game_id || String(transaction.game_id),
+                chipAmount: transaction.amount_chip,
+                totalPrice: transaction.amount_money,
+                paymentMethod: transaction.paymentMethod?.name || 'Manual',
+                createdAt: transaction.createdAt
+            }).catch(e => console.error('Telegram TOPUP notif failed:', e))
+        } else if (type === 'WITHDRAW') {
+            sendWithdrawNotif({
+                id: transaction.id,
+                userName: transaction.nickname || transaction.user?.username || 'Guest',
+                gameId: transaction.user_game_id || String(transaction.game_id),
+                chipAmount: transaction.amount_chip,
+                totalPrice: transaction.amount_money,
+                bankName: transaction.withdrawMethod?.name || 'Bank',
+                bankAccount: transaction.target_payment_details || '-',
+                bankHolder: transaction.nickname || '-',
+                createdAt: transaction.createdAt
+            }).catch(e => console.error('Telegram WITHDRAW notif failed:', e))
+        }
 
         // Update Member Stats (Async)
         if (userId && type === 'TOPUP') {

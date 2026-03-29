@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Header from '@/components/admin/Header'
-import { Save, Loader2, Smartphone, MessageCircle, CreditCard, Flame } from 'lucide-react'
+import { Save, Loader2, Smartphone, MessageCircle, CreditCard, Flame, Plus, Trash2, LayoutGrid } from 'lucide-react'
 
 export default function SettingsPage() {
     const [config, setConfig] = useState<any>(null)
@@ -359,6 +359,111 @@ export default function SettingsPage() {
                                 className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-colors"
                             />
                         </div>
+                    </div>
+                </div>
+
+                {/* RTP Management Section */}
+                <div className="bg-[#111111] rounded-2xl border border-white/5 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400">
+                                <LayoutGrid size={20} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-white">Manajemen RTP</h2>
+                                <p className="text-sm text-gray-400">Atur data RTP yang tampil di landing page</p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => {
+                                const newRtp = [...(config.rtp_config || []), { game: '', room: '', percentage: 90, status: 'HOT' }]
+                                setConfig({ ...config, rtp_config: newRtp })
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 text-white text-sm font-bold hover:bg-cyan-500 transition-colors"
+                        >
+                            <Plus size={16} /> Tambah RTP
+                        </button>
+                    </div>
+
+                    <div className="space-y-4">
+                        {(config.rtp_config || []).map((item: any, idx: number) => (
+                            <div key={idx} className="grid grid-cols-1 md:grid-cols-5 gap-4 p-4 rounded-xl bg-white/5 border border-white/5 relative group">
+                                <div className="md:col-span-1">
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Nama Game</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Royal Dream"
+                                        value={item.game}
+                                        onChange={(e) => {
+                                            const newList = [...config.rtp_config]
+                                            newList[idx].game = e.target.value
+                                            setConfig({ ...config, rtp_config: newList })
+                                        }}
+                                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                                    />
+                                </div>
+                                <div className="md:col-span-1">
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Room/Meja</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Domino"
+                                        value={item.room}
+                                        onChange={(e) => {
+                                            const newList = [...config.rtp_config]
+                                            newList[idx].room = e.target.value
+                                            setConfig({ ...config, rtp_config: newList })
+                                        }}
+                                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                                    />
+                                </div>
+                                <div className="md:col-span-1">
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Persentase (%)</label>
+                                    <input
+                                        type="number"
+                                        value={item.percentage}
+                                        onChange={(e) => {
+                                            const newList = [...config.rtp_config]
+                                            newList[idx].percentage = Number(e.target.value)
+                                            setConfig({ ...config, rtp_config: newList })
+                                        }}
+                                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                                    />
+                                </div>
+                                <div className="md:col-span-1">
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+                                    <select
+                                        value={item.status}
+                                        onChange={(e) => {
+                                            const newList = [...config.rtp_config]
+                                            newList[idx].status = e.target.value
+                                            setConfig({ ...config, rtp_config: newList })
+                                        }}
+                                        className="w-full px-3 py-2 rounded-lg bg-black/40 border border-white/10 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                                    >
+                                        <option value="HOT">🔥 HOT</option>
+                                        <option value="WARM">⚡ WARM</option>
+                                        <option value="COLD">❄️ COLD</option>
+                                    </select>
+                                </div>
+                                <div className="md:col-span-1 flex items-end">
+                                    <button
+                                        onClick={() => {
+                                            const newList = config.rtp_config.filter((_: any, i: number) => i !== idx)
+                                            setConfig({ ...config, rtp_config: newList })
+                                        }}
+                                        className="w-full p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center gap-2 text-sm"
+                                    >
+                                        <Trash2 size={16} /> Hapus
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+
+                        {(!config.rtp_config || config.rtp_config.length === 0) && (
+                            <div className="text-center py-8 border-2 border-dashed border-white/5 rounded-2xl">
+                                <p className="text-gray-500 text-sm">Belum ada data RTP. Klik "Tambah RTP" untuk memulai.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 

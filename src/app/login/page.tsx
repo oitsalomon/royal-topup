@@ -60,24 +60,26 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen pt-24 pb-12 px-4 flex items-center justify-center">
+        <div className="pt-24 pb-20 px-4 flex items-center justify-center min-h-[80vh]">
             <div className="w-full max-w-md">
-                <div className="relative bg-[#161b22]/80 backdrop-blur-xl rounded-3xl border border-white/5 p-8 shadow-2xl">
-                    <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-2">
-                            Login Member
+                <div className="v4-glass p-8 rounded-[32px] shadow-2xl relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    
+                    <div className="text-center mb-10 relative z-10">
+                        <h1 className="v4-font-syne text-4xl font-extrabold text-white mb-3 uppercase tracking-tight">
+                            Login <span className="v4-text-gradient">Member</span>
                         </h1>
-                        <p className="text-gray-400 text-sm">Masuk untuk cek Level & Cashback</p>
+                        <p className="text-gray-500 text-sm font-medium">Masuk untuk cek Level & Cashback</p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
                         <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wider">
+                            <label className="block text-[10px] font-bold text-gray-500 mb-3 uppercase tracking-widest">
                                 Username
                             </label>
                             <input
                                 type="text"
-                                className="w-full px-4 py-3 bg-[#0d1117] border border-white/5 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all font-mono"
+                                className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder-gray-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30 outline-none transition-all v4-font-mono font-medium"
                                 placeholder="Masukkan username"
                                 value={formData.username}
                                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
@@ -86,13 +88,13 @@ export default function LoginPage() {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-2 uppercase tracking-wider">
+                            <label className="block text-[10px] font-bold text-gray-500 mb-3 uppercase tracking-widest">
                                 Password
                             </label>
                             <div className="relative">
                                 <input
                                     type={showPassword ? "text" : "password"}
-                                    className="w-full px-4 py-3 bg-[#0d1117] border border-white/5 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all font-mono pr-10"
+                                    className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-4 text-white placeholder-gray-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30 outline-none transition-all v4-font-mono font-medium pr-14"
                                     placeholder="Masukkan password"
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -101,25 +103,27 @@ export default function LoginPage() {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-2"
                                 >
-                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
                             </div>
                         </div>
 
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 rounded-xl font-bold text-white shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all transform hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isLoading ? 'Memproses...' : 'Masuk Sekarang'}
-                        </button>
+                        <div className="pt-2">
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full py-5 v4-btn-main rounded-2xl font-black text-white shadow-xl shadow-purple-500/20 transition-all transform hover:-translate-y-1 active:scale-95 disabled:opacity-50 text-sm tracking-widest uppercase"
+                            >
+                                {isLoading ? 'Memproses...' : 'Masuk Sekarang'}
+                            </button>
+                        </div>
 
-                        <div className="text-center mt-6">
-                            <p className="text-gray-400 text-sm">
+                        <div className="text-center mt-8">
+                            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider">
                                 Belum punya akun?{' '}
-                                <Link href="/register" className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors">
+                                <Link href="/register" className="text-cyan-400 hover:text-cyan-300 transition-colors">
                                     Daftar Disini
                                 </Link>
                             </p>

@@ -105,185 +105,211 @@ export default function ProfilePage() {
     const style = getLevelStyle(userData.level)
 
     // Calculate Progress to Next Level (Mock logic for visual)
-    // If extendedStats has levelProgress, use it. Otherwise calc locally.
     let progressPercent = 0
     if (extendedStats?.levelProgress?.percent !== undefined) {
         progressPercent = extendedStats.levelProgress.percent
     } else {
-        const nextLevelExp = 10000000 // Placeholder local logic if needed
+        const nextLevelExp = 10000000 
         progressPercent = Math.min((userData.total_exp / nextLevelExp) * 100, 100)
     }
 
     return (
-        <div className="min-h-screen pt-24 pb-20 px-4 md:px-8 bg-[#050912]">
-            <div className="max-w-md md:max-w-5xl mx-auto space-y-8">
+        <div className="min-h-screen pt-32 pb-20 px-4 md:px-8">
+            <div className="max-w-5xl mx-auto space-y-12">
 
                 {/* 1. THE "SULTAN" MEMBER CARD */}
-                <div className={`relative overflow-hidden rounded-3xl p-8 border backdrop-blur-xl shadow-2xl transition-all hover:scale-[1.02] duration-500 group ${style.cardBg} ${style.border}`}>
-                    {/* Background Shine Effect */}
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-12 translate-x-[-200%] group-hover:animate-shine" />
-                    <div className="absolute top-0 right-0 p-32 bg-white/5 rounded-full blur-[80px] pointer-events-none" />
-
-                    <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-8">
+                <div className="v4-glass rounded-[40px] p-8 md:p-12 shadow-2xl relative overflow-hidden group">
+                    {/* Animated Glow Background */}
+                    <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-purple-600/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-purple-600/20 transition-all duration-1000" />
+                    <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-cyan-600/10 blur-[80px] rounded-full translate-y-1/2 -translate-x-1/2 group-hover:bg-cyan-600/20 transition-all duration-1000" />
+                    
+                    <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-10">
 
                         {/* User Info */}
-                        <div className="flex items-center gap-6">
-                            <div className={`w-20 h-20 rounded-2xl bg-black/40 border border-white/10 flex items-center justify-center shadow-lg backdrop-blur-md`}>
-                                {style.icon}
+                        <div className="flex items-center gap-8">
+                            <div className="relative">
+                                <div className="w-24 h-24 rounded-3xl bg-black/40 border border-white/5 flex items-center justify-center shadow-2xl backdrop-blur-md relative z-10 group-hover:scale-110 transition-transform duration-500">
+                                    {style.icon}
+                                </div>
+                                <div className="absolute -inset-4 bg-purple-500/20 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                             </div>
                             <div>
-                                <p className="text-gray-400 text-xs font-bold tracking-widest uppercase mb-1">Welcome Back,</p>
-                                <h1 className="text-3xl font-black text-white tracking-tight mb-2 flex items-center gap-2">
+                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-3">Sultan Dashboard</p>
+                                <h1 className="v4-font-syne text-4xl md:text-5xl font-black text-white tracking-tight mb-4 flex items-center gap-4">
                                     {userData.username}
-                                    {userData.level === 'DIAMOND' && <Sparkles size={20} className="text-cyan-400 animate-pulse" />}
+                                    {userData.level === 'DIAMOND' && <Sparkles size={24} className="text-cyan-400 animate-pulse" />}
                                 </h1>
-                                <div className={`inline-flex px-3 py-1 rounded-lg bg-white/10 border border-white/10 text-xs font-bold ${style.text}`}>
-                                    {userData.level} MEMBER
+                                <div className="inline-flex px-5 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-[10px] font-black tracking-[0.2em] text-purple-400 uppercase">
+                                    {userData.level} TIER MEMBER
                                 </div>
                             </div>
                         </div>
 
                         {/* Exp / Stats / Progress */}
-                        <div className="w-full md:w-auto min-w-[250px]">
-                            <div className="flex justify-between text-xs text-gray-400 mb-2 font-mono">
-                                <span>EXP Progress</span>
-                                <span>{Math.floor(progressPercent)}% to Next Level</span>
+                        <div className="w-full md:w-auto min-w-[320px] bg-black/20 p-8 rounded-3xl border border-white/5 backdrop-blur-sm">
+                            <div className="flex justify-between items-end mb-4">
+                                <div className="space-y-1">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none">Level Progress</p>
+                                    <p className="v4-font-syne text-xl font-black text-white">{Math.floor(progressPercent)}%</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none">To Next Tier</p>
+                                    <p className="v4-font-mono text-cyan-400 font-bold uppercase text-[10px]">RP {(10000000 - userData.total_exp).toLocaleString()}</p>
+                                </div>
                             </div>
-                            <div className="h-3 w-full bg-black/50 rounded-full overflow-hidden border border-white/5">
+                            <div className="h-2.5 w-full bg-black/50 rounded-full overflow-hidden p-0.5 border border-white/5">
                                 <div
-                                    className={`h-full ${style.progress} shadow-[0_0_10px_rgba(255,255,255,0.3)] transition-all duration-1000 ease-out`}
+                                    className="h-full bg-gradient-to-r from-purple-500 to-cyan-400 rounded-full shadow-[0_0_15px_rgba(124,58,237,0.5)] transition-all duration-1000 ease-out"
                                     style={{ width: `${progressPercent}%` }}
                                 />
                             </div>
-                            <p className="text-[10px] text-gray-500 mt-2 text-right">Total Transaksi: Rp {userData.total_exp.toLocaleString()}</p>
+                            <div className="mt-4 flex justify-between items-center pt-4 border-t border-white/5">
+                                <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Total Transaksi</span>
+                                <span className="v4-font-mono text-xs font-bold text-white tracking-widest">RP {userData.total_exp.toLocaleString()}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                {/* 2. QUICK ACTIONS (The "Easy" Part) */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {/* 2. QUICK ACTIONS */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     <button
                         onClick={() => router.push('/profile/loyalty')}
-                        className="group relative p-6 rounded-3xl bg-[#161b22] border border-white/5 hover:bg-emerald-600 transition-all duration-300 overflow-hidden text-left"
+                        className="v4-glass group relative p-8 rounded-[32px] hover:bg-emerald-500/10 transition-all duration-500 overflow-hidden text-left border-white/5 hover:border-emerald-500/30"
                     >
-                        <div className="absolute top-0 right-0 p-16 bg-white/5 rounded-full blur-2xl translate-x-1/2 -translate-y-1/2 group-hover:bg-white/20 transition-all" />
+                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-all duration-500" />
                         <div className="relative z-10">
-                            <div className="mb-4">
-                                <Trophy className="w-8 h-8 text-emerald-500 group-hover:text-white transition-colors" />
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                <Trophy className="w-6 h-6 text-emerald-400" />
                             </div>
-                            <h3 className="text-lg font-bold text-white mb-1">Loyalty Point</h3>
-                            <p className="text-xs text-gray-500 group-hover:text-white/80">Tukar Hadiah</p>
+                            <h3 className="v4-font-syne text-lg font-black text-white mb-2 uppercase tracking-tight">Loyalty</h3>
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider group-hover:text-emerald-400 transition-colors">Tukar Hadiah</p>
                         </div>
                     </button>
+
                     <button
                         onClick={() => router.push('/')}
-                        className="group relative p-6 rounded-3xl bg-[#161b22] border border-white/5 hover:bg-emerald-600 transition-all duration-300 overflow-hidden text-left"
+                        className="v4-glass group relative p-8 rounded-[32px] hover:bg-purple-500/10 transition-all duration-500 overflow-hidden text-left border-white/5 hover:border-purple-500/30"
                     >
-                        <div className="absolute top-0 right-0 p-16 bg-white/5 rounded-full blur-2xl translate-x-1/2 -translate-y-1/2 group-hover:bg-white/20 transition-all" />
-                        <Gamepad2 className="w-8 h-8 text-emerald-500 group-hover:text-white mb-4 transition-colors" />
-                        <h3 className="text-lg font-bold text-white mb-1">Top Up Game</h3>
-                        <p className="text-xs text-gray-500 group-hover:text-white/80">Diskon Kilat</p>
+                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl group-hover:bg-purple-500/20 transition-all duration-500" />
+                        <div className="relative z-10">
+                            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                <Gamepad2 className="w-6 h-6 text-purple-400" />
+                            </div>
+                            <h3 className="v4-font-syne text-lg font-black text-white mb-2 uppercase tracking-tight">Top Up</h3>
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider group-hover:text-purple-400 transition-colors">Diskon Kilat</p>
+                        </div>
                     </button>
 
                     <button
                         onClick={() => router.push('/check-transaction')}
-                        className="group relative p-6 rounded-3xl bg-[#161b22] border border-white/5 hover:bg-blue-500 transition-all duration-300 overflow-hidden text-left"
+                        className="v4-glass group relative p-8 rounded-[32px] hover:bg-cyan-500/10 transition-all duration-500 overflow-hidden text-left border-white/5 hover:border-cyan-500/30"
                     >
-                        <div className="absolute top-0 right-0 p-16 bg-white/5 rounded-full blur-2xl translate-x-1/2 -translate-y-1/2 group-hover:bg-white/20 transition-all" />
-                        <History className="w-8 h-8 text-blue-500 group-hover:text-white mb-4 transition-colors" />
-                        <h3 className="text-lg font-bold text-white mb-1">Riwayat</h3>
-                        <p className="text-xs text-gray-500 group-hover:text-white/80">Cek Status</p>
-                    </button>
-
-                    <button
-                        className="group relative p-6 rounded-3xl bg-[#161b22] border border-white/5 hover:bg-purple-500 transition-all duration-300 overflow-hidden text-left cursor-not-allowed opacity-70"
-                    >
-                        <div className="absolute top-0 right-0 p-16 bg-white/5 rounded-full blur-2xl translate-x-1/2 -translate-y-1/2 group-hover:bg-white/20 transition-all" />
-                        <Wallet className="w-8 h-8 text-purple-500 group-hover:text-white mb-4 transition-colors" />
-                        <h3 className="text-lg font-bold text-white mb-1">Deposit</h3>
-                        <p className="text-xs text-gray-500 group-hover:text-white/80">Coming Soon</p>
+                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-cyan-500/5 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all duration-500" />
+                        <div className="relative z-10">
+                            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                <History className="w-6 h-6 text-cyan-400" />
+                            </div>
+                            <h3 className="v4-font-syne text-lg font-black text-white mb-2 uppercase tracking-tight">Riwayat</h3>
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider group-hover:text-cyan-400 transition-colors">Cek Status</p>
+                        </div>
                     </button>
 
                     <button
                         onClick={handleWhatsAppHelp}
-                        className="group relative p-6 rounded-3xl bg-[#161b22] border border-white/5 hover:bg-amber-500 transition-all duration-300 overflow-hidden text-left"
+                        className="v4-glass group relative p-8 rounded-[32px] hover:bg-amber-500/10 transition-all duration-500 overflow-hidden text-left border-white/5 hover:border-amber-500/30"
                     >
-                        <div className="absolute top-0 right-0 p-16 bg-white/5 rounded-full blur-2xl translate-x-1/2 -translate-y-1/2 group-hover:bg-white/20 transition-all" />
-                        <Headphones className="w-8 h-8 text-amber-500 group-hover:text-white mb-4 transition-colors" />
-                        <h3 className="text-lg font-bold text-white mb-1">Bantuan CS</h3>
-                        <p className="text-xs text-gray-500 group-hover:text-white/80">24 Jam Online</p>
+                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all duration-500" />
+                        <div className="relative z-10">
+                            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                <Headphones className="w-6 h-6 text-amber-400" />
+                            </div>
+                            <h3 className="v4-font-syne text-lg font-black text-white mb-2 uppercase tracking-tight">Bantuan</h3>
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider group-hover:text-amber-400 transition-colors">CS 24 Jam</p>
+                        </div>
                     </button>
-
                 </div>
 
                 {/* 3. INFO & SETTINGS Section (Split Layout) */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
                     {/* Saved IDs */}
-                    <div className="md:col-span-2 p-6 rounded-3xl bg-[#161b22] border border-white/5">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="font-bold text-white flex items-center gap-2">
-                                <CreditCard size={20} className="text-cyan-500" />
-                                ID Game Tersimpan
+                    <div className="v4-glass md:col-span-2 p-10 rounded-[40px] shadow-2xl relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        
+                        <div className="flex items-center justify-between mb-10 relative z-10">
+                            <h3 className="v4-font-syne text-xl font-extrabold text-white flex items-center gap-4 uppercase tracking-widest">
+                                <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 border border-cyan-500/30">
+                                    <CreditCard size={20} />
+                                </div>
+                                ID Game <span className="v4-text-gradient">Tersimpan</span>
                             </h3>
-                            <button className="text-xs text-cyan-400 hover:text-cyan-300 font-bold border border-cyan-500/20 px-3 py-1 rounded-lg">
+                            <button className="text-[10px] font-black text-cyan-400 hover:text-white transition-colors border border-cyan-500/20 px-5 py-2.5 rounded-2xl hover:bg-cyan-500/20 uppercase tracking-widest">
                                 + Tambah Baru
                             </button>
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-4 relative z-10">
                             {gameIds.map((g: any, i: number) => (
-                                <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-black/40 border border-white/5 hover:border-cyan-500/30 transition-colors group">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-cyan-900/20 flex items-center justify-center text-cyan-400 text-xs font-bold">
-                                            #{i + 1}
+                                <div key={i} className="flex items-center justify-between p-6 rounded-[24px] bg-black/40 border border-white/5 hover:border-purple-500/30 transition-all group/item hover:bg-white/5">
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center text-white text-xs font-black border border-white/10 group-hover/item:border-purple-500/30">
+                                            {i + 1}
                                         </div>
                                         <div>
-                                            <p className="font-bold text-white group-hover:text-cyan-400 transition-colors">{g.game_user_id}</p>
-                                            <p className="text-xs text-gray-500">{g.game_name} • {g.nickname || 'No Nickname'}</p>
+                                            <p className="v4-font-mono text-lg font-black text-white group-hover/item:text-purple-400 transition-colors tracking-widest">{g.game_user_id}</p>
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em]">{g.game_name} • <span className="text-cyan-400/70">{g.nickname || 'NO NICKNAME'}</span></p>
                                         </div>
                                     </div>
-                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button className="p-2 hover:bg-red-500/10 rounded-full text-red-500 transition-colors">
+                                    <div className="opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                        <button className="p-3 bg-red-500/10 hover:bg-red-500 rounded-2xl text-red-500 hover:text-white transition-all border border-red-500/20">
                                             <LogOut size={16} />
                                         </button>
                                     </div>
                                 </div>
                             ))}
                             {gameIds.length === 0 && (
-                                <div className="text-center py-8 text-gray-500 bg-black/20 rounded-2xl border border-dashed border-white/10">
-                                    <p>Belum ada ID game yang tersimpan.</p>
-                                    <p className="text-xs mt-1">ID akan otomatis tersimpan setelah Top Up.</p>
+                                <div className="text-center py-16 text-gray-500 bg-black/40 rounded-[32px] border border-dashed border-white/10 flex flex-col items-center gap-4">
+                                    <Gamepad2 size={40} className="text-gray-700" />
+                                    <div>
+                                        <p className="v4-font-sy its text-lg font-black text-gray-600 uppercase tracking-tight">Belum Ada ID Game</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest opacity-50 mt-1">ID akan otomatis tersimpan setelah Top Up.</p>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </div>
 
                     {/* Account Settings / Logout */}
-                    <div className="p-6 rounded-3xl bg-[#161b22] border border-white/5 flex flex-col justify-between">
-                        <div>
-                            <h3 className="font-bold text-white mb-6 flex items-center gap-2">
-                                <Crown size={20} className="text-amber-500" />
-                                Info Akun
-                            </h3>
-                            <div className="space-y-4">
-                                <div className="p-4 rounded-2xl bg-black/40 border border-white/5">
-                                    <p className="text-xs text-gray-500 uppercase font-bold mb-1">Nomor WhatsApp</p>
-                                    <p className="text-white font-mono">{userData.user_wa || '-'}</p>
+                    <div className="v4-glass p-10 rounded-[40px] shadow-2xl relative overflow-hidden group flex flex-col justify-between">
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                        
+                        <div className="relative z-10 w-full">
+                            <h3 className="v4-font-syne text-xl font-extrabold text-white flex items-center gap-4 uppercase tracking-widest mb-10">
+                                <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 border border-purple-500/30">
+                                    <Crown size={20} />
                                 </div>
-                                <div className="p-4 rounded-2xl bg-black/40 border border-white/5">
-                                    <p className="text-xs text-gray-500 uppercase font-bold mb-1">Rekening Bank</p>
-                                    <p className="text-white font-bold">{userData.bank_name}</p>
-                                    <p className="text-sm text-gray-400 font-mono">{userData.account_number}</p>
+                                Detail <span className="v4-text-gradient">Akun</span>
+                            </h3>
+                            
+                            <div className="space-y-5">
+                                <div className="p-6 rounded-3xl bg-black/40 border border-white/5 hover:border-purple-500/20 transition-all">
+                                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">WhatsApp Connected</p>
+                                    <p className="v4-font-mono text-white font-black tracking-widest">{userData.user_wa || '-'}</p>
+                                </div>
+                                <div className="p-6 rounded-3xl bg-black/40 border border-white/5 hover:border-purple-500/20 transition-all">
+                                    <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">Bank / Wallet Detail</p>
+                                    <p className="text-white font-black v4-font-syne uppercase tracking-tight mb-1">{userData.bank_name}</p>
+                                    <p className="v4-font-mono text-xs text-purple-400 font-bold tracking-[0.2em]">{userData.account_number}</p>
                                 </div>
                             </div>
                         </div>
 
                         <button
                             onClick={logout}
-                            className="mt-8 w-full py-4 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-bold transition-all flex items-center justify-center gap-2 border border-red-500/20"
+                            className="relative z-10 mt-12 w-full py-5 rounded-2xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white font-black text-[10px] tracking-[0.3em] uppercase transition-all flex items-center justify-center gap-3 border border-red-500/20 group/logout"
                         >
-                            <LogOut size={18} />
+                            <LogOut size={16} className="group-hover:translate-x-1 transition-transform" />
                             Keluar Akun
                         </button>
                     </div>

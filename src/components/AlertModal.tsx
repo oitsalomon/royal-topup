@@ -20,24 +20,27 @@ export default function AlertModal({ isOpen, title, message, type, onClose, onCo
         switch (type) {
             case 'success':
                 return {
-                    icon: <CheckCircle className="w-12 h-12 text-green-500 mb-4" />,
-                    button: 'bg-gradient-to-r from-green-600 to-emerald-600 hover:shadow-green-500/25',
-                    border: 'border-green-500/20',
-                    bg: 'bg-green-500/5'
+                    icon: <CheckCircle className="w-16 h-16 text-cyan-400 mb-6 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]" />,
+                    button: 'v4-btn-main',
+                    border: 'border-cyan-500/30',
+                    bg: 'bg-cyan-500/5',
+                    glow: 'bg-cyan-500/10'
                 }
             case 'error':
                 return {
-                    icon: <AlertCircle className="w-12 h-12 text-red-500 mb-4" />,
-                    button: 'bg-gradient-to-r from-red-600 to-pink-600 hover:shadow-red-500/25',
-                    border: 'border-red-500/20',
-                    bg: 'bg-red-500/5'
+                    icon: <AlertCircle className="w-16 h-16 text-red-500 mb-6 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]" />,
+                    button: 'bg-gradient-to-r from-red-600 to-pink-600 shadow-lg shadow-red-500/20',
+                    border: 'border-red-500/30',
+                    bg: 'bg-red-500/5',
+                    glow: 'bg-red-500/10'
                 }
             default:
                 return {
-                    icon: <AlertCircle className="w-12 h-12 text-blue-500 mb-4" />,
-                    button: 'bg-gradient-to-r from-blue-600 to-cyan-600 hover:shadow-blue-500/25',
-                    border: 'border-blue-500/20',
-                    bg: 'bg-blue-500/5'
+                    icon: <AlertCircle className="w-16 h-16 text-purple-400 mb-6 drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]" />,
+                    button: 'v4-btn-main bg-gradient-to-r from-purple-600 to-blue-600',
+                    border: 'border-purple-500/30',
+                    bg: 'bg-purple-500/5',
+                    glow: 'bg-purple-500/10'
                 }
         }
     }
@@ -45,33 +48,37 @@ export default function AlertModal({ isOpen, title, message, type, onClose, onCo
     const style = getStyles()
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 sm:p-4">
             {/* Backdrop */}
             <div
-                className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+                className="absolute inset-0 bg-[#050912]/90 backdrop-blur-xl animate-in fade-in duration-500"
                 onClick={onClose}
             />
 
             {/* Modal */}
-            <div className={`relative w-full max-w-sm transform overflow-hidden rounded-3xl border ${style.border} bg-[#0a0a0a]/90 p-8 text-center shadow-2xl transition-all animate-in zoom-in-95 duration-200`}>
-                <div className={`absolute inset-0 ${style.bg} pointer-events-none`} />
+            <div className={`relative w-full max-w-sm v4-glass rounded-[40px] border ${style.border} p-10 text-center shadow-[0_20px_60px_rgba(0,0,0,0.8)] transition-all animate-in zoom-in-95 duration-500 overflow-hidden group`}>
+                {/* Background Glow */}
+                <div className={`absolute -top-10 -right-10 w-40 h-40 ${style.glow} blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000`} />
+                <div className={`absolute -bottom-10 -left-10 w-40 h-40 ${style.glow} blur-3xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000`} />
 
                 {/* Close Button */}
                 <button
                     onClick={onClose}
-                    className="absolute right-4 top-4 rounded-full p-2 text-gray-400 hover:bg-white/10 transition-colors z-10"
+                    className="absolute right-6 top-6 rounded-2xl p-2.5 text-gray-500 hover:bg-white/10 hover:text-white transition-all z-20 border border-white/5"
                 >
-                    <X size={20} />
+                    <X size={18} />
                 </button>
 
                 <div className="relative z-10 flex flex-col items-center">
-                    {style.icon}
+                    <div className="animate-in slide-in-from-top-4 duration-700">
+                        {style.icon}
+                    </div>
 
-                    <h3 className="text-xl font-bold text-white mb-2 tracking-wide font-outfit">
+                    <h3 className="v4-font-syne text-2xl font-black text-white mb-3 tracking-tight uppercase">
                         {title}
                     </h3>
 
-                    <p className="text-gray-300 text-sm leading-relaxed mb-8">
+                    <p className="text-gray-400 font-bold text-xs uppercase tracking-widest leading-relaxed mb-10 opacity-70">
                         {message}
                     </p>
 
@@ -80,7 +87,7 @@ export default function AlertModal({ isOpen, title, message, type, onClose, onCo
                             if (onConfirm) onConfirm()
                             onClose()
                         }}
-                        className={`w-full py-3.5 rounded-xl font-bold text-white shadow-lg transition-all transform hover:-translate-y-1 active:scale-95 ${style.button}`}
+                        className={`w-full py-5 rounded-2xl font-black text-[10px] tracking-[0.3em] uppercase text-white shadow-2xl transition-all transform hover:-translate-y-1 active:scale-95 ${style.button}`}
                     >
                         {confirmText}
                     </button>

@@ -340,10 +340,16 @@ export default function LandingContent({ games, config }: LandingContentProps) {
                     </Link>
 
                     <div className="mitra-card" style={{ margin: '0 0 32px' }}>
-                        <div className="mitra-tag">RESELLER PROGRAM</div>
-                        <div className="mitra-title">Bongkar Chip Disini!</div>
-                        <div className="mitra-desc">Butuh dana cepat? Bongkar chip Anda dengan harga tinggi dan proses instan kilat hanya di Clover Store.</div>
-                        <Link href="/withdraw" className="btn-mitra">Bongkar Sekarang »</Link>
+                        <div className="mitra-tag">SUPPORT & CONTACT</div>
+                        <div className="mitra-title">Hubungi Kami Disini!</div>
+                        <div className="mitra-desc">Butuh bantuan atau informasi lebih lanjut? Tim support kami siap melayani Anda 24/7 melalui WhatsApp, Telegram, dan media sosial lainnya.</div>
+                        <a 
+                            href={config?.contacts?.whatsapp?.number ? `https://wa.me/${config.contacts.whatsapp.number}` : '#'} 
+                            target="_blank" 
+                            className="btn-mitra"
+                        >
+                            Hubungi Admin »
+                        </a>
                     </div>
 
                     <section className="section" style={{ padding: '0 0 32px' }}>

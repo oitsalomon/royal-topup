@@ -4,6 +4,7 @@ import "./globals.css";
 import "./global-v4.css";
 import Navbar from "@/components/Navbar";
 import FloatingChat from "@/components/FloatingChat";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { AuthProvider } from "@/contexts/AuthProvider";
 
 import { GoogleAnalytics } from '@next/third-parties/google'
@@ -115,6 +116,19 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#a855f7" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js');
+                });
+              }
+            `
+          }}
+        />
       </head>
       <body className={`${outfit.variable} ${cormorant.variable} ${montserrat.variable} font-montserrat v4-theme bg-[#07080f] text-white min-h-screen antialiased selection:bg-purple-500/30`} suppressHydrationWarning>
         <div className="v4-ambient">
@@ -130,6 +144,7 @@ export default function RootLayout({
             </main>
           </div>
           <FloatingChat />
+          <PWAInstallPrompt />
         </AuthProvider>
         <GoogleAnalytics gaId="G-G0RSY9PYDP" />
       </body>

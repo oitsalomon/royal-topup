@@ -137,7 +137,14 @@ export async function POST(request: Request) {
             user: {
                 id: newUser.id,
                 username: newUser.username,
-                level: newUser.level
+                level: newUser.level,
+                total_exp: newUser.total_exp,
+                bank_name: newUser.bank_name,
+                account_number: newUser.account_number,
+                loyalty_points: newUser.loyalty_points,
+                referral_code: newUser.referral_code,
+                balance_bonus: newUser.balance_bonus,
+                whatsapp: newUser.whatsapp
             }
         })
 

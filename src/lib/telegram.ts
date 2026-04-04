@@ -124,7 +124,7 @@ export async function sendStatusUpdate(
   const icon = status === 'APPROVED' ? '✅' : '❌';
   const label = status === 'APPROVED' ? 'DISETUJUI' : 'DITOLAK';
 
-  const text = `${icon} <b>Transaksi ${label}</b>\nID: <code>${trxId}</code>\nOleh: ${adminName}`;
+  const text = `${icon} <b>Transaksi ${label}</b>\n🆔 TRX: <code>${trxId}</code>\n👤 Oleh: <b>${adminName}</b>\n🕐 Waktu: ${new Date().toLocaleString('id-ID')}`;
 
   // Edit pesan original (hapus tombol)
   try {

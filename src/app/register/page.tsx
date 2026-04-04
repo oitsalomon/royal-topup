@@ -147,6 +147,20 @@ function RegisterContent() {
                         </h1>
                         <p className="text-gray-500 text-sm font-medium">Dapatkan Cashback & Tiket Undian Mingguan!</p>
 
+                        <div className="mt-8 p-5 bg-amber-500/10 border border-amber-500/20 rounded-2xl">
+                            <div className="flex gap-3 items-start text-left">
+                                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
+                                    🚀
+                                </div>
+                                <div>
+                                    <h3 className="text-amber-500 text-xs font-black uppercase tracking-widest mb-1">Migrasi Sistem Versi 4.0</h3>
+                                    <p className="text-gray-400 text-[11px] leading-relaxed font-medium">
+                                        Seluruh member lama <span className="text-white font-bold underline">Wajib Daftar Ulang</span> untuk mengaktifkan fitur TRX ID Otomatis. Saldo & Level akan disesuaikan kembali oleh Admin setelah pendaftaran.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         {referralCode && (
                             <div className="mt-6 inline-flex items-center gap-2 px-6 py-2 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[10px] font-black uppercase tracking-widest animate-pulse">
                                 <UserPlus size={14} />

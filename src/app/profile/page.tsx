@@ -70,7 +70,8 @@ export default function ProfilePage() {
 
     // Helper for Level Styling
     const getLevelStyle = (level: string) => {
-        switch (level) {
+        const safeLevel = level || 'BRONZE'
+        switch (safeLevel) {
             case 'DIAMOND': return {
                 cardBg: 'bg-gradient-to-br from-cyan-900 via-blue-900 to-black',
                 border: 'border-cyan-500/50',
@@ -105,12 +106,13 @@ export default function ProfilePage() {
     const style = getLevelStyle(userData.level)
 
     // Calculate Progress to Next Level (Mock logic for visual)
+    const totalExp = userData.total_exp ?? 0
     let progressPercent = 0
     if (extendedStats?.levelProgress?.percent !== undefined) {
         progressPercent = extendedStats.levelProgress.percent
     } else {
         const nextLevelExp = 10000000 
-        progressPercent = Math.min((userData.total_exp / nextLevelExp) * 100, 100)
+        progressPercent = Math.min((totalExp / nextLevelExp) * 100, 100)
     }
 
     return (
@@ -154,7 +156,7 @@ export default function ProfilePage() {
                                 </div>
                                 <div className="text-right">
                                     <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-none">To Next Tier</p>
-                                    <p className="v4-font-mono text-cyan-400 font-bold uppercase text-[10px]">RP {(10000000 - userData.total_exp).toLocaleString()}</p>
+                                    <p className="v4-font-mono text-cyan-400 font-bold uppercase text-[10px]">RP {(10000000 - totalExp).toLocaleString()}</p>
                                 </div>
                             </div>
                             <div className="h-2.5 w-full bg-black/50 rounded-full overflow-hidden p-0.5 border border-white/5">
@@ -165,7 +167,7 @@ export default function ProfilePage() {
                             </div>
                             <div className="mt-4 flex justify-between items-center pt-4 border-t border-white/5">
                                 <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Total Transaksi</span>
-                                <span className="v4-font-mono text-xs font-bold text-white tracking-widest">RP {userData.total_exp.toLocaleString()}</span>
+                                <span className="v4-font-mono text-xs font-bold text-white tracking-widest">RP {totalExp.toLocaleString()}</span>
                             </div>
                         </div>
                     </div>
@@ -295,12 +297,12 @@ export default function ProfilePage() {
                             <div className="space-y-5">
                                 <div className="p-6 rounded-3xl bg-black/40 border border-white/5 hover:border-purple-500/20 transition-all">
                                     <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">WhatsApp Connected</p>
-                                    <p className="v4-font-mono text-white font-black tracking-widest">{userData.user_wa || '-'}</p>
+                                    <p className="v4-font-mono text-white font-black tracking-widest">{userData.whatsapp || userData.user_wa || '-'}</p>
                                 </div>
                                 <div className="p-6 rounded-3xl bg-black/40 border border-white/5 hover:border-purple-500/20 transition-all">
                                     <p className="text-[9px] font-black text-gray-500 uppercase tracking-[0.3em] mb-2">Bank / Wallet Detail</p>
-                                    <p className="text-white font-black v4-font-syne uppercase tracking-tight mb-1">{userData.bank_name}</p>
-                                    <p className="v4-font-mono text-xs text-purple-400 font-bold tracking-[0.2em]">{userData.account_number}</p>
+                                    <p className="text-white font-black v4-font-syne uppercase tracking-tight mb-1">{userData.bank_name || '-'}</p>
+                                    <p className="v4-font-mono text-xs text-purple-400 font-bold tracking-[0.2em]">{userData.account_number || '-'}</p>
                                 </div>
                             </div>
                         </div>

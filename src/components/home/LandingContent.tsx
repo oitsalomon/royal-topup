@@ -97,9 +97,9 @@ export default function LandingContent({ games, config }: LandingContentProps) {
                 {/* HERO SECTION */}
                 <section className="hero">
                     <div className="hero-left-col">
-                        <div className="hero-badge">
-                            <div className="badge-dot"></div>
-                            {isFlashSaleActive ? 'RUSH HOUR PROMO SEDANG AKTIF' : 'PUSAT CHIP ROYAL DREAM TERLENGKAP'}
+                        <div className="hero-badge group flex items-center gap-2 cursor-pointer shadow-xl shadow-amber-500/10 hover:shadow-amber-500/20 transition-all">
+                            <div className="badge-dot bg-amber-500 animate-ping"></div>
+                            <span className="text-amber-500 font-bold tracking-widest text-[10px]">VERSI 4.0 - SISTEM BARU DIAKTIFKAN</span>
                         </div>
 
                         <h1 className="hero-title">

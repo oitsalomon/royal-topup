@@ -231,6 +231,7 @@ model Transaction {
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
   user_id                Int?
+  sender_name            String?
   referralBonusLogs      ReferralBonusLog[]
   game                   Game               @relation(fields: [game_id], references: [id])
   paymentMethod          PaymentMethod?     @relation(fields: [payment_method_id], references: [id])

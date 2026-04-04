@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthProvider'
-import { Upload, Check, AlertCircle, Shield, Zap, Wallet } from 'lucide-react'
+import { Upload, Check, AlertCircle, Shield, Zap, Wallet, Copy } from 'lucide-react'
 import AlertModal from './AlertModal'
 import PaymentModal from './PaymentModal'
 import TransactionStatusModal from './TransactionStatusModal'
@@ -54,7 +54,8 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
         nickname: '',
         amount_chip: '', // Stored in M
         payment_method_id: '',
-        proof_image: ''
+        proof_image: '',
+        sender_name: '' // Manual input for verification
     })
 
     // Auto-fill ID & Nickname if linked accounts exist
@@ -140,6 +141,13 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
     }, [gameCode])
 
     const [uploading, setUploading] = useState(false)
+    const [copied, setCopied] = useState(false)
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+    }
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
@@ -249,6 +257,7 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                     amount_money: selectedPrice,
                     payment_method_id: formData.payment_method_id,
                     proof_image: formData.proof_image, // Can be empty for QRIS
+                    sender_name: formData.sender_name, // Pass the manual sender name
                     type: 'TOPUP'
                 })
             })
@@ -441,6 +450,22 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                             />
                             <p className="text-[10px] text-gray-600 font-medium italic ml-1">*Bukti transaksi akan dikirim otomatis ke nomor ini</p>
                         </div>
+
+                        {/* NEW SENDER NAME FIELD FOR GUESTS */}
+                        {!user && (
+                            <div className="md:col-span-2 space-y-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                                <label className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest ml-1">Nama Rekening Pengirim (Wajib)</label>
+                                <input
+                                    type="text"
+                                    required
+                                    className="w-full bg-cyan-500/5 border border-cyan-500/30 rounded-2xl px-6 py-4 text-white placeholder-gray-700 focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/20 outline-none transition-all font-bold uppercase shadow-[0_0_20px_rgba(34,211,238,0.05)]"
+                                    placeholder="Contoh: Budi Santoso"
+                                    value={formData.sender_name}
+                                    onChange={e => setFormData({ ...formData, sender_name: e.target.value })}
+                                />
+                                <p className="text-[9px] text-gray-500 font-medium italic ml-1">Masukkkan nama sesuai di M-Banking / E-Wallet Anda agar proses lebih cepat.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -580,7 +605,7 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                                 <div className="p-8 rounded-[32px] bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-cyan-500/20 flex flex-col md:flex-row justify-between items-center gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
                                     <div className="space-y-1">
                                         <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest pl-1">Anda Mendapatkan:</span>
-                                        <span className="v4-font-syne text-5xl font-extrabold text-white block">
+                                        <span className="v4-font-syne text-3xl font-extrabold text-white block">
                                             {Number(formData.amount_chip) >= 1000
                                                 ? <>{(Math.floor((Number(formData.amount_chip) / 1000) * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="v4-text-gradient">B</span></>
                                                 : <>{Number(formData.amount_chip).toLocaleString()} <span className="v4-text-gradient">M</span></>}
@@ -666,18 +691,31 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                                             <div className="absolute -inset-2 bg-purple-500/20 blur-xl opacity-0 group-hover/box:opacity-100 transition-opacity -z-10" />
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="v4-font-syne text-3xl font-black text-white uppercase tracking-tight">{selectedPayment.name}</p>
-                                            <p className="text-xs font-black text-purple-400 uppercase tracking-[0.2em] bg-purple-500/10 px-6 py-2 rounded-full border border-purple-500/20">A/N {selectedPayment.account_name}</p>
+                                            <p className="v4-font-syne text-xl font-black text-white uppercase tracking-tight">{selectedPayment.name}</p>
+                                            <p className="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em] bg-purple-500/10 px-6 py-2 rounded-full border border-purple-500/20">A/N {selectedPayment.account_name}</p>
                                         </div>
                                     </div>
                                 )
                             ) : (
                                 <div className="relative z-10 animate-in fade-in py-6">
-                                    <div className="bg-white/5 border border-white/5 rounded-[32px] px-10 py-8 inline-block shadow-2xl">
+                                    <div className="bg-white/5 border border-white/5 rounded-[32px] px-10 py-8 inline-block shadow-2xl relative group/num">
                                         <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">No. Rekening / VA</p>
-                                        <p className="v4-font-mono text-4xl md:text-5xl font-black text-white tracking-widest mb-6 break-all">{selectedPayment.account_number}</p>
-                                        <div className="h-px w-20 bg-purple-500/30 mx-auto mb-6" />
-                                        <p className="text-xs font-black text-purple-400 uppercase tracking-[0.2em]">A/N {selectedPayment.account_name}</p>
+                                        <div className="flex flex-col items-center gap-4">
+                                            <p className="v4-font-mono text-xl md:text-3xl font-black text-white tracking-widest break-all">
+                                                {selectedPayment.account_number}
+                                            </p>
+                                            <button
+                                                type="button"
+                                                onClick={() => copyToClipboard(selectedPayment.account_number)}
+                                                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                    copied ? 'bg-green-500 text-white' : 'bg-purple-500/20 text-purple-400 border border-purple-500/30 hover:bg-purple-500 hover:text-white'
+                                                }`}
+                                            >
+                                                {copied ? <><Check size={12} strokeWidth={4} /> Tersalin!</> : <><Copy size={12} /> Salin Nomor</>}
+                                            </button>
+                                        </div>
+                                        <div className="h-px w-20 bg-purple-500/30 mx-auto my-6" />
+                                        <p className="text-[10px] font-black text-purple-400 uppercase tracking-[0.2em]">A/N {selectedPayment.account_name}</p>
                                     </div>
                                 </div>
                             )}

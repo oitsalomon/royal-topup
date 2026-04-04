@@ -20,10 +20,45 @@ export default function AdminLayout({
     // Check if the current route is the login page
     const isLoginPage = pathname === '/admin/login'
 
-    // ... useEffect ...
+    useEffect(() => {
+        const checkAuth = () => {
+            if (isLoginPage) {
+                setIsLoading(false)
+                return
+            }
 
-    if (isLoading) {
-        // ... loading ...
+            const storedUser = localStorage.getItem('user')
+            if (!storedUser) {
+                router.push('/admin/login')
+                return
+            }
+
+            try {
+                const user = JSON.parse(storedUser)
+                const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'STAFF']
+                if (!allowedRoles.includes(user.role)) {
+                    // Not an admin!
+                    localStorage.removeItem('user')
+                    router.push('/admin/login')
+                    return
+                }
+                // All good
+                setIsLoading(false)
+            } catch (e) {
+                localStorage.removeItem('user')
+                router.push('/admin/login')
+            }
+        }
+
+        checkAuth()
+    }, [pathname, isLoginPage, router])
+
+    if (isLoading && !isLoginPage) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-black">
+                <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin"></div>
+            </div>
+        )
     }
 
     return (

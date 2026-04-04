@@ -79,6 +79,14 @@ export async function POST(request: Request) {
             id: user.id,
             username: user.username,
             role: user.role,
+            level: user.level,
+            total_exp: user.total_exp,
+            bank_name: user.bank_name,
+            account_number: user.account_number,
+            loyalty_points: user.loyalty_points,
+            referral_code: user.referral_code,
+            balance_bonus: user.balance_bonus,
+            whatsapp: user.whatsapp,
             permissions: user.permissions,
             gameIds: (user as any).gameIds, // Type assertion
             token: 'dummy-token'

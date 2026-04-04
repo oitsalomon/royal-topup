@@ -20,7 +20,15 @@ export default function AdminLogin() {
 
             if (res.ok) {
                 const data = await res.json()
-                // Save session to localStorage
+                
+                // 1. Role Check (IMPORTANT SECURITY FIX)
+                const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'STAFF']
+                if (!allowedRoles.includes(data.role)) {
+                    setError('Unauthorized: Aksun ini bukan Staff/Admin.')
+                    return
+                }
+
+                // 2. Save session to localStorage
                 localStorage.setItem('user', JSON.stringify(data))
                 router.push('/admin/dashboard')
             } else {

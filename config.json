@@ -1,5 +1,32 @@
 {
     "maintenance_mode": false,
     "topup_enabled": true,
-    "withdraw_enabled": true
+    "withdraw_enabled": true,
+    "contacts": {
+        "whatsapp": { "number": "" },
+        "telegram": { "username": "" },
+        "live_chat": { "url": "" }
+    },
+    "download_app": {
+        "royal_dream": "",
+        "domino_rp": "",
+        "neo": ""
+    },
+    "flash_sale": {
+        "active": false,
+        "promo_price": 63000,
+        "min_amount_b": 1,
+        "end_time": 0
+    },
+    "socials": {
+        "facebook": "",
+        "instagram": "",
+        "tiktok": "",
+        "blogger": ""
+    },
+    "id_wd": {
+        "value": "",
+        "nickname": ""
+    },
+    "rtp_config": []
 }

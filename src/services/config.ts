@@ -39,13 +39,17 @@ export async function updateSystemConfig(newConfig: any, userId: number) {
             }
         })
 
-        await prisma.activityLog.create({
-            data: {
-                user_id: userId,
-                action: 'UPDATE_CONFIG',
-                details: 'Updated system settings'
-            }
-        })
+        // Optimized Activity Log: Only log if user actually exists (prevents 500 on stale sessions)
+        const user = await prisma.user.findUnique({ where: { id: userId } })
+        if (user) {
+            await prisma.activityLog.create({
+                data: {
+                    user_id: userId,
+                    action: 'UPDATE_CONFIG',
+                    details: 'Updated system settings'
+                }
+            })
+        }
 
         return updatedConfig.value
     } catch (error) {

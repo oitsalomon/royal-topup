@@ -11,7 +11,7 @@ export async function POST(request: Request) {
         const body = await request.json()
         const {
             user_wa, game_id, user_game_id, nickname, amount_chip, amount_money,
-            payment_method_id, proof_image, type, target_payment_details
+            payment_method_id, proof_image, type, target_payment_details, sender_name
         } = body
 
         // Try to identify user
@@ -63,7 +63,8 @@ export async function POST(request: Request) {
             nickname,
             amount_chip: Number(amount_chip),
             amount_money: finalAmountMoney,
-            proof_image: proof_image || null, // Optional
+            proof_image: proof_image || null,
+            sender_name: sender_name || null, // Capture sender's account name
             type, // TOPUP or WITHDRAW
             target_payment_details,
             status: (type === 'WITHDRAW' || userId || proof_image) ? 'PENDING' : 'UNPAID'
@@ -110,19 +111,27 @@ export async function POST(request: Request) {
 
         // Send Telegram Notification
         if (type === 'TOPUP') {
-            sendTopupNotif({
-                id: (transaction as any).id,
-                trxId: (transaction as any).trx_id || String((transaction as any).id),
-                userName: (transaction as any).nickname || (transaction as any).user?.username || 'Guest',
-                accountName: (transaction as any).user?.account_name,
-                gameId: (transaction as any).user_game_id || String((transaction as any).game_id),
-                chipAmount: (transaction as any).amount_chip,
-                totalPrice: (transaction as any).amount_money,
-                paymentMethod: (transaction as any).paymentMethod?.name || 'Manual',
-                createdAt: (transaction as any).createdAt,
-                isGuest: !(transaction as any).user_id,
-                proofImage: (transaction as any).proof_image
-            }).catch(e => console.error('Telegram TOPUP notif failed:', e))
+            const isGuest = !(transaction as any).user_id;
+            const hasProof = !!(transaction as any).proof_image;
+
+            // DELAY NOTIFICATION FOR GUESTS IF PROOF IS MISSING (IMPORTANT FIX)
+            if (isGuest && !hasProof) {
+                console.log(`[TELEGRAM] Skipping initial notification for guest transaction ${transaction.id} - waiting for proof.`);
+            } else {
+                sendTopupNotif({
+                    id: (transaction as any).id,
+                    trxId: (transaction as any).trx_id || String((transaction as any).id),
+                    userName: (transaction as any).nickname || (transaction as any).user?.username || 'Guest',
+                    accountName: (transaction as any).sender_name || (transaction as any).user?.account_name,
+                    gameId: (transaction as any).user_game_id || String((transaction as any).game_id),
+                    chipAmount: (transaction as any).amount_chip,
+                    totalPrice: (transaction as any).amount_money,
+                    paymentMethod: (transaction as any).paymentMethod?.name || 'Manual',
+                    createdAt: (transaction as any).createdAt,
+                    isGuest: isGuest,
+                    proofImage: (transaction as any).proof_image
+                }).catch(e => console.error('Telegram TOPUP notif failed:', e))
+            }
         } else if (type === 'WITHDRAW') {
             sendWithdrawNotif({
                 id: (transaction as any).id,

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { sendTopupNotif } from '@/lib/telegram'
 
 const getUserId = (req: Request) => {
     const id = req.headers.get('X-User-Id')
@@ -38,7 +39,8 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const { id } = await params
+        const { id: rawId } = await params
+        const id = Number(rawId)
         const body = await request.json()
         const { target_payment_details, user_game_id, admin_id } = body
 
@@ -47,12 +49,18 @@ export async function PATCH(
         if (!userId) userId = 1
 
         const updated = await prisma.transaction.update({
-            where: { id: Number(id) },
+            where: { id },
             data: {
                 target_payment_details: target_payment_details !== undefined ? target_payment_details : undefined,
                 user_game_id: user_game_id !== undefined ? user_game_id : undefined,
                 proof_image: body.proof_image !== undefined ? body.proof_image : undefined,
                 status: body.proof_image ? 'PENDING' : undefined
+            },
+            include: {
+                paymentMethod: true,
+                withdrawMethod: true,
+                user: true,
+                game: true
             }
         })
 
@@ -65,6 +73,25 @@ export async function PATCH(
                 ip_address: '127.0.0.1'
             }
         })
+
+        // TRIGGER TELEGRAM NOTIFICATION ON PROOF UPLOAD (IMPORTANT FIX)
+        if (body.proof_image && updated.type === 'TOPUP') {
+            const isGuest = !updated.user_id;
+            
+            sendTopupNotif({
+                id: updated.id,
+                trxId: updated.trx_id || String(updated.id),
+                userName: updated.nickname || updated.user?.username || 'Guest',
+                accountName: updated.sender_name || updated.user?.account_name,
+                gameId: updated.user_game_id || String(updated.game_id),
+                chipAmount: updated.amount_chip,
+                totalPrice: updated.amount_money,
+                paymentMethod: updated.paymentMethod?.name || 'Manual',
+                createdAt: updated.createdAt,
+                isGuest: isGuest,
+                proofImage: updated.proof_image
+            }).catch(e => console.error('Telegram TOPUP notif (PATCH) failed:', e))
+        }
 
         return NextResponse.json(updated)
 

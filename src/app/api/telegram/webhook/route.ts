@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     // Update pesan Telegram (hapus tombol, tambah status)
     await sendStatusUpdate(
       messageId,
-      trxId,
+      trx.trx_id || trxId, // Use human readable ID
       action === 'approve' ? 'APPROVED' : 'DECLINED',
       adminName
     );

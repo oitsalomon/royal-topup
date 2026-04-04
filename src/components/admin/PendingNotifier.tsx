@@ -4,16 +4,28 @@ import { useState, useEffect, useRef } from 'react'
 import { Bell, X, Users } from 'lucide-react'
 import Link from 'next/link'
 
+// Audio dibuat satu kali di module level — tidak recreate setiap mount
+// Ini mencegah browser membuat Audio object baru setiap komponen mount/unmount
+let notifAudio: HTMLAudioElement | null = null
+function getAudio() {
+    if (typeof window === 'undefined') return null
+    if (!notifAudio) {
+        notifAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3')
+        notifAudio.volume = 0.7
+    }
+    return notifAudio
+}
+
 export default function PendingNotifier() {
     const [pendingCount, setPendingCount] = useState(0)
     const [referralCount, setReferralCount] = useState(0)
     const [isVisible, setIsVisible] = useState(false)
     const [isReferralVisible, setIsReferralVisible] = useState(false)
-    const audioRef = useRef<HTMLAudioElement | null>(null)
+    const prevPendingRef = useRef(0)
+    const prevReferralRef = useRef(0)
 
     const checkPending = async () => {
         try {
-            // Optimized: Single lightweight call
             const res = await fetch('/api/internal/notifications')
             const data = await res.json()
 
@@ -21,27 +33,32 @@ export default function PendingNotifier() {
 
             const pCount = data.pending || 0
             const rCount = data.referral || 0
+            const audio = getAudio()
 
             // Regular Transactions
             if (pCount > 0) {
-                const shouldSound = (pCount > pendingCount)
-                const shouldShow = (pCount !== pendingCount)
-                if (shouldSound && audioRef.current) audioRef.current.play().catch(e => console.log('Audio error', e))
+                if (pCount > prevPendingRef.current && audio) {
+                    audio.play().catch(() => {})
+                }
+                if (pCount !== prevPendingRef.current) setIsVisible(true)
+                prevPendingRef.current = pCount
                 setPendingCount(pCount)
-                if (shouldShow) setIsVisible(true)
             } else {
+                prevPendingRef.current = 0
                 setPendingCount(0)
                 setIsVisible(false)
             }
 
             // Referral Transactions
             if (rCount > 0) {
-                const shouldSound = (rCount > referralCount)
-                const shouldShow = (rCount !== referralCount)
-                if (shouldSound && audioRef.current) audioRef.current.play().catch(e => console.log('Audio error', e))
+                if (rCount > prevReferralRef.current && audio) {
+                    audio.play().catch(() => {})
+                }
+                if (rCount !== prevReferralRef.current) setIsReferralVisible(true)
+                prevReferralRef.current = rCount
                 setReferralCount(rCount)
-                if (shouldShow) setIsReferralVisible(true)
             } else {
+                prevReferralRef.current = 0
                 setReferralCount(0)
                 setIsReferralVisible(false)
             }
@@ -51,10 +68,9 @@ export default function PendingNotifier() {
     }
 
     useEffect(() => {
-        // Init Audio
-        audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3')
         checkPending()
-        const interval = setInterval(checkPending, 10000)
+        // Poll setiap 15s — cukup responsif tanpa membebani server
+        const interval = setInterval(checkPending, 15000)
         return () => clearInterval(interval)
     }, [])
 
@@ -77,11 +93,11 @@ export default function PendingNotifier() {
 
     return (
         <div className="fixed bottom-24 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-500 space-y-3">
-            {/* Referral Notification (User's request: separated) */}
+            {/* Referral Notification */}
             {isReferralVisible && referralCount > 0 && (
                 <div className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white p-1 rounded-2xl shadow-2xl shadow-violet-500/30 border border-white/10">
                     <div className="bg-[#0a0f1c] rounded-xl p-4 flex items-center gap-4 relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-1 h-full bg-violet-500 animate-pulse" />
+                        <div className="absolute top-0 left-0 w-1 h-full bg-violet-500" />
                         <div className="relative">
                             <div className="w-12 h-12 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-400">
                                 <Users className="animate-bounce" size={24} />
@@ -116,9 +132,8 @@ export default function PendingNotifier() {
             {isVisible && pendingCount > 0 && (
                 <div className="bg-gradient-to-r from-orange-600 to-red-600 text-white p-1 rounded-2xl shadow-2xl shadow-orange-500/30 border border-white/10">
                     <div className="bg-[#0a0f1c] rounded-xl p-4 flex items-center gap-4 relative overflow-hidden">
-                        {/* Glow Effect */}
-                        <div className="absolute top-0 left-0 w-1 h-full bg-orange-500 animate-pulse" />
-
+                        {/* Removed animate-pulse from the accent bar — it was triggering repaints constantly */}
+                        <div className="absolute top-0 left-0 w-1 h-full bg-orange-500" />
                         <div className="relative">
                             <div className="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center text-orange-400">
                                 <Bell className="animate-bounce" size={24} />
@@ -127,12 +142,10 @@ export default function PendingNotifier() {
                                 {pendingCount}
                             </span>
                         </div>
-
                         <div>
                             <h4 className="font-bold text-white text-sm">Pesanan Baru!</h4>
                             <p className="text-xs text-gray-400">{pendingCount} transaksi menunggu persetujuan.</p>
                         </div>
-
                         <div className="flex flex-col gap-2 ml-4 border-l border-white/10 pl-4">
                             <Link
                                 href="/admin/transactions"

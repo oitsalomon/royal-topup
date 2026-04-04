@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
-import { LayoutDashboard, Receipt, FileText, LogOut, Settings, Shield, Wallet, Coins, User, Users, Gamepad2, Package, TrendingUp, Gift, Ticket } from 'lucide-react'
+import { LayoutDashboard, Receipt, FileText, LogOut, Settings, Shield, Wallet, Coins, User, Users, Gamepad2, Package, TrendingUp, Gift } from 'lucide-react'
 
 interface SidebarProps {
     isOpen: boolean
@@ -49,17 +50,17 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
     return (
         <>
-            {/* Mobile Overlay */}
+            {/* Mobile Overlay — solid bg, tidak perlu blur */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/80 z-30 md:hidden backdrop-blur-sm"
+                    className="fixed inset-0 bg-black/80 z-30 md:hidden"
                     onClick={onClose}
                 />
             )}
 
-            {/* Sidebar Container */}
+            {/* Sidebar Container — solid background replaces backdrop-blur-xl */}
             <aside className={`
-                fixed inset-y-0 left-0 z-40 w-72 bg-[#0a0f1c]/95 border-r border-white/10 backdrop-blur-xl
+                fixed inset-y-0 left-0 z-40 w-72 bg-[#0a0f1c] border-r border-white/10
                 transform transition-transform duration-300 ease-in-out
                 md:translate-x-0 md:static md:h-screen md:flex md:flex-col
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -69,8 +70,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     <div className="mb-8 flex items-center justify-between px-2">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg shadow-amber-900/30">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src="/images/clover-logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+                            <Image
+                                src="/images/clover-logo.png"
+                                alt="Clover Logo"
+                                width={32}
+                                height={32}
+                                className="object-contain"
+                                priority
+                            />
                             </div>
                             <div>
                                 <h1 className="text-xl font-bold text-white tracking-wide font-outfit">CLOVER</h1>

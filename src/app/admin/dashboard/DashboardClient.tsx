@@ -265,7 +265,7 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
                 </div>
 
                 {data?.pendingCount > 0 ? (
-                    <div className="relative group overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 shadow-xl animate-pulse">
+                    <div className="relative group overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 shadow-xl">
                         <div className="absolute -right-4 -top-4">
                             <div className="w-24 h-24 bg-yellow-500/20 rounded-full blur-xl" />
                         </div>

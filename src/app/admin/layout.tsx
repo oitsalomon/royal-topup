@@ -1,11 +1,27 @@
 'use client'
 
-import Sidebar from '@/components/admin/Sidebar'
-import PendingNotifier from '@/components/admin/PendingNotifier'
-import LoginNotifier from '@/components/admin/LoginNotifier'
-import AdminHeader from '@/components/admin/AdminHeader'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
+
+// Dynamic imports — komponen berat hanya di-load setelah auth berhasil
+// Ini mencegah Sidebar, Notifiers, dll ter-bundle di halaman login
+const Sidebar = dynamic(() => import('@/components/admin/Sidebar'), {
+    loading: () => null,
+    ssr: false,
+})
+const PendingNotifier = dynamic(() => import('@/components/admin/PendingNotifier'), {
+    loading: () => null,
+    ssr: false,
+})
+const LoginNotifier = dynamic(() => import('@/components/admin/LoginNotifier'), {
+    loading: () => null,
+    ssr: false,
+})
+const AdminHeader = dynamic(() => import('@/components/admin/AdminHeader'), {
+    loading: () => null,
+    ssr: false,
+})
 
 export default function AdminLayout({
     children,
@@ -37,12 +53,10 @@ export default function AdminLayout({
                 const user = JSON.parse(storedUser)
                 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'STAFF']
                 if (!allowedRoles.includes(user.role)) {
-                    // Not an admin!
                     localStorage.removeItem('user')
                     router.push('/admin/login')
                     return
                 }
-                // All good
                 setIsLoading(false)
             } catch (e) {
                 localStorage.removeItem('user')
@@ -53,10 +67,15 @@ export default function AdminLayout({
         checkAuth()
     }, [pathname, isLoginPage, router])
 
-    if (isLoading && !isLoginPage) {
+    // Login page — render langsung tanpa loading state
+    if (isLoginPage) {
+        return <>{children}</>
+    }
+
+    if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-black">
-                <div className="w-12 h-12 border-4 border-cyan-500/20 border-t-cyan-500 rounded-full animate-spin"></div>
+                <div className="w-10 h-10 border-4 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
             </div>
         )
     }
@@ -66,13 +85,12 @@ export default function AdminLayout({
             {/* Simple Background */}
             <div className="fixed inset-0 bg-[#000000]" />
 
-            {!isLoginPage && <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />}
-            {!isLoginPage && <PendingNotifier />}
-            {!isLoginPage && <LoginNotifier />}
+            <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+            <PendingNotifier />
+            <LoginNotifier />
 
             <main className="flex-1 overflow-y-auto relative z-10 flex flex-col">
-                {/* Header (contains Mobile Toggle & Bell) */}
-                {!isLoginPage && <AdminHeader onMenuClick={() => setSidebarOpen(true)} />}
+                <AdminHeader onMenuClick={() => setSidebarOpen(true)} />
 
                 <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
                     {children}

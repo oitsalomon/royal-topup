@@ -119,7 +119,7 @@ export default function TransactionsClient({
         }
     }
 
-    // Auto-refresh every 2s (Silent) for faster updates as requested by user
+    // Auto-refresh setiap 10s — dikurangi dari 3.5s untuk hemat bandwidth dan CPU
     useEffect(() => {
         const interval = setInterval(() => {
             const fetchSilent = async () => {
@@ -127,7 +127,6 @@ export default function TransactionsClient({
                     const params = new URLSearchParams()
                     params.append('page', page.toString())
                     params.append('limit', '20')
-                    // ... params
                     if (filterDate) params.append('date', filterDate)
                     if (filterBank !== 'all') params.append('bank_id', filterBank)
                     if (filterType !== 'all') params.append('type', filterType)
@@ -137,16 +136,18 @@ export default function TransactionsClient({
                     const data = await res.json()
 
                     if (data && data.data) {
-                        // OPTIMIZATION: Only update state if data actually changed to prevent heavy DOM re-renders every interval
+                        // OPTIMIZATION: Bandingkan hanya ID+status (jauh lebih murah dari JSON.stringify seluruh objek)
                         setTransactions(prev => {
-                            if (JSON.stringify(prev) === JSON.stringify(data.data)) return prev;
-                            return data.data;
+                            const prevFingerprint = prev.map(t => `${t.id}:${t.status}`).join(',')
+                            const newFingerprint = data.data.map((t: any) => `${t.id}:${t.status}`).join(',')
+                            if (prevFingerprint === newFingerprint) return prev
+                            return data.data
                         })
                     }
                 } catch (e) { console.error('Silent refresh failed', e) }
             }
             fetchSilent()
-        }, 3500) // OPTIMIZATION: Changed to 3.5s to reduce network and browser processing load while remaining live
+        }, 10000) // 10s — cukup responsif, hemat network 3x
         return () => clearInterval(interval)
     }, [filterDate, filterBank, filterType, page, searchQuery])
 

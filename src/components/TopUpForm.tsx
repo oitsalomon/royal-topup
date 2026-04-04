@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthProvider'
+import NextImage from 'next/image'
 import { Upload, Check, AlertCircle, Shield, Zap, Wallet, Copy } from 'lucide-react'
 import AlertModal from './AlertModal'
 import PaymentModal from './PaymentModal'
@@ -682,10 +683,11 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                                 ) : (
                                     <div className="flex flex-col items-center relative z-10 animate-in fade-in zoom-in duration-500">
                                         <div className="relative p-4 bg-white rounded-[32px] shadow-2xl mb-8 group-hover/box:scale-105 transition-transform duration-500">
-                                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                                            <img
+                                        <NextImage
                                                 src={selectedPayment.image}
                                                 alt="Payment"
+                                                width={224}
+                                                height={224}
                                                 className="w-56 h-auto object-contain rounded-2xl"
                                             />
                                             <div className="absolute -inset-2 bg-purple-500/20 blur-xl opacity-0 group-hover/box:opacity-100 transition-opacity -z-10" />

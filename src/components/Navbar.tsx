@@ -1,30 +1,27 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Menu, Search, User, ChevronDown, Phone, Send, MessageCircle, Download, X, LogIn, LogOut, CreditCard, Trophy, Users } from 'lucide-react'
+import { Menu, MessageCircle, User, ChevronDown, Phone, X, LogOut, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthProvider'
+import { useConfig } from '@/contexts/ConfigContext'
 
 export default function Navbar() {
     const pathname = usePathname()
     const { user, logout } = useAuth()
-    const [config, setConfig] = useState<any>(null)
+    const { config } = useConfig()
+    const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
     const [scrolled, setScrolled] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
     useEffect(() => {
-        // Fetch config once on mount
-        fetch('/api/config', { cache: 'no-store' })
-            .then(res => res.json())
-            .then(data => setConfig(data))
-            .catch(err => console.error("Failed to load config", err))
-
-        // Scroll handler for glass effect
+        // Scroll handler for glass effect — passive:true improves mobile scroll perf
         const handleScroll = () => {
             setScrolled(window.scrollY > 20)
         }
-        window.addEventListener('scroll', handleScroll)
+        window.addEventListener('scroll', handleScroll, { passive: true })
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
 
@@ -45,8 +42,14 @@ export default function Navbar() {
                             <div className="absolute inset-0 bg-purple-500 blur-2xl opacity-30 group-hover:opacity-60 transition-opacity duration-700 rounded-full" />
                             <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-[#13162a] to-[#0d0f1a] border border-white/10 flex items-center justify-center shadow-2xl group-hover:scale-105 transition-transform duration-500 overflow-hidden">
                                 <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-transparent" />
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src="/images/clover-logo.png" alt="Clover" className="w-7 h-7 object-contain drop-shadow-[0_0_12px_rgba(168,85,247,0.8)] relative z-10" />
+                                <Image
+                                    src="/images/clover-logo.png"
+                                    alt="Clover"
+                                    width={28}
+                                    height={28}
+                                    priority
+                                    className="object-contain drop-shadow-[0_0_12px_rgba(168,85,247,0.8)] relative z-10"
+                                />
                             </div>
                         </div>
                         <div className="flex flex-col">
@@ -76,21 +79,21 @@ export default function Navbar() {
                         {user ? (
                             <div className="relative">
                                 <button
-                                    onMouseEnter={() => setConfig((prev: any) => ({ ...prev, activeDropdown: 'user' }))}
-                                    onClick={() => setConfig((prev: any) => ({ ...prev, activeDropdown: prev?.activeDropdown === 'user' ? null : 'user' }))}
+                                    onMouseEnter={() => setActiveDropdown('user')}
+                                    onClick={() => setActiveDropdown(activeDropdown === 'user' ? null : 'user')}
                                     className="group px-4 py-2 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 text-white font-black text-xs transition-all flex items-center gap-3"
                                 >
                                     <div className="w-7 h-7 rounded-xl bg-gradient-to-r from-purple-500 to-cyan-500 flex items-center justify-center text-[10px] font-black border border-white/10 group-hover:scale-110 transition-transform">
                                         {user.level ? user.level[0] : 'M'}
                                     </div>
                                     <span className="uppercase tracking-widest">{user.username}</span>
-                                    <ChevronDown size={14} className={`text-gray-500 transition-transform ${config?.activeDropdown === 'user' ? 'rotate-180' : ''}`} />
+                                    <ChevronDown size={14} className={`text-gray-500 transition-transform ${activeDropdown === 'user' ? 'rotate-180' : ''}`} />
                                 </button>
 
-                                {config?.activeDropdown === 'user' && (
+                                {activeDropdown === 'user' && (
                                     <div
                                         className="absolute top-full right-0 w-56 pt-3 animate-in fade-in slide-in-from-top-2 duration-300"
-                                        onMouseLeave={() => setConfig((prev: any) => ({ ...prev, activeDropdown: null }))}
+                                        onMouseLeave={() => setActiveDropdown(null)}
                                     >
                                         <div className="bg-[#0d1117] border border-white/10 rounded-3xl shadow-2xl overflow-hidden p-2 backdrop-blur-2xl">
                                             <div className="px-4 py-3 border-b border-white/5 mb-2">
@@ -127,17 +130,17 @@ export default function Navbar() {
                         {/* CS Support */}
                         <div className="relative">
                             <button
-                                onMouseEnter={() => setConfig((prev: any) => ({ ...prev, activeDropdown: 'cs' }))}
-                                onClick={() => setConfig((prev: any) => ({ ...prev, activeDropdown: prev?.activeDropdown === 'cs' ? null : 'cs' }))}
+                                onMouseEnter={() => setActiveDropdown('cs')}
+                                onClick={() => setActiveDropdown(activeDropdown === 'cs' ? null : 'cs')}
                                 className="group w-10 h-10 rounded-2xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 flex items-center justify-center transition-all shadow-lg shadow-cyan-500/10"
                             >
                                 <MessageCircle size={18} />
                             </button>
 
-                            {config?.activeDropdown === 'cs' && (
+                            {activeDropdown === 'cs' && (
                                 <div
                                     className="absolute top-full right-0 w-64 pt-3 animate-in fade-in slide-in-from-top-2 duration-300"
-                                    onMouseLeave={() => setConfig((prev: any) => ({ ...prev, activeDropdown: null }))}
+                                    onMouseLeave={() => setActiveDropdown(null)}
                                 >
                                     <div className="bg-[#0d1117] border border-white/10 rounded-3xl shadow-2xl overflow-hidden p-2 backdrop-blur-2xl">
                                         <div className="px-4 py-3 text-[9px] font-black text-gray-500 uppercase tracking-[0.3em] border-b border-white/5 mb-2 text-center">Support Center 24/7</div>

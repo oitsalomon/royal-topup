@@ -1,17 +1,21 @@
 import type { Metadata } from "next";
-import { Outfit, Cormorant_Garamond, Montserrat } from "next/font/google";
+import { Outfit, Cormorant_Garamond, Montserrat, Syne, Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "./global-v4.css";
 import Navbar from "@/components/Navbar";
 import FloatingChat from "@/components/FloatingChat";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { AuthProvider } from "@/contexts/AuthProvider";
+import { ConfigProvider } from "@/contexts/ConfigContext";
 
 import { GoogleAnalytics } from '@next/third-parties/google'
 
 const outfit = Outfit({ subsets: ["latin"], variable: '--font-outfit' });
 const cormorant = Cormorant_Garamond({ subsets: ["latin"], variable: '--font-cormorant', weight: ['400', '500', '600', '700'] });
 const montserrat = Montserrat({ subsets: ["latin"], variable: '--font-montserrat', weight: ['400', '500', '600', '700'] });
+const syne = Syne({ subsets: ["latin"], variable: '--font-syne', weight: ['400', '600', '700', '800'] });
+const inter = Inter({ subsets: ["latin"], variable: '--font-inter', weight: ['300', '400', '500', '600'] });
+const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: '--font-jetbrains-mono', weight: ['400', '500', '700'] });
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ? new URL(process.env.NEXT_PUBLIC_BASE_URL) : new URL('https://royalclover.store');
 
@@ -130,21 +134,23 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${outfit.variable} ${cormorant.variable} ${montserrat.variable} font-montserrat v4-theme bg-[#07080f] text-white min-h-screen antialiased selection:bg-purple-500/30`} suppressHydrationWarning>
+      <body className={`${outfit.variable} ${cormorant.variable} ${montserrat.variable} ${syne.variable} ${inter.variable} ${jetbrainsMono.variable} font-montserrat v4-theme bg-[#07080f] text-white min-h-screen antialiased selection:bg-purple-500/30`} suppressHydrationWarning>
         <div className="v4-ambient">
           <div className="v4-ambient-1"></div>
           <div className="v4-ambient-2"></div>
           <div className="v4-ambient-3"></div>
         </div>
         <AuthProvider>
-          <Navbar />
-          <div className="relative z-10 flex flex-col min-h-screen pt-16">
-            <main className="flex-grow">
-              {children}
-            </main>
-          </div>
-          <FloatingChat />
-          <PWAInstallPrompt />
+          <ConfigProvider>
+            <Navbar />
+            <div className="relative z-10 flex flex-col min-h-screen pt-16">
+              <main className="flex-grow">
+                {children}
+              </main>
+            </div>
+            <FloatingChat />
+            <PWAInstallPrompt />
+          </ConfigProvider>
         </AuthProvider>
         <GoogleAnalytics gaId="G-G0RSY9PYDP" />
       </body>

@@ -1,5 +1,5 @@
 /* src/app/global-v4.css */
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+/* Fonts loaded via next/font/google in layout.tsx — @import removed to eliminate render-blocking */
 
 :root {
   --bg: #07080f;
@@ -38,13 +38,13 @@
 body.v4-theme {
   background: var(--bg);
   color: var(--white);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-inter, 'Inter', sans-serif);
   overflow-x: hidden;
   min-height: 100vh;
 }
 
-.v4-font-syne { font-family: 'Syne', sans-serif; }
-.v4-font-mono { font-family: 'JetBrains Mono', monospace; }
+.v4-font-syne { font-family: var(--font-syne, 'Syne', sans-serif); }
+.v4-font-mono { font-family: var(--font-jetbrains-mono, 'JetBrains Mono', monospace); }
 
 /* AMBIENT BG (Global) */
 .v4-ambient {
@@ -58,6 +58,7 @@ body.v4-theme {
   width: 60vw; height: 60vw;
   background: radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%);
   animation: v4-drift1 15s ease-in-out infinite;
+  will-change: transform;
 }
 .v4-ambient-2 {
   position: absolute;
@@ -65,6 +66,7 @@ body.v4-theme {
   width: 50vw; height: 50vw;
   background: radial-gradient(circle, rgba(6,182,212,0.06) 0%, transparent 70%);
   animation: v4-drift2 20s ease-in-out infinite;
+  will-change: transform;
 }
 .v4-ambient-3 {
   position: absolute;
@@ -72,6 +74,21 @@ body.v4-theme {
   width: 40vw; height: 40vw;
   background: radial-gradient(circle, rgba(16,185,129,0.04) 0%, transparent 70%);
   animation: v4-drift3 25s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Hide ambient blobs on mobile — they fill most of the viewport and burn GPU */
+@media (max-width: 768px) {
+  .v4-ambient-1, .v4-ambient-2, .v4-ambient-3 {
+    display: none;
+  }
+}
+
+/* Respect user accessibility preference */
+@media (prefers-reduced-motion: reduce) {
+  .v4-ambient-1, .v4-ambient-2, .v4-ambient-3 {
+    animation: none;
+  }
 }
 
 @keyframes v4-drift1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,40px)} }

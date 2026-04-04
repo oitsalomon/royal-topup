@@ -50,7 +50,8 @@ export default function HeroBanner({ games, config }: HeroBannerProps) {
             <section className="relative min-h-[90vh] flex flex-col items-center justify-center overflow-hidden pt-20 pb-24">
                 {/* Background FX */}
                 <div className="absolute inset-0 pointer-events-none transition-colors duration-1000">
-                    <div className={`absolute top-[10%] left-[50%] -translate-x-1/2 w-[800px] h-[800px] rounded-full blur-[150px] animate-pulse ${isFlashSaleActive ? 'bg-red-600/20' : 'bg-amber-500/10'}`} />
+                    {/* Static orb — animate-pulse removed (was extremely expensive on mobile GPU with blur-[150px]) */}
+                    <div className={`absolute top-[10%] left-[50%] -translate-x-1/2 w-[600px] h-[600px] rounded-full blur-[120px] opacity-60 hidden md:block ${isFlashSaleActive ? 'bg-red-600/20' : 'bg-amber-500/10'}`} />
                     <div className="absolute inset-0 bg-[url('/images/noise.png')] opacity-[0.03] mix-blend-overlay" />
                     <div className={`absolute inset-0 bg-gradient-to-b from-black/20 via-black to-black`} />
                 </div>

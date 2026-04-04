@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Search, Gamepad2, ChevronRight } from 'lucide-react'
 
 export default function GameGrid() {
@@ -77,11 +78,13 @@ export default function GameGrid() {
                             <div className="relative aspect-[3/4] rounded-3xl overflow-hidden bg-[#0f172a] border border-white/5 shadow-2xl transition-all duration-500 group-hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)] group-hover:-translate-y-2 group-hover:border-emerald-500/30">
 
                                 {/* Image */}
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                    src={game.image || '/images/placeholder-game.png'}
+                                <Image
+                                    src={game.image || '/images/clover-logo.png'}
                                     alt={game.name}
-                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                    fill
+                                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
+                                    className="object-cover transition-transform duration-700 group-hover:scale-110"
+                                    loading="lazy"
                                 />
 
                                 {/* Overlay Gradient */}

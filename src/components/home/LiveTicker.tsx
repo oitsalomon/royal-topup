@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, memo } from 'react'
 
 interface LiveTickerProps {
     initialTransactions?: any[]
 }
 
-export default function LiveTicker({ initialTransactions }: LiveTickerProps) {
+const LiveTicker = memo(function LiveTicker({ initialTransactions }: LiveTickerProps) {
     const [currentActivity, setCurrentActivity] = useState<{ id: number; text: React.ReactNode; type: string } | null>(null)
     const [isVisible, setIsVisible] = useState(false)
     const [realActivities, setRealActivities] = useState<any[]>(initialTransactions || [])
@@ -101,4 +101,6 @@ export default function LiveTicker({ initialTransactions }: LiveTickerProps) {
             )}
         </div>
     )
-}
+})
+
+export default LiveTicker

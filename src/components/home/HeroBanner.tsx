@@ -85,17 +85,17 @@ export default function HeroBanner({ games, config }: HeroBannerProps) {
                     </div>
 
                     {/* Tagline */}
-                    <div className="flex justify-center mb-6">
-                        <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-white/5 border border-amber-500/20 backdrop-blur-md animate-in slide-in-from-bottom-5 fade-in duration-1000 delay-200">
-                            <Gem className="text-amber-400 w-4 h-4" />
-                            <span className="text-gray-300 text-sm tracking-widest font-medium uppercase">
-                                Pusat Chip Royal Dream - Termurah, Tercepat, Terpercaya
+                    <div className="flex justify-center mb-6 px-4">
+                        <div className="inline-flex items-center gap-2 px-3 sm:px-5 py-2 rounded-full bg-white/5 border border-amber-500/20 backdrop-blur-md animate-in slide-in-from-bottom-5 fade-in duration-1000 delay-200">
+                            <Gem className="text-amber-400 w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                            <span className="text-gray-300 text-[10px] sm:text-sm tracking-wider sm:tracking-widest font-medium uppercase">
+                                Pusat Chip Royal Dream — Termurah &amp; Terpercaya
                             </span>
                         </div>
                     </div>
 
-                    {/* Typography */}
-                    <h1 className="font-cormorant text-6xl md:text-8xl lg:text-9xl tracking-tight text-white mb-8 leading-[1]">
+                    {/* Typography — responsive: text-5xl on mobile, scale up on larger screens */}
+                    <h1 className="font-cormorant text-5xl sm:text-6xl md:text-8xl lg:text-9xl tracking-tight text-white mb-8 leading-[1]">
                         <span className="inline-block bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400">
                             Premium
                         </span>
@@ -158,17 +158,17 @@ export default function HeroBanner({ games, config }: HeroBannerProps) {
                     <div className="text-center mb-16">
                         {isFlashSaleActive ? (
                             <>
-                                <h2 className="font-cormorant text-4xl md:text-6xl text-red-500 animate-pulse mb-4 flex items-center justify-center gap-3">
-                                    <Flame size={48} /> RUSH HOUR PROMO
+                                <h2 className="font-cormorant text-3xl sm:text-4xl md:text-6xl text-red-500 mb-4 flex items-center justify-center gap-3 flex-wrap">
+                                    <Flame size={36} /> RUSH HOUR PROMO
                                 </h2>
-                                <p className="text-amber-400 uppercase tracking-widest text-sm font-bold">
+                                <p className="text-amber-400 uppercase tracking-widest text-xs sm:text-sm font-bold">
                                     HARGA GILA Rp {(flashSale.promo_price || 63000).toLocaleString('id-ID')} / 1B (MIN. {flashSale.min_amount_b || 1}B)
                                 </p>
                             </>
                         ) : (
                             <>
-                                <h2 className="font-cormorant text-4xl md:text-6xl text-amber-400 mb-4">Harga Spesial Sultan</h2>
-                                <p className="text-gray-400 uppercase tracking-widest text-sm">Semakin Banyak Beli, Semakin Murah!</p>
+                                <h2 className="font-cormorant text-3xl sm:text-4xl md:text-6xl text-amber-400 mb-4">Harga Spesial Sultan</h2>
+                                <p className="text-gray-400 uppercase tracking-widest text-xs sm:text-sm">Semakin Banyak Beli, Semakin Murah!</p>
                             </>
                         )}
                     </div>

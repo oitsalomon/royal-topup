@@ -33,30 +33,31 @@ export default function Navbar() {
     if (pathname.startsWith('/admin')) return null
 
     return (
-        <nav className={`fixed top-0 w-full z-50 transition-all duration-700 border-b ${scrolled ? 'bg-[#050912]/80 backdrop-blur-2xl border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.5)] py-2' : 'bg-transparent border-transparent py-5'}`}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
+        <nav className={`fixed top-0 w-full z-50 transition-all duration-700 border-b ${scrolled ? 'bg-[#050912]/80 backdrop-blur-2xl border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.5)] py-1.5 md:py-2' : 'bg-transparent border-transparent py-3 md:py-5'}`}>
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between h-14 md:h-16">
                     {/* Logo */}
-                    <Link href="/" className="flex items-center gap-4 group cursor-pointer">
-                        <div className="relative w-11 h-11">
+                    {/* Logo — shrinks on small screens */}
+                    <Link href="/" className="flex items-center gap-2 sm:gap-4 group cursor-pointer min-w-0 shrink-0">
+                        <div className="relative w-9 h-9 md:w-11 md:h-11 shrink-0">
                             <div className="absolute inset-0 bg-purple-500 blur-2xl opacity-30 group-hover:opacity-60 transition-opacity duration-700 rounded-full" />
-                            <div className="relative w-full h-full rounded-2xl bg-gradient-to-br from-[#13162a] to-[#0d0f1a] border border-white/10 flex items-center justify-center shadow-2xl group-hover:scale-105 transition-transform duration-500 overflow-hidden">
+                            <div className="relative w-full h-full rounded-xl md:rounded-2xl bg-gradient-to-br from-[#13162a] to-[#0d0f1a] border border-white/10 flex items-center justify-center shadow-xl group-hover:scale-105 transition-transform duration-500 overflow-hidden">
                                 <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-transparent" />
                                 <Image
                                     src="/images/clover-logo.png"
                                     alt="Clover"
-                                    width={28}
-                                    height={28}
+                                    width={24}
+                                    height={24}
                                     priority
                                     className="object-contain drop-shadow-[0_0_12px_rgba(168,85,247,0.8)] relative z-10"
                                 />
                             </div>
                         </div>
-                        <div className="flex flex-col">
-                            <span className="v4-font-syne text-2xl font-black tracking-tighter text-white leading-none group-hover:text-purple-400 transition-colors uppercase">
+                        <div className="flex flex-col min-w-0">
+                            <span className="v4-font-syne text-base sm:text-xl md:text-2xl font-black tracking-tighter text-white leading-none group-hover:text-purple-400 transition-colors uppercase whitespace-nowrap">
                                 ROYAL<span className="v4-text-gradient">CLOVER</span>
                             </span>
-                            <span className="text-[9px] font-black text-cyan-400 tracking-[0.4em] leading-none mt-1 opacity-80 uppercase">
+                            <span className="hidden sm:block text-[9px] font-black text-cyan-400 tracking-[0.4em] leading-none mt-1 opacity-80 uppercase">
                                 Premium Digital
                             </span>
                         </div>
@@ -162,21 +163,21 @@ export default function Navbar() {
                     </div>
 
                     {/* Mobile Menu Button */}
-                    <div className="lg:hidden flex items-center gap-3">
+                    <div className="lg:hidden flex items-center gap-2 shrink-0">
                         {!user && (
                             <Link
                                 href="/login"
-                                className="px-4 py-2.5 rounded-xl v4-btn-main text-[10px] font-black text-white uppercase tracking-widest shadow-lg"
+                                className="px-3 py-2 rounded-xl v4-btn-main text-[10px] font-black text-white uppercase tracking-wider shadow-md whitespace-nowrap"
                             >
                                 Login
                             </Link>
                         )}
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/5 text-white border border-white/10 active:scale-95 transition-all"
+                            className="w-9 h-9 md:w-11 md:h-11 flex items-center justify-center rounded-xl md:rounded-2xl bg-white/5 text-white border border-white/10 active:scale-95 transition-all shrink-0"
                             aria-label="Toggle menu"
                         >
-                            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                            {isMobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
                         </button>
                     </div>
                 </div>

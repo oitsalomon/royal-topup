@@ -7,6 +7,7 @@ import FloatingChat from "@/components/FloatingChat";
 import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { AuthProvider } from "@/contexts/AuthProvider";
 import { ConfigProvider } from "@/contexts/ConfigContext";
+import { ToastProvider } from "@/components/Toast";
 
 import { GoogleAnalytics } from '@next/third-parties/google'
 
@@ -142,14 +143,16 @@ export default function RootLayout({
         </div>
         <AuthProvider>
           <ConfigProvider>
-            <Navbar />
-            <div className="relative z-10 flex flex-col min-h-screen pt-16">
-              <main className="flex-grow">
-                {children}
-              </main>
-            </div>
-            <FloatingChat />
-            <PWAInstallPrompt />
+            <ToastProvider>
+              <Navbar />
+              <div className="relative z-10 flex flex-col min-h-screen pt-14 md:pt-16 animate-in fade-in duration-200">
+                <main className="flex-grow">
+                  {children}
+                </main>
+              </div>
+              <FloatingChat />
+              <PWAInstallPrompt />
+            </ToastProvider>
           </ConfigProvider>
         </AuthProvider>
         <GoogleAnalytics gaId="G-G0RSY9PYDP" />

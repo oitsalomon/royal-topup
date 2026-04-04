@@ -8,6 +8,7 @@ import { Upload, Check, AlertCircle, Shield, Zap, Wallet, Copy } from 'lucide-re
 import AlertModal from './AlertModal'
 import PaymentModal from './PaymentModal'
 import TransactionStatusModal from './TransactionStatusModal'
+import { useToast } from './Toast'
 
 interface PaymentMethod {
     id: number
@@ -141,11 +142,16 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
             .catch(err => console.error(err))
     }, [gameCode])
 
+    const { showToast } = useToast()
     const [uploading, setUploading] = useState(false)
     const [copied, setCopied] = useState(false)
 
     const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text)
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Nomor rekening berhasil disalin!', 'success')
+        }).catch(() => {
+            showToast('Gagal menyalin nomor', 'error')
+        })
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
     }
@@ -359,7 +365,7 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                 <div className="v4-glass p-8 md:p-10 rounded-[32px] shadow-2xl relative overflow-hidden group">
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     
-                    <h3 className="v4-font-syne text-xl font-extrabold text-white flex items-center gap-4 mb-8 uppercase tracking-widest relative z-10">
+                    <h3 className="v4-font-syne text-base md:text-xl font-extrabold text-white flex items-center gap-3 mb-8 uppercase tracking-wide md:tracking-widest relative z-10">
                         <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 border border-purple-500/30">
                             <Shield size={20} />
                         </div>
@@ -474,7 +480,7 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                 <div className="v4-glass p-8 md:p-10 rounded-[32px] shadow-2xl relative overflow-hidden group">
                     <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     
-                    <h3 className="v4-font-syne text-xl font-extrabold text-white flex items-center gap-4 mb-10 uppercase tracking-widest relative z-10">
+                    <h3 className="v4-font-syne text-base md:text-xl font-extrabold text-white flex items-center gap-3 mb-10 uppercase tracking-wide md:tracking-widest relative z-10">
                         <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center text-cyan-400 border border-cyan-500/30">
                             <Zap size={20} />
                         </div>
@@ -628,7 +634,7 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                 <div className="v4-glass p-8 md:p-10 rounded-[32px] shadow-2xl relative overflow-hidden group">
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     
-                    <h3 className="v4-font-syne text-xl font-extrabold text-white flex items-center gap-4 mb-10 uppercase tracking-widest relative z-10">
+                    <h3 className="v4-font-syne text-base md:text-xl font-extrabold text-white flex items-center gap-3 mb-10 uppercase tracking-wide md:tracking-widest relative z-10">
                         <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 border border-purple-500/30">
                             <Wallet size={20} />
                         </div>
@@ -703,7 +709,7 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                                     <div className="bg-white/5 border border-white/5 rounded-[32px] px-10 py-8 inline-block shadow-2xl relative group/num">
                                         <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-4">No. Rekening / VA</p>
                                         <div className="flex flex-col items-center gap-4">
-                                            <p className="v4-font-mono text-xl md:text-3xl font-black text-white tracking-widest break-all">
+                                            <p className="v4-font-mono text-lg md:text-2xl lg:text-3xl font-black text-white tracking-widest break-all">
                                                 {selectedPayment.account_number}
                                             </p>
                                             <button
@@ -730,7 +736,7 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                     <div className="v4-glass p-8 md:p-10 rounded-[32px] shadow-2xl relative overflow-hidden group">
                         <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         
-                        <h3 className="v4-font-syne text-xl font-extrabold text-white flex items-center gap-4 mb-10 uppercase tracking-widest relative z-10">
+                        <h3 className="v4-font-syne text-base md:text-xl font-extrabold text-white flex items-center gap-3 mb-10 uppercase tracking-wide md:tracking-widest relative z-10">
                             <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center text-green-400 border border-green-500/30">
                                 <Upload size={20} />
                             </div>

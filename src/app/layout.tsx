@@ -23,7 +23,7 @@ const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ? new URL(process.env.NEXT_PUBL
 export const metadata: Metadata = {
   metadataBase: baseUrl,
   title: {
-    default: "Royal Clover Store - Pusat Chip Royal Dream Termurah & Tercepat",
+    default: "Royal Clover Store - Pusat Chip Royal Dream Murah",
     template: "%s | Royal Clover Store"
   },
   description: "Toko Chip Royal Dream (Clover Store) terpercaya. Sedia Chip Ungu & Emas, proses 1 detik, aman dan bergaransi withdraw pasti cair.",

@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma'
 import { getTransactions } from '@/services/transactions'
 import ReferralWithdrawalsClient from './ReferralWithdrawalsClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ReferralWithdrawalsPage() {
     const transactions = await getTransactions({
         type: 'REFERRAL_WD',

@@ -5,6 +5,7 @@ import { updateMemberStats } from '@/services/member'
 import { sendTopupNotif, sendWithdrawNotif } from '@/lib/telegram'
 import { getAdminSessionFromRequest } from '@/lib/auth'
 import { createTransactionSchema, sanitizeText } from '@/lib/validations'
+import { getSystemConfig } from '@/services/config'
 
 export async function POST(request: Request) {
     try {
@@ -84,13 +85,51 @@ export async function POST(request: Request) {
                 }, { status: 400 })
             }
 
+            if (!target_payment_details || target_payment_details.trim().length === 0) {
+                return NextResponse.json({
+                    error: 'Detail rekening tujuan penarikan wajib diisi.'
+                }, { status: 400 })
+            }
+
             finalAmountChip = chipB
 
-            // Hitung harga buyback resmi di server: Rp 60.000 per 1B
-            const grossPayout = Math.round(chipB * 60000)
+            // Hitung harga buyback resmi di server: Rp 60.000 per 1B, 500M (0.5B) = Rp 25.000
+            const grossPayout = chipB === 0.5 ? 25000 : Math.round(chipB * 60000)
             const isRegisteredMember = Boolean(validData.user_id)
-            const adminFee = isRegisteredMember ? 0 : 6500
+
+            // Ambil biaya admin guest dari SystemConfig di database
+            const systemConfig: any = await getSystemConfig()
+            const guestFee = typeof systemConfig?.guest_withdraw_fee === 'number'
+                ? systemConfig.guest_withdraw_fee
+                : 2500
+
+            const adminFee = isRegisteredMember ? 0 : guestFee
             finalAmountMoney = Math.max(0, grossPayout - adminFee)
+
+            // Validasi nomor rekening / e-wallet di backend jika metode dipilih
+            if (validData.payment_method_id) {
+                const wm = await prisma.withdrawMethod.findUnique({
+                    where: { id: Number(validData.payment_method_id) }
+                })
+                if (wm) {
+                    const isEwallet = wm.type === 'EWALLET'
+                    const ewalletRegex = /^(?:(?:\+|00)?62|0)[8][0-9]{8,12}$/
+                    const bankRegex = /^[0-9]{8,20}$/
+                    const parts = target_payment_details.split('-')
+                    if (parts.length > 1) {
+                        const accPart = parts[1].split('(')[0]?.trim().replace(/[\s-]/g, '') || ''
+                        if (isEwallet && accPart && !ewalletRegex.test(accPart)) {
+                            return NextResponse.json({
+                                error: 'Nomor e-wallet tidak valid. Gunakan format nomor HP 08xx/62xx (10-14 digit).'
+                            }, { status: 400 })
+                        } else if (!isEwallet && accPart && !bankRegex.test(accPart)) {
+                            return NextResponse.json({
+                                error: 'Nomor rekening bank tidak valid. Masukkan 8-20 digit angka.'
+                            }, { status: 400 })
+                        }
+                    }
+                }
+            }
         } else {
             return NextResponse.json({ error: 'Tipe transaksi tidak dikenali.' }, { status: 400 })
         }

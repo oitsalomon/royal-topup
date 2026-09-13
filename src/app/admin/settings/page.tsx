@@ -272,36 +272,53 @@ export default function SettingsPage() {
                     </div>
                 </div>
 
-                {/* ID WD Section */}
+                {/* ID WD & Biaya Admin Section */}
                 <div className="bg-[#111111] rounded-2xl border border-white/5 p-6">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
                             <CreditCard size={20} />
                         </div>
                         <div>
-                            <h2 className="text-lg font-bold text-white">ID Penampung WD (User)</h2>
-                            <p className="text-sm text-gray-400">ID yang akan muncul di halaman Withdraw user</p>
+                            <h2 className="text-lg font-bold text-white">Pengaturan Bongkaran (Withdraw)</h2>
+                            <p className="text-sm text-gray-400">Atur biaya admin guest dan akun admin penampung koin</p>
                         </div>
                     </div>
 
                     <div className="grid gap-6">
                         <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">ID Game</label>
+                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                                Biaya Admin Guest Bongkaran (Rp)
+                            </label>
                             <input
-                                type="text"
-                                value={config.id_wd?.value || ''}
-                                onChange={(e) => updateConfig('id_wd', 'value', e.target.value)}
+                                type="number"
+                                value={config.guest_withdraw_fee ?? 2500}
+                                onChange={(e) => setConfig((prev: any) => ({ ...prev, guest_withdraw_fee: Number(e.target.value) }))}
                                 className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-colors"
                             />
+                            <p className="text-xs text-gray-500 mt-1">
+                                Biaya potongan pencairan untuk tamu / non-member (saat ini Rp {Number(config.guest_withdraw_fee ?? 2500).toLocaleString('id-ID')}). Member yang sudah login otomatis mendapatkan Bebas Biaya (Rp 0).
+                            </p>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">Nickname Game</label>
-                            <input
-                                type="text"
-                                value={config.id_wd?.nickname || ''}
-                                onChange={(e) => updateConfig('id_wd', 'nickname', e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-colors"
-                            />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-2">ID Game Admin Penampung</label>
+                                <input
+                                    type="text"
+                                    value={config.id_wd?.value || ''}
+                                    onChange={(e) => updateConfig('id_wd', 'value', e.target.value)}
+                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-400 mb-2">Nickname Game Admin</label>
+                                <input
+                                    type="text"
+                                    value={config.id_wd?.nickname || ''}
+                                    onChange={(e) => updateConfig('id_wd', 'nickname', e.target.value)}
+                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

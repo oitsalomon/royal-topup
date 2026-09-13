@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -18,7 +18,12 @@ import {
     AlertCircle,
     UserCheck,
     Building2,
-    Coins
+    Coins,
+    ChevronDown,
+    Search,
+    Smartphone,
+    Wallet,
+    X
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthProvider'
 import dynamic from 'next/dynamic'
@@ -48,16 +53,16 @@ const QUICK_CHIP_OPTIONS = [
     { label: '50B', m: 50000, b: 50, estMoney: 3000000 },
 ]
 
-const DEFAULT_BANKS = [
+const DEFAULT_BANKS: WithdrawMethod[] = [
     { id: 1, name: 'BCA', type: 'BANK' },
-    { id: 2, name: 'BRI', type: 'BANK' },
-    { id: 3, name: 'MANDIRI', type: 'BANK' },
+    { id: 2, name: 'MANDIRI', type: 'BANK' },
+    { id: 3, name: 'BRI', type: 'BANK' },
     { id: 4, name: 'BNI', type: 'BANK' },
-    { id: 5, name: 'DANA', type: 'EWALLET' },
-    { id: 6, name: 'GOPAY', type: 'EWALLET' },
-    { id: 7, name: 'OVO', type: 'EWALLET' },
-    { id: 8, name: 'SHOPEEPAY', type: 'EWALLET' },
-    { id: 9, name: 'SEABANK', type: 'BANK' },
+    { id: 23, name: 'SEABANK', type: 'BANK_DIGITAL' },
+    { id: 33, name: 'DANA', type: 'EWALLET' },
+    { id: 34, name: 'GOPAY', type: 'EWALLET' },
+    { id: 35, name: 'OVO', type: 'EWALLET' },
+    { id: 36, name: 'SHOPEEPAY', type: 'EWALLET' },
 ]
 
 export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) {
@@ -75,11 +80,19 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
     const [customChipB, setCustomChipB] = useState<string>('')
     const [isCustom, setIsCustom] = useState(false)
 
-    // Bank pencairan
+    // Bank pencairan & Searchable Combobox
     const [withdrawMethods, setWithdrawMethods] = useState<WithdrawMethod[]>(DEFAULT_BANKS)
     const [selectedBank, setSelectedBank] = useState<string>('BCA')
+    const [selectedMethodId, setSelectedMethodId] = useState<number | null>(1)
+    const [searchBankQuery, setSearchBankQuery] = useState<string>('')
+    const [isBankDropdownOpen, setIsBankDropdownOpen] = useState(false)
+    const comboboxRef = useRef<HTMLDivElement>(null)
+
     const [accountNumber, setAccountNumber] = useState('')
     const [accountName, setAccountName] = useState('')
+
+    // Biaya Admin Guest (diambil dinamis dari database/settings via /api/config)
+    const [guestFee, setGuestFee] = useState<number>(2500)
 
     // Bukti kirim koin
     const [proofImage, setProofImage] = useState<string>('')
@@ -103,19 +116,33 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
     // Auto-fill jika member login
     useEffect(() => {
         if (user) {
-            if ((user as any).bank_name) setSelectedBank((user as any).bank_name)
+            if ((user as any).bank_name) {
+                const bName = (user as any).bank_name
+                setSelectedBank(bName)
+                const found = withdrawMethods.find(m => m.name.toLowerCase() === bName.toLowerCase())
+                if (found) setSelectedMethodId(found.id)
+            }
             if ((user as any).account_number) setAccountNumber((user as any).account_number)
             if ((user as any).account_name) setAccountName((user as any).account_name)
             if ((user as any).user_wa) setUserWa((user as any).user_wa)
         }
-    }, [user])
+    }, [user, withdrawMethods])
 
     // Fetch config & withdraw methods
     useEffect(() => {
         fetch('/api/withdraw-methods')
             .then(res => res.json())
             .then((data: WithdrawMethod[]) => {
-                if (Array.isArray(data) && data.length > 0) setWithdrawMethods(data)
+                if (Array.isArray(data) && data.length > 0) {
+                    setWithdrawMethods(data)
+                    const found = data.find(m => m.name.toLowerCase() === selectedBank.toLowerCase())
+                    if (found) {
+                        setSelectedMethodId(found.id)
+                    } else if (data[0]) {
+                        setSelectedBank(data[0].name)
+                        setSelectedMethodId(data[0].id)
+                    }
+                }
             })
             .catch(() => {})
 
@@ -128,16 +155,35 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                         nickname: data.id_wd.nickname || 'ADMIN_PENAMPUNG'
                     })
                 }
+                if (typeof data?.guest_withdraw_fee === 'number') {
+                    setGuestFee(data.guest_withdraw_fee)
+                }
             })
             .catch(() => {})
+    }, [])
+
+    // Tutup dropdown combobox saat klik di luar
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+            if (comboboxRef.current && !comboboxRef.current.contains(event.target as Node)) {
+                setIsBankDropdownOpen(false)
+                setSearchBankQuery('')
+            }
+        }
+        document.addEventListener('mousedown', handleClickOutside)
+        document.addEventListener('touchstart', handleClickOutside)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+            document.removeEventListener('touchstart', handleClickOutside)
+        }
     }, [])
 
     // Kalkulasi Total Koin & Uang Bersih
     const totalM = isCustom ? (Number(customChipB) || 0) * 1000 : selectedChipM
     const totalB = totalM / 1000
 
-    // Biaya Admin: Member Rp 0 (Bebas Fee) vs Guest Rp 6.500
-    const adminFee = user ? 0 : 6500
+    // Biaya Admin: Member Rp 0 (Bebas Fee) vs Guest diambil dari DB (default Rp 2.500)
+    const adminFee = user ? 0 : guestFee
 
     // Estimasi harga koin (500M = 25rb, 1B = 60rb)
     const grossMoney = useMemo(() => {
@@ -150,6 +196,58 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
         if (grossMoney <= 0) return 0
         return Math.max(0, grossMoney - adminFee)
     }, [grossMoney, adminFee])
+
+    // Deteksi tipe metode pencairan terpilih
+    const currentMethodObj = useMemo(() => {
+        return withdrawMethods.find(m => m.name.toLowerCase() === selectedBank.toLowerCase())
+    }, [withdrawMethods, selectedBank])
+
+    const isEwallet = useMemo(() => {
+        if (currentMethodObj) return currentMethodObj.type === 'EWALLET'
+        return ['DANA', 'GOPAY', 'OVO', 'SHOPEEPAY', 'LINKAJA', 'ASTRAPAY', 'I.SAKU', 'SAKUKU'].includes(selectedBank.toUpperCase())
+    }, [currentMethodObj, selectedBank])
+
+    // Filter daftar bank untuk combobox
+    const filteredMethods = useMemo(() => {
+        const q = searchBankQuery.trim().toLowerCase()
+        if (!q) return withdrawMethods
+        return withdrawMethods.filter(m =>
+            m.name.toLowerCase().includes(q) ||
+            (m.type === 'BANK' && 'bank konvensional'.includes(q)) ||
+            (m.type === 'BANK_DIGITAL' && 'bank digital'.includes(q)) ||
+            (m.type === 'EWALLET' && 'ewallet e-wallet dompet digital'.includes(q))
+        )
+    }, [withdrawMethods, searchBankQuery])
+
+    const bankKonvensionalList = useMemo(() => filteredMethods.filter(m => m.type === 'BANK'), [filteredMethods])
+    const bankDigitalList = useMemo(() => filteredMethods.filter(m => m.type === 'BANK_DIGITAL'), [filteredMethods])
+    const ewalletList = useMemo(() => filteredMethods.filter(m => m.type === 'EWALLET'), [filteredMethods])
+
+    // Validasi format nomor rekening / e-wallet
+    const cleanAccountNumber = accountNumber.replace(/[\s-]/g, '')
+    const ewalletRegex = /^(?:(?:\+|00)?62|0)[8][0-9]{8,12}$/
+    const bankRegex = /^[0-9]{8,20}$/
+
+    const accountNumberValidation = useMemo(() => {
+        if (!cleanAccountNumber) return { isValid: false, message: '' }
+        if (isEwallet) {
+            const valid = ewalletRegex.test(cleanAccountNumber)
+            return {
+                isValid: valid,
+                message: valid
+                    ? 'Format nomor e-wallet valid'
+                    : 'Nomor e-wallet tidak valid. Gunakan format nomor HP 08xx/62xx (10–14 digit).'
+            }
+        } else {
+            const valid = bankRegex.test(cleanAccountNumber)
+            return {
+                isValid: valid,
+                message: valid
+                    ? 'Format nomor rekening valid'
+                    : 'Nomor rekening tidak valid. Masukkan 8–20 digit angka tanpa spasi atau simbol.'
+            }
+        }
+    }, [cleanAccountNumber, isEwallet])
 
     // Countdown timer di Step 2
     useEffect(() => {
@@ -214,6 +312,16 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
             return
         }
 
+        // Cek validasi format nomor rekening / e-wallet
+        if (isEwallet && !ewalletRegex.test(cleanAccountNumber)) {
+            alert('Nomor e-wallet tidak valid. Gunakan format nomor HP 08xx/62xx (10–14 digit angka).')
+            return
+        }
+        if (!isEwallet && !bankRegex.test(cleanAccountNumber)) {
+            alert('Nomor rekening bank tidak valid. Masukkan 8–20 digit angka tanpa spasi atau karakter lain.')
+            return
+        }
+
         setTimeLeft(600) // Reset 10 menit
         setStep(2)
         window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -228,6 +336,7 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
 
         setSubmitting(true)
         try {
+            const methodIdToPass = selectedMethodId || currentMethodObj?.id || null
             const payload = {
                 user_wa: userWa || '081200000000',
                 user_id: user?.id || null,
@@ -236,9 +345,8 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                 nickname: nickname.trim() || 'Pemain',
                 amount_chip: totalB,
                 amount_money: netMoney,
-                payment_method_id: null,
-                target_account_number: accountNumber.trim(),
-                target_account_name: `${selectedBank} - ${accountName.trim()}`,
+                payment_method_id: methodIdToPass,
+                target_payment_details: `${selectedBank} - ${cleanAccountNumber} (${accountName.trim()})`,
                 proof_image: proofImage,
                 sender_name: accountName.trim(),
                 type: 'WITHDRAW'
@@ -256,7 +364,8 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                 setShowStatusModal(true)
                 localStorage.setItem('royal_topup_pending_tx', JSON.stringify({ id: txData.id, type: 'WITHDRAW' }))
             } else {
-                alert('Gagal mengirimkan permintaan bongkar. Silakan hubungi admin.')
+                const err = await res.json().catch(() => ({}))
+                alert(err.error || 'Gagal mengirimkan permintaan bongkar. Silakan hubungi admin.')
             }
         } catch {
             alert('Terjadi kesalahan koneksi. Silakan coba kembali.')
@@ -323,7 +432,7 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
             ) : (
                 <div className="bg-[#17171a] border border-[#8a6d38]/40 rounded-lg p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
                     <div>
-                        <p className="font-poppins font-bold text-[#f3ecd8]">Bongkar Sebagai Tamu (Biaya Admin Rp 6.500)</p>
+                        <p className="font-poppins font-bold text-[#f3ecd8]">Bongkar Sebagai Tamu (Biaya Admin {formatRupiah(guestFee)})</p>
                         <p className="text-[#a89f8a] text-[11px]">
                             Mau bebas biaya admin? <Link href="/login" className="text-[#c5a369] font-semibold underline hover:text-[#e8c883]">Login</Link> atau <Link href="/register" className="text-[#c5a369] font-semibold underline hover:text-[#e8c883]">Daftar Member</Link> untuk nikmati <span className="text-[#3fa46a] font-bold">Fee Rp 0</span>.
                         </p>
@@ -469,42 +578,222 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                                 3. Rekening Tujuan Pencairan Uang
                             </h2>
                             <p className="text-xs text-[#a89f8a] mt-0.5">
-                                Uang hasil bongkar akan ditransfer langsung ke rekening/e-wallet ini
+                                Uang hasil bongkar akan ditransfer langsung ke rekening atau e-wallet ini
                             </p>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-                            <div>
+                            {/* Searchable Combobox Bank / E-Wallet */}
+                            <div className="relative" ref={comboboxRef}>
                                 <label className="block text-xs font-inter font-medium text-[#f3ecd8] mb-1">
                                     Bank / E-Wallet <span className="text-red-400">*</span>
                                 </label>
-                                <select
-                                    value={selectedBank}
-                                    onChange={e => setSelectedBank(e.target.value)}
-                                    className="w-full bg-[#0d0d0f] border border-[#8a6d38]/40 focus:border-[#c5a369] rounded-md px-3 py-2 text-xs font-inter text-[#f3ecd8] outline-none cursor-pointer"
-                                >
-                                    {withdrawMethods.map(bm => (
-                                        <option key={bm.id} value={bm.name}>
-                                            {bm.name} ({bm.type})
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        value={isBankDropdownOpen ? searchBankQuery : selectedBank}
+                                        placeholder="Ketik nama bank/e-wallet..."
+                                        onFocus={() => {
+                                            setIsBankDropdownOpen(true)
+                                            setSearchBankQuery('')
+                                        }}
+                                        onChange={e => {
+                                            setSearchBankQuery(e.target.value)
+                                            if (!isBankDropdownOpen) setIsBankDropdownOpen(true)
+                                        }}
+                                        className="w-full bg-[#0d0d0f] border border-[#8a6d38]/40 focus:border-[#c5a369] rounded-md pl-3 pr-8 py-2 text-xs font-inter text-[#f3ecd8] outline-none transition-colors"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsBankDropdownOpen(prev => !prev)
+                                            if (!isBankDropdownOpen) setSearchBankQuery('')
+                                        }}
+                                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#c5a369] hover:text-[#e8c883]"
+                                        tabIndex={-1}
+                                    >
+                                        <ChevronDown size={14} className={`transition-transform duration-200 ${isBankDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+                                </div>
+
+                                {/* Dropdown List with Visual Categories */}
+                                {isBankDropdownOpen && (
+                                    <div className="absolute z-50 left-0 right-0 mt-1 bg-[#131417] border border-[#8a6d38]/60 rounded-md shadow-2xl max-h-64 overflow-y-auto divide-y divide-[#8a6d38]/20 animate-in fade-in zoom-in-95 duration-150">
+                                        {filteredMethods.length === 0 ? (
+                                            <div className="p-3 text-center text-xs text-[#a89f8a]">
+                                                Metode tidak ditemukan untuk &quot;{searchBankQuery}&quot;
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {/* Group 1: Bank Konvensional */}
+                                                {bankKonvensionalList.length > 0 && (
+                                                    <div className="p-1.5">
+                                                        <div className="px-2 py-1 flex items-center justify-between text-[10px] font-poppins font-bold uppercase tracking-wider text-[#c5a369] bg-[#0d0d0f]/60 rounded">
+                                                            <span className="flex items-center gap-1.5">
+                                                                <Building2 size={12} strokeWidth={1.5} />
+                                                                Bank Konvensional
+                                                            </span>
+                                                            <span className="text-[9px] text-[#a89f8a] font-mono">({bankKonvensionalList.length})</span>
+                                                        </div>
+                                                        <div className="mt-1 space-y-0.5">
+                                                            {bankKonvensionalList.map(item => {
+                                                                const isSelected = selectedBank.toUpperCase() === item.name.toUpperCase()
+                                                                return (
+                                                                    <button
+                                                                        key={item.id}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setSelectedBank(item.name)
+                                                                            setSelectedMethodId(item.id)
+                                                                            setSearchBankQuery('')
+                                                                            setIsBankDropdownOpen(false)
+                                                                        }}
+                                                                        className={`w-full text-left px-2.5 py-2 rounded text-xs flex items-center justify-between transition-colors ${
+                                                                            isSelected
+                                                                                ? 'bg-[#8a6d38]/30 text-[#e8c883] font-semibold'
+                                                                                : 'text-[#f3ecd8] hover:bg-[#1a1b20]'
+                                                                        }`}
+                                                                    >
+                                                                        <span>{item.name}</span>
+                                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0d0d0f] border border-[#8a6d38]/30 text-[#a89f8a]">
+                                                                            Bank
+                                                                        </span>
+                                                                    </button>
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Group 2: Bank Digital */}
+                                                {bankDigitalList.length > 0 && (
+                                                    <div className="p-1.5">
+                                                        <div className="px-2 py-1 flex items-center justify-between text-[10px] font-poppins font-bold uppercase tracking-wider text-[#c5a369] bg-[#0d0d0f]/60 rounded">
+                                                            <span className="flex items-center gap-1.5">
+                                                                <Smartphone size={12} strokeWidth={1.5} />
+                                                                Bank Digital
+                                                            </span>
+                                                            <span className="text-[9px] text-[#a89f8a] font-mono">({bankDigitalList.length})</span>
+                                                        </div>
+                                                        <div className="mt-1 space-y-0.5">
+                                                            {bankDigitalList.map(item => {
+                                                                const isSelected = selectedBank.toUpperCase() === item.name.toUpperCase()
+                                                                return (
+                                                                    <button
+                                                                        key={item.id}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setSelectedBank(item.name)
+                                                                            setSelectedMethodId(item.id)
+                                                                            setSearchBankQuery('')
+                                                                            setIsBankDropdownOpen(false)
+                                                                        }}
+                                                                        className={`w-full text-left px-2.5 py-2 rounded text-xs flex items-center justify-between transition-colors ${
+                                                                            isSelected
+                                                                                ? 'bg-[#8a6d38]/30 text-[#e8c883] font-semibold'
+                                                                                : 'text-[#f3ecd8] hover:bg-[#1a1b20]'
+                                                                        }`}
+                                                                    >
+                                                                        <span>{item.name}</span>
+                                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0d0d0f] border border-[#8a6d38]/30 text-[#3fa46a]">
+                                                                            Digital
+                                                                        </span>
+                                                                    </button>
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Group 3: E-Wallet */}
+                                                {ewalletList.length > 0 && (
+                                                    <div className="p-1.5">
+                                                        <div className="px-2 py-1 flex items-center justify-between text-[10px] font-poppins font-bold uppercase tracking-wider text-[#c5a369] bg-[#0d0d0f]/60 rounded">
+                                                            <span className="flex items-center gap-1.5">
+                                                                <Wallet size={12} strokeWidth={1.5} />
+                                                                E-Wallet
+                                                            </span>
+                                                            <span className="text-[9px] text-[#a89f8a] font-mono">({ewalletList.length})</span>
+                                                        </div>
+                                                        <div className="mt-1 space-y-0.5">
+                                                            {ewalletList.map(item => {
+                                                                const isSelected = selectedBank.toUpperCase() === item.name.toUpperCase()
+                                                                return (
+                                                                    <button
+                                                                        key={item.id}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setSelectedBank(item.name)
+                                                                            setSelectedMethodId(item.id)
+                                                                            setSearchBankQuery('')
+                                                                            setIsBankDropdownOpen(false)
+                                                                        }}
+                                                                        className={`w-full text-left px-2.5 py-2 rounded text-xs flex items-center justify-between transition-colors ${
+                                                                            isSelected
+                                                                                ? 'bg-[#8a6d38]/30 text-[#e8c883] font-semibold'
+                                                                                : 'text-[#f3ecd8] hover:bg-[#1a1b20]'
+                                                                        }`}
+                                                                    >
+                                                                        <span>{item.name}</span>
+                                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#0d0d0f] border border-[#8a6d38]/30 text-[#00b2ff]">
+                                                                            E-Wallet
+                                                                        </span>
+                                                                    </button>
+                                                                )
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
+                            {/* Nomor Rekening / E-Wallet Input with Live Validation */}
                             <div>
                                 <label className="block text-xs font-inter font-medium text-[#f3ecd8] mb-1">
-                                    Nomor Rekening / E-Wallet <span className="text-red-400">*</span>
+                                    {isEwallet ? 'Nomor HP E-Wallet' : 'Nomor Rekening'} <span className="text-red-400">*</span>
                                 </label>
                                 <input
                                     type="text"
                                     required
-                                    placeholder="Contoh: 1234567890"
+                                    placeholder={isEwallet ? 'Contoh: 081234567890' : 'Contoh: 1234567890'}
                                     value={accountNumber}
                                     onChange={e => setAccountNumber(e.target.value)}
-                                    className="w-full bg-[#0d0d0f] border border-[#8a6d38]/40 focus:border-[#c5a369] rounded-md px-3.5 py-2 text-sm text-[#f3ecd8] font-mono outline-none transition-colors"
+                                    className={`w-full bg-[#0d0d0f] border rounded-md px-3.5 py-2 text-sm text-[#f3ecd8] font-mono outline-none transition-colors ${
+                                        cleanAccountNumber.length > 0
+                                            ? accountNumberValidation.isValid
+                                                ? 'border-[#3fa46a] focus:border-[#3fa46a]'
+                                                : 'border-red-500/80 focus:border-red-500'
+                                            : 'border-[#8a6d38]/40 focus:border-[#c5a369]'
+                                    }`}
                                 />
+                                {cleanAccountNumber.length > 0 ? (
+                                    <div className="flex items-center gap-1 mt-1 text-[11px]">
+                                        {accountNumberValidation.isValid ? (
+                                            <>
+                                                <CheckCircle2 size={12} className="text-[#3fa46a] shrink-0" strokeWidth={1.5} />
+                                                <span className="text-[#3fa46a]">{accountNumberValidation.message}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <AlertCircle size={12} className="text-red-400 shrink-0" strokeWidth={1.5} />
+                                                <span className="text-red-400">{accountNumberValidation.message}</span>
+                                            </>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <p className="text-[10px] text-[#a89f8a] mt-1">
+                                        {isEwallet
+                                            ? 'Format: 08xx atau 62xx (10–14 digit)'
+                                            : 'Format: 8–20 digit angka tanpa spasi'
+                                        }
+                                    </p>
+                                )}
                             </div>
 
+                            {/* Nama Pemilik Rekening */}
                             <div>
                                 <label className="block text-xs font-inter font-medium text-[#f3ecd8] mb-1">
                                     Nama Pemilik Rekening <span className="text-red-400">*</span>
@@ -531,7 +820,7 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                                 </span>
                                 {adminFee > 0 ? (
                                     <span className="text-[11px] text-[#a89f8a]">
-                                        (Dipikirkan fee admin Rp 6.500)
+                                        (Dipotong fee admin {formatRupiah(adminFee)})
                                     </span>
                                 ) : (
                                     <span className="text-[11px] text-[#3fa46a] font-bold">
@@ -627,7 +916,7 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                             <div className="flex justify-between text-[#a89f8a]">
                                 <span>Biaya Admin Fee:</span>
                                 <span className={`font-mono ${adminFee === 0 ? 'text-[#3fa46a] font-bold' : 'text-[#f3ecd8]'}`}>
-                                    {adminFee === 0 ? 'Rp 0 (Member Bebas Fee)' : '-Rp 6.500'}
+                                    {adminFee === 0 ? 'Rp 0 (Member Bebas Fee)' : `-${formatRupiah(adminFee)}`}
                                 </span>
                             </div>
 

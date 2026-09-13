@@ -24,7 +24,7 @@ export default function AdminLogin() {
                 // 1. Role Check (IMPORTANT SECURITY FIX)
                 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'STAFF']
                 if (!allowedRoles.includes(data.role)) {
-                    setError('Unauthorized: Aksun ini bukan Staff/Admin.')
+                    setError('Unauthorized: Akun ini bukan Staff/Admin.')
                     return
                 }
 
@@ -32,10 +32,11 @@ export default function AdminLogin() {
                 localStorage.setItem('user', JSON.stringify(data))
                 router.push('/admin/dashboard')
             } else {
-                setError('Invalid credentials')
+                const errData = await res.json().catch(() => ({}))
+                setError(errData.error || 'Username atau password salah.')
             }
         } catch (err) {
-            setError('Login failed')
+            setError('Terjadi gangguan koneksi jaringan.')
         }
     }
 

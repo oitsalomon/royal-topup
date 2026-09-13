@@ -81,18 +81,18 @@ export default function AdminLayout({
     }
 
     return (
-        <div className="flex h-screen overflow-hidden bg-[#000000]">
+        <div className="flex h-screen overflow-hidden bg-[#0a0b0d] text-[#f3f5f8]">
             {/* Simple Background */}
-            <div className="fixed inset-0 bg-[#000000]" />
+            <div className="fixed inset-0 bg-[#0a0b0d] pointer-events-none" />
 
             <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
             <PendingNotifier />
             <LoginNotifier />
 
-            <main className="flex-1 overflow-y-auto relative z-10 flex flex-col">
+            <main className="flex-1 overflow-y-auto relative z-10 flex flex-col min-w-0">
                 <AdminHeader onMenuClick={() => setSidebarOpen(true)} />
 
-                <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
+                <div className="p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full min-w-0">
                     {children}
                 </div>
             </main>

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Menu, MessageCircle, User, ChevronDown, Phone, X, LogOut, Users } from 'lucide-react'
+import { Menu, MessageCircle, User, ChevronDown, Phone, X, LogOut, Users, FileText } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthProvider'
 import { useConfig } from '@/contexts/ConfigContext'
@@ -30,7 +30,15 @@ export default function Navbar() {
         setIsMobileMenuOpen(false)
     }, [pathname])
 
-    if (pathname.startsWith('/admin')) return null
+    if (
+        pathname.startsWith('/admin') ||
+        pathname === '/' ||
+        pathname.startsWith('/preview-topup') ||
+        pathname.startsWith('/topup') ||
+        pathname === '/terms' ||
+        pathname === '/privacy' ||
+        pathname === '/check-transaction'
+    ) return null
 
     return (
         <nav className={`fixed top-0 w-full z-50 transition-all duration-700 border-b ${scrolled ? 'bg-[#050912]/80 backdrop-blur-2xl border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.5)] py-1.5 md:py-2' : 'bg-transparent border-transparent py-3 md:py-5'}`}>
@@ -44,7 +52,7 @@ export default function Navbar() {
                             <div className="relative w-full h-full rounded-xl md:rounded-2xl bg-gradient-to-br from-[#13162a] to-[#0d0f1a] border border-white/10 flex items-center justify-center shadow-xl group-hover:scale-105 transition-transform duration-500 overflow-hidden">
                                 <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/10 to-transparent" />
                                 <Image
-                                    src="/images/clover-logo.png"
+                                    src="/images/clover-logo.webp"
                                     alt="Clover"
                                     width={24}
                                     height={24}
@@ -104,8 +112,8 @@ export default function Navbar() {
                                             <Link href="/profile" className="flex items-center gap-3 px-4 py-3 text-xs font-black uppercase tracking-widest text-gray-400 hover:bg-purple-600 hover:text-white rounded-2xl transition-all mb-1">
                                                 <User size={14} /> Profil Saya
                                             </Link>
-                                            <Link href="/profile/referral" className="flex items-center gap-3 px-4 py-3 text-xs font-black uppercase tracking-widest text-cyan-400 hover:bg-cyan-600 hover:text-white rounded-2xl transition-all mb-1">
-                                                <Users size={14} /> Referral
+                                            <Link href="/check-transaction" className="flex items-center gap-3 px-4 py-3 text-xs font-black uppercase tracking-widest text-gray-400 hover:bg-purple-600 hover:text-white rounded-2xl transition-all mb-1">
+                                                <FileText size={14} /> Riwayat Transaksi
                                             </Link>
                                             <button onClick={logout} className="w-full flex items-center gap-3 px-4 py-3 text-xs font-black uppercase tracking-widest text-red-400 hover:bg-red-500 hover:text-white rounded-2xl transition-all text-left">
                                                 <LogOut size={14} /> Keluar
@@ -208,7 +216,6 @@ export default function Navbar() {
                                 <>
                                     <div className="h-px bg-white/5 my-4 mx-4"></div>
                                     <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)} className="block px-7 py-5 rounded-[24px] bg-white/5 border border-white/5 text-gray-400 font-black text-[11px] uppercase tracking-[0.2em]">Profil Saya</Link>
-                                    <Link href="/profile/referral" onClick={() => setIsMobileMenuOpen(false)} className="block px-7 py-5 rounded-[24px] bg-cyan-600/10 border border-cyan-500/20 text-cyan-400 font-black text-[11px] uppercase tracking-[0.2em]">Referral & Bonus</Link>
                                 </>
                             )}
                         </div>

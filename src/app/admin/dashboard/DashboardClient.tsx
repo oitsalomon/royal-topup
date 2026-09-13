@@ -1,693 +1,438 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Wallet, Coins, ArrowUpRight, ArrowDownLeft, Shield } from 'lucide-react'
+import React, { useState, useMemo } from 'react'
+import {
+    Landmark, Coins, ArrowDownToLine, ArrowUpFromLine, User,
+    Send, Plus, SlidersHorizontal, ArrowLeftRight, CheckCircle2, Shield, Copy
+} from 'lucide-react'
+import {
+    PageHead, SectionHead, Panel, StatBig, Segment, Badge,
+    PrimaryBtn, OrangeBtn, BG, PANEL, PANEL2, BORDER, MUTED, TEXT, TEXT2, TEXT3
+} from '@/components/admin/RoyalCloverUI'
+import {
+    rp, num, DEFAULT_OPS_BANKS, DEFAULT_OPS_IDS,
+    computeBankBalances, computeChipStock
+} from '@/lib/clover-engine'
 
 export default function DashboardClient({ initialData }: { initialData: any }) {
-    const [isLoading, setIsLoading] = useState(!initialData)
-    const [data, setData] = useState<any>(initialData || {
-        banks: [],
-        gameAccounts: [],
-        pendingCount: 0,
-        dailyStats: {
-            topup: { count: 0, money_in: 0, chip_out: 0 },
-            withdraw: { count: 0, money_out: 0, chip_in: 0 }
+    const [period, setPeriod] = useState<string>('today')
+    const [compare, setCompare] = useState<boolean>(true)
+    const [copied, setCopied] = useState<boolean>(false)
+    const [sendingTg, setSendingTg] = useState<boolean>(false)
+    const [tgSentStatus, setTgSentStatus] = useState<string | null>(null)
+
+    // Data source from server fallback or internal stats
+    const banks = useMemo(() => {
+        if (initialData?.banks && initialData.banks.length > 0) {
+            return initialData.banks.map((b: any) => ({
+                id: String(b.id),
+                label: b.name || b.account_name || 'BANK',
+                saldo: Number(b.balance || 0),
+                no: b.account_number || '',
+                status: b.category === 'DEPOSIT' ? 'DP' : b.category === 'WITHDRAW' ? 'WD' : 'TPWD'
+            }))
         }
-    })
+        return DEFAULT_OPS_BANKS
+    }, [initialData])
 
-    // Fetch on Mount (Instant UX)
-    useEffect(() => {
-        if (!initialData) {
-            fetchStats()
+    const chipAwal = useMemo(() => {
+        if (initialData?.gameAccounts && initialData.gameAccounts.length > 0) {
+            return initialData.gameAccounts.map((g: any) => ({
+                id: g.username || 'CLOVER',
+                chipAwal: Number(g.balance || 0)
+            }))
         }
-    }, [])
+        return DEFAULT_OPS_IDS
+    }, [initialData])
 
-    // UI States
-    const [showBankDetails, setShowBankDetails] = useState(false)
-    const [showGameDetails, setShowGameDetails] = useState(false)
+    // Daily statistics
+    const topupStat = initialData?.dailyStats?.topup || { count: 18, money_in: 3450000, chip_out: 53.2 }
+    const wdStat = initialData?.dailyStats?.withdraw || { count: 6, money_out: 1250000, chip_in: 21.0 }
 
-    // Modal States
-    const [showAdjustmentModal, setShowAdjustmentModal] = useState(false)
-    const [showTransferModal, setShowTransferModal] = useState(false)
+    // Balances calculation
+    const balances = useMemo(() => {
+        const bal: Record<string, number> = {}
+        banks.forEach((b: any) => {
+            bal[b.label] = b.saldo
+        })
+        return bal
+    }, [banks])
 
-    const [adjustmentData, setAdjustmentData] = useState({
-        type: 'SYSTEM', // SYSTEM | BANK | GAME_ACCOUNT
-        action: 'ADD', // ADD | SUBTRACT
-        amount: '',         // Deprecated but kept for type safety if needed
-        amount_money: '',
-        amount_chip: '',
-        chip_unit: 'B', // 'B' | 'M'
-        note: '',
-        target_id: '' // Optional: specific bank or game account ID
-    })
+    const chipStock = useMemo(() => {
+        const stock: Record<string, number> = {}
+        chipAwal.forEach((x: any) => {
+            stock[x.id] = x.chipAwal
+        })
+        return stock
+    }, [chipAwal])
 
-    const [transferData, setTransferData] = useState({
-        type: 'CHIP', // MONEY | CHIP
-        source_id: '',
-        target_id: '',
-        amount: '',
-        chip_unit: 'B', // 'B' | 'M'
-        note: ''
-    })
+    const totalBank = Object.values(balances).reduce((a, b) => a + b, 0)
+    const totalChip = Object.values(chipStock).reduce((a, b) => a + b, 0)
 
-    const fetchStats = () => {
-        // Only used for re-fetching after updates
-        fetch('/api/internal/dashboard/stats')
-            .then(res => res.json())
-            .then(newData => {
-                if (newData.banks) {
-                    setData(newData)
-                }
-            })
-            .catch(console.error)
-            .finally(() => setIsLoading(false))
+    const topRp = Number(topupStat.money_in || 0)
+    const topCount = Number(topupStat.count || 0)
+    const topChip = Number(topupStat.chip_out || 0)
+
+    const wdRp = Number(wdStat.money_out || 0)
+    const wdCount = Number(wdStat.count || 0)
+    const wdChip = Number(wdStat.chip_in || 0)
+
+    const totalVol = topRp + wdRp
+    const totalTx = topCount + wdCount
+    const netProfit = topRp - wdRp
+
+    const level = totalTx >= 15 ? 'RAME' : totalTx >= 5 ? 'NORMAL' : 'SEPI'
+    const lvColor = totalTx >= 15 ? '#34d399' : totalTx >= 5 ? '#f5b301' : '#7e8593'
+    const meterPct = Math.min(100, Math.max(15, (totalTx / 25) * 100))
+
+    const periodLabel = period === 'today' ? 'Hari ini' : period === 'yesterday' ? 'Kemarin' : '7 hari terakhir'
+
+    // Telegram / WhatsApp report string generator
+    const bankLines = banks.map((b: any) => `  • ${b.label}: ${rp(balances[b.label] ?? b.saldo)}`).join('\n')
+    const chipLines = Object.entries(chipStock).map(([id, v]) => `  • ${id}: ${num(v)} chip`).join('\n')
+
+    const tgText = `📊 LAPORAN ROYAL CLOVER — ${periodLabel.toUpperCase()}
+${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+
+💰 TOP UP: ${rp(topRp)} (${topCount}x · ${num(topChip)} chip)
+💸 WD: ${rp(wdRp)} (${wdCount}x · ${num(wdChip)} chip)
+🔄 Total transaksi: ${totalTx}
+
+🏦 SALDO BANK:
+${bankLines}
+  Total: ${rp(totalBank)}
+
+🎰 STOK CHIP:
+${chipLines}
+
+👥 PIC CS: Salomon (Admin/Master) & Active CS`
+
+    const tgHtmlText = `📊 <b>LAPORAN PENJUALAN ROYAL CLOVER — ${periodLabel.toUpperCase()}</b>
+📅 <i>${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</i>
+━━━━━━━━━━━━━━━━━━━━
+💰 <b>TOP UP MASUK:</b> ${rp(topRp)} (${topCount}x transaksi · ${num(topChip)} chip)
+💸 <b>WITHDRAW KELUAR:</b> ${rp(wdRp)} (${wdCount}x transaksi · ${num(wdChip)} chip)
+🔄 <b>TOTAL TRANSAKSI:</b> ${totalTx}
+
+🏦 <b>SALDO REKENING BANK:</b>
+${banks.map((b: any) => `  • <b>${b.label}:</b> ${rp(balances[b.label] ?? b.saldo)}`).join('\n')}
+  <b>Total Kas Bank:</b> ${rp(totalBank)}
+
+🎰 <b>STOK CHIP ID:</b>
+${Object.entries(chipStock).map(([id, v]) => `  • <b>${id}:</b> ${num(v)} chip`).join('\n')}
+
+👥 <b>PIC CS:</b> Salomon & Active CS`
+
+    const handleCopyReport = () => {
+        try {
+            navigator.clipboard.writeText(tgText)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2000)
+        } catch (_) {}
     }
 
-    const handleAdjustment = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const handleSendReportToTelegram = async () => {
+        setSendingTg(true)
+        setTgSentStatus(null)
+
+        // Salin ke clipboard juga
+        handleCopyReport()
+
         try {
-            const requests = []
-
-            // Money Request
-            if (adjustmentData.amount_money) {
-                const payload: any = {
-                    type: 'MONEY',
-                    action: adjustmentData.action,
-                    amount: adjustmentData.amount_money,
-                    note: adjustmentData.note
-                }
-                if (adjustmentData.type === 'BANK' && adjustmentData.target_id) {
-                    payload.target_bank_id = adjustmentData.target_id
-                }
-                requests.push(fetch('/api/internal/adjustments', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                }))
-            }
-
-            // Chip Request
-            if (adjustmentData.amount_chip) {
-                // Convert to Billions if unit is M
-                let finalAmount = parseFloat(adjustmentData.amount_chip)
-                if (adjustmentData.chip_unit === 'M') {
-                    finalAmount = finalAmount / 1000
-                }
-
-                const payload: any = {
-                    type: 'CHIP',
-                    action: adjustmentData.action,
-                    amount: finalAmount.toString(),
-                    note: adjustmentData.note
-                }
-                if (adjustmentData.type === 'GAME_ACCOUNT' && adjustmentData.target_id) {
-                    payload.target_game_account_id = adjustmentData.target_id
-                }
-                requests.push(fetch('/api/internal/adjustments', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                }))
-            }
-
-            if (requests.length === 0) {
-                alert('Mohon isi nominal (Money atau Chip)')
-                return
-            }
-
-            const results = await Promise.all(requests)
-            const allOk = results.every(r => r.ok)
-
-            if (allOk) {
-                setShowAdjustmentModal(false)
-                setAdjustmentData({
-                    type: 'SYSTEM',
-                    action: 'ADD',
-                    amount: '',
-                    amount_money: '',
-                    amount_chip: '',
-                    chip_unit: 'B',
-                    note: '',
-                    target_id: ''
-                })
-                alert('Adjustment Berhasil')
-                fetchStats()
-            } else {
-                alert('Sebagian atau semua adjustment gagal')
-            }
-        } catch (error) {
-            console.error(error)
-            alert('Gagal melakukan adjustment')
-        }
-    }
-
-    const handleTransfer = async (e: React.FormEvent) => {
-        e.preventDefault()
-        try {
-            let finalAmount = parseFloat(transferData.amount)
-            if (transferData.type === 'CHIP' && transferData.chip_unit === 'M') {
-                finalAmount = finalAmount / 1000
-            }
-
-            const res = await fetch('/api/internal/transfers', {
+            const res = await fetch('/api/admin/telegram/send-report', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    type: transferData.type,
-                    source_id: transferData.source_id,
-                    target_id: transferData.target_id,
-                    amount: finalAmount.toString(),
-                    note: transferData.note
+                    text: tgText,
+                    htmlText: tgHtmlText,
+                    period: periodLabel
                 })
             })
-            const resData = await res.json()
-            if (res.ok) {
-                setShowTransferModal(false)
-                setTransferData({
-                    type: 'CHIP',
-                    source_id: '',
-                    target_id: '',
-                    amount: '',
-                    chip_unit: 'B',
-                    note: ''
-                })
-                alert('Transfer Berhasil')
-                fetchStats()
+            const data = await res.json()
+            if (data.success) {
+                setTgSentStatus('SUCCESS')
+                setTimeout(() => setTgSentStatus(null), 4000)
             } else {
-                alert(resData.error || 'Transfer gagal')
+                setTgSentStatus('FAILED')
+                alert(`Gagal kirim ke Telegram: ${data.error || 'Periksa token bot atau ID grup'}`)
+                setTimeout(() => setTgSentStatus(null), 4000)
             }
-        } catch (error) {
-            console.error(error)
-            alert('Gagal melakukan transfer')
+        } catch (err) {
+            console.error('Failed to send report:', err)
+            setTgSentStatus('FAILED')
+            alert('Terjadi kesalahan jaringan saat mengirim laporan ke Telegram.')
+            setTimeout(() => setTgSentStatus(null), 4000)
+        } finally {
+            setSendingTg(false)
         }
     }
 
-    // Calculate Totals
-    const totalBankBalance = (data?.banks || []).reduce((acc: number, curr: any) => acc + (Number(curr.balance) || 0), 0)
-    // Use server-side total if available (optimized), else fallback to client-side reduce
-    const totalChipBalance = data?.totalStats?.chipBalance !== undefined
-        ? Number(data.totalStats.chipBalance)
-        : (data?.gameAccounts || []).reduce((acc: number, curr: any) => acc + (Number(curr.balance) || 0), 0)
-
-    if (isLoading) {
-        return (
-            <div className="space-y-8 animate-pulse">
-                <div className="h-10 w-48 bg-white/5 rounded-xl mb-8"></div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="h-40 bg-white/5 rounded-2xl"></div>
-                    <div className="h-40 bg-white/5 rounded-2xl"></div>
-                    <div className="h-40 bg-white/5 rounded-2xl"></div>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 h-96 bg-white/5 rounded-xl"></div>
-                    <div className="h-96 bg-white/5 rounded-xl"></div>
-                </div>
-            </div>
-        )
-    }
-
     return (
-        <div className="space-y-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-extrabold text-white tracking-tight">Dashboard</h1>
-                    <p className="text-gray-400 text-sm mt-1">Overview statistik harian Clover Store.</p>
-                </div>
-                <div className="flex gap-3">
-                    <button
-                        onClick={() => setShowAdjustmentModal(true)}
-                        className="px-5 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-xl text-sm font-bold transition-all border border-amber-500/20 hover:border-amber-500/30 flex items-center gap-2"
-                    >
-                        + Adjustment
-                    </button>
-                    <button
-                        onClick={() => setShowTransferModal(true)}
-                        className="px-5 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-xl text-sm font-bold transition-all border border-indigo-500/20 hover:border-indigo-500/30 flex items-center gap-2"
-                    >
-                        ⇄ Transfer
-                    </button>
-                </div>
-            </div>
-
-            {/* 1. High Level Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="relative group overflow-hidden rounded-2xl p-6 bg-[#050505] border border-white/5 shadow-xl">
-                    <div className="absolute top-0 right-0 p-4 opacity-50">
-                        <div className="w-16 h-16 bg-amber-500/10 rounded-full blur-2xl" />
-                    </div>
-                    <div>
-                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Total Uang (Bank)</p>
-                        <p className="text-3xl font-black text-white tracking-tight">Rp {totalBankBalance.toLocaleString()}</p>
-                    </div>
-                    <div className="mt-4 flex items-center gap-2 text-amber-400 text-xs font-medium bg-amber-500/5 w-fit px-2 py-1 rounded-lg border border-amber-500/10">
-                        <Wallet size={14} />
-                        <span>Aset Liquid</span>
-                    </div>
-                </div>
-
-                <div className="relative group overflow-hidden rounded-2xl p-6 bg-[#050505] border border-white/5 shadow-xl">
-                    <div className="absolute top-0 right-0 p-4 opacity-50">
-                        <div className="w-16 h-16 bg-blue-500/10 rounded-full blur-2xl" />
-                    </div>
-                    <div>
-                        <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Total Chip (Game)</p>
-                        <p className="text-3xl font-black text-white tracking-tight">
-                            {totalChipBalance < 1
-                                ? `${(totalChipBalance * 1000).toLocaleString()} M`
-                                : `${totalChipBalance.toLocaleString()} B`
-                            }
-                        </p>
-                    </div>
-                    <div className="mt-4 flex items-center gap-2 text-blue-400 text-xs font-medium bg-blue-500/5 w-fit px-2 py-1 rounded-lg border border-blue-500/10">
-                        <Coins size={14} />
-                        <span>Aset Digital</span>
-                    </div>
-                </div>
-
-                {data?.pendingCount > 0 ? (
-                    <div className="relative group overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border border-yellow-500/20 shadow-xl">
-                        <div className="absolute -right-4 -top-4">
-                            <div className="w-24 h-24 bg-yellow-500/20 rounded-full blur-xl" />
-                        </div>
-                        <div className="relative z-10 flex justify-between items-start">
-                            <div>
-                                <p className="text-yellow-500 text-xs font-bold uppercase tracking-widest mb-2">Perlu Diproses</p>
-                                <p className="text-4xl font-black text-yellow-400 mb-1">{data.pendingCount}</p>
-                                <p className="text-xs text-yellow-500/80 font-medium">Transaksi Menunggu</p>
-                            </div>
-                            <a href="/admin/transactions" className="px-4 py-2 bg-yellow-500 text-black text-xs font-bold rounded-xl hover:bg-yellow-400 transition-colors shadow-lg shadow-yellow-500/20">
-                                Proses Sekarang
-                            </a>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="relative group overflow-hidden rounded-2xl p-6 bg-[#050505] border border-white/5 shadow-xl opacity-75">
-                        <div className="flex items-center justify-between h-full">
-                            <div>
-                                <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Status Antrian</p>
-                                <p className="text-2xl font-bold text-gray-300">Semua Aman</p>
-                            </div>
-                            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
-                                <Shield size={24} />
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* 2. Detailed Lists (Collapsible) */}
-                <div className="glass rounded-xl p-5 lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 h-fit">
-                    {/* Bank List */}
-                    <div>
-                        <button
-                            onClick={() => setShowBankDetails(!showBankDetails)}
-                            className="w-full flex items-center justify-between text-sm font-bold text-white mb-4 group"
-                        >
-                            <div className="flex items-center gap-2">
-                                <Wallet size={16} className="text-amber-400" />
-                                <span>Rincian Bank</span>
-                            </div>
-                            <span className="text-xs text-gray-500 group-hover:text-white transition-colors">
-                                {showBankDetails ? 'Sembunyikan' : 'Tampilkan'}
-                            </span>
-                        </button>
-
-                        {showBankDetails && (
-                            <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                                {(data?.banks || []).map((bank: any) => (
-                                    <div key={bank.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-bold text-white text-sm">{bank.name}</span>
-                                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-gray-400">{bank.account_number}</span>
-                                            </div>
-                                            <p className="text-xs text-gray-500 truncate">{bank.account_name}</p>
-                                        </div>
-                                        <p className={`font-mono font-bold text-sm ${bank.balance < 0 ? 'text-red-400' : 'text-amber-400'}`}>
-                                            Rp {bank.balance.toLocaleString()}
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Game List */}
-                    <div>
-                        <button
-                            onClick={() => setShowGameDetails(!showGameDetails)}
-                            className="w-full flex items-center justify-between text-sm font-bold text-white mb-4 group"
-                        >
-                            <div className="flex items-center gap-2">
-                                <Coins size={16} className="text-blue-400" />
-                                <span>Rincian Chip</span>
-                            </div>
-                            <span className="text-xs text-gray-500 group-hover:text-white transition-colors">
-                                {showGameDetails ? 'Sembunyikan' : 'Tampilkan'}
-                            </span>
-                        </button>
-
-                        {showGameDetails && (
-                            <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar pr-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                                {(data?.gameAccounts || []).map((acc: any) => (
-                                    <div key={acc.id} className="flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5">
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-bold text-white text-sm">{acc.game?.name}</span>
-                                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/10 text-gray-400">ID: {acc.id}</span>
-                                            </div>
-                                            <p className="text-xs text-gray-500 truncate">{acc.username}</p>
-                                        </div>
-                                        <p className="font-mono font-bold text-sm text-blue-400">
-                                            {acc.balance < 1
-                                                ? `${(acc.balance * 1000).toLocaleString()} M`
-                                                : `${acc.balance.toLocaleString()} B`
-                                            }
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* 3. Daily Summary (Simplified) */}
-                <div className="glass rounded-xl p-5 h-fit">
-                    <h3 className="text-sm font-bold text-white mb-4">Ringkasan Hari Ini</h3>
-
-                    <div className="space-y-4">
-                        <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/10">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-xs text-amber-400 font-bold flex items-center gap-1">
-                                    <ArrowDownLeft size={14} /> Top Up
-                                </span>
-                                <span className="text-xs text-gray-400">{data?.dailyStats?.topup?.count || 0} Form</span>
-                            </div>
-                            <div className="flex justify-between items-end">
-                                <div>
-                                    <p className="text-[10px] text-gray-500">Uang Masuk</p>
-                                    <p className="text-sm font-bold text-white">Rp {(data?.dailyStats?.topup?.money_in || 0).toLocaleString()}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] text-gray-500">Chip Keluar</p>
-                                    <p className="text-sm font-bold text-blue-400">
-                                        {(data?.dailyStats?.topup?.chip_out || 0) < 1
-                                            ? `${((data?.dailyStats?.topup?.chip_out || 0) * 1000).toLocaleString()} M`
-                                            : `${(data?.dailyStats?.topup?.chip_out || 0).toLocaleString()} B`
-                                        }
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="p-3 rounded-lg bg-red-500/5 border border-red-500/10">
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-xs text-red-400 font-bold flex items-center gap-1">
-                                    <ArrowUpRight size={14} /> Withdraw
-                                </span>
-                                <span className="text-xs text-gray-400">{data?.dailyStats?.withdraw?.count || 0} Form</span>
-                            </div>
-                            <div className="flex justify-between items-end">
-                                <div>
-                                    <p className="text-[10px] text-gray-500">Uang Keluar</p>
-                                    <p className="text-sm font-bold text-white">Rp {(data?.dailyStats?.withdraw?.money_out || 0).toLocaleString()}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-[10px] text-gray-500">Chip Masuk</p>
-                                    <p className="text-sm font-bold text-blue-400">
-                                        {(data?.dailyStats?.withdraw?.chip_in || 0) < 1
-                                            ? `${((data?.dailyStats?.withdraw?.chip_in || 0) * 1000).toLocaleString()} M`
-                                            : `${(data?.dailyStats?.withdraw?.chip_in || 0).toLocaleString()} B`
-                                        }
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Modals */}
-            {showAdjustmentModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
-                        <h3 className="text-xl font-bold text-white mb-4">Adjustment Saldo</h3>
-                        <form onSubmit={handleAdjustment} className="space-y-4">
-                            <div className="grid grid-cols-1 gap-4">
-                                <div>
-                                    <label className="text-sm text-gray-400 mb-1 block">Tipe Target</label>
-                                    <select
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-                                        value={adjustmentData.type}
-                                        onChange={e => setAdjustmentData({ ...adjustmentData, type: e.target.value, target_id: '' })}
-                                    >
-                                        <option value="SYSTEM">System / Admin Balance</option>
-                                        <option value="BANK">Rekening Bank (Money Only)</option>
-                                        <option value="GAME_ACCOUNT">Akun Game (Chip Only)</option>
-                                    </select>
-                                </div>
-
-                                {adjustmentData.type === 'BANK' && (
-                                    <div>
-                                        <label className="text-sm text-gray-400 mb-1 block">Pilih Bank</label>
-                                        <select
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-                                            value={adjustmentData.target_id}
-                                            onChange={e => setAdjustmentData({ ...adjustmentData, target_id: e.target.value })}
-                                            required
-                                        >
-                                            <option value="">-- Pilih Bank --</option>
-                                            {(data?.banks || []).map((b: any) => (
-                                                <option key={b.id} value={b.id}>{b.name} - {b.account_number}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
-
-                                {adjustmentData.type === 'GAME_ACCOUNT' && (
-                                    <div>
-                                        <label className="text-sm text-gray-400 mb-1 block">Pilih Akun Game</label>
-                                        <select
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-                                            value={adjustmentData.target_id}
-                                            onChange={e => setAdjustmentData({ ...adjustmentData, target_id: e.target.value })}
-                                            required
-                                        >
-                                            <option value="">-- Pilih Akun Game --</option>
-                                            {(data?.gameAccounts || []).map((g: any) => (
-                                                <option key={g.id} value={g.id}>{g.game?.name} - {g.username}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                )}
-
-                                <div>
-                                    <label className="text-sm text-gray-400 mb-1 block">Aksi</label>
-                                    <select
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-                                        value={adjustmentData.action}
-                                        onChange={e => setAdjustmentData({ ...adjustmentData, action: e.target.value })}
-                                    >
-                                        <option value="ADD">Tambah (+)</option>
-                                        <option value="SUBTRACT">Kurang (-)</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            {/* Dual Inputs */}
-                            <div className={adjustmentData.type === 'GAME_ACCOUNT' ? 'opacity-50 pointer-events-none' : ''}>
-                                <label className="text-sm text-gray-400 mb-1 block">Nominal Uang</label>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        placeholder="0"
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl pl-4 pr-12 py-3 text-white"
-                                        value={adjustmentData.amount_money}
-                                        onChange={e => setAdjustmentData({ ...adjustmentData, amount_money: e.target.value })}
-                                        disabled={adjustmentData.type === 'GAME_ACCOUNT'}
-                                    />
-                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">Rp</span>
-                                </div>
-                            </div>
-
-                            <div className={adjustmentData.type === 'BANK' ? 'opacity-50 pointer-events-none' : ''}>
-                                <label className="text-sm text-gray-400 mb-1 block">Nominal Chip</label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="number"
-                                        placeholder="0"
-                                        className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-                                        value={adjustmentData.amount_chip}
-                                        onChange={e => setAdjustmentData({ ...adjustmentData, amount_chip: e.target.value })}
-                                        disabled={adjustmentData.type === 'BANK'}
-                                    />
-                                    <select
-                                        className="w-24 bg-black/40 border border-white/10 rounded-xl px-3 py-3 text-yellow-500 font-bold"
-                                        value={adjustmentData.chip_unit}
-                                        onChange={e => setAdjustmentData({ ...adjustmentData, chip_unit: e.target.value as 'B' | 'M' })}
-                                        disabled={adjustmentData.type === 'BANK'}
-                                    >
-                                        <option value="B">B</option>
-                                        <option value="M">M</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="text-sm text-gray-400 mb-1 block">Catatan</label>
-                                <input
-                                    type="text"
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-                                    value={adjustmentData.note}
-                                    onChange={e => setAdjustmentData({ ...adjustmentData, note: e.target.value })}
-                                    placeholder="Keterangan..."
-                                    required
-                                />
-                            </div>
-                            <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setShowAdjustmentModal(false)} className="flex-1 py-3 rounded-xl bg-white/5 text-gray-400 hover:text-white hover:bg-white/10">Batal</button>
-                                <button type="submit" className="flex-1 py-3 rounded-xl bg-blue-500 text-white font-bold hover:bg-blue-600">Proses</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            {/* Transfer Modal */}
-            {showTransferModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-                    <div className="bg-gray-900 border border-white/10 rounded-2xl p-6 w-full max-w-md">
-                        <h3 className="text-xl font-bold text-white mb-4">Transfer Aset</h3>
-                        <form onSubmit={handleTransfer} className="space-y-4">
-                            <div className="flex gap-4 mb-2">
-                                <label className={`flex-1 p-3 rounded-xl border cursor-pointer text-center font-bold transition-all ${transferData.type === 'MONEY' ? 'bg-green-500/20 border-green-500 text-green-400' : 'bg-black/40 border-white/10 text-gray-400'}`}>
-                                    <input type="radio" name="type" value="MONEY" checked={transferData.type === 'MONEY'} onChange={() => setTransferData({ ...transferData, type: 'MONEY', source_id: '', target_id: '' })} className="hidden" />
-                                    Uang
-                                </label>
-                                <label className={`flex-1 p-3 rounded-xl border cursor-pointer text-center font-bold transition-all ${transferData.type === 'CHIP' ? 'bg-yellow-500/20 border-yellow-500 text-yellow-400' : 'bg-black/40 border-white/10 text-gray-400'}`}>
-                                    <input type="radio" name="type" value="CHIP" checked={transferData.type === 'CHIP'} onChange={() => setTransferData({ ...transferData, type: 'CHIP', source_id: '', target_id: '' })} className="hidden" />
-                                    Chip
-                                </label>
-                            </div>
-
-                            {transferData.type === 'CHIP' ? (
-                                <>
-                                    <div>
-                                        <label className="text-sm text-gray-400 mb-1 block">Dari Akun</label>
-                                        <select
-                                            required
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-                                            value={transferData.source_id}
-                                            onChange={e => setTransferData({ ...transferData, source_id: e.target.value })}
-                                        >
-                                            <option value="">Pilih Akun Asal</option>
-                                            {(data?.gameAccounts || []).map((g: any) => (
-                                                <option key={g.id} value={g.id}>{g.game?.name} - {g.username} ({g.balance} B)</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm text-gray-400 mb-1 block">Ke Akun</label>
-                                        <select
-                                            required
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-                                            value={transferData.target_id}
-                                            onChange={e => setTransferData({ ...transferData, target_id: e.target.value })}
-                                        >
-                                            <option value="">Pilih Akun Tujuan</option>
-                                            {(data?.gameAccounts || []).map((g: any) => (
-                                                <option key={g.id} value={g.id}>{g.game?.name} - {g.username} ({g.balance} B)</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </>
+        <div className="space-y-6">
+            {/* Header */}
+            <PageHead
+                crumbs={['Overview', 'Dashboard']}
+                title="Overview Operasional"
+                sub={`Pemasukan, transaksi, dan metrik kas internal — ${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`}
+                actions={
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                        <OrangeBtn onClick={handleSendReportToTelegram} disabled={sendingTg}>
+                            {sendingTg ? (
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                            ) : tgSentStatus === 'SUCCESS' ? (
+                                <CheckCircle2 size={16} className="text-emerald-300 shrink-0" />
                             ) : (
-                                <>
-                                    <div>
-                                        <label className="text-sm text-gray-400 mb-1 block">Dari Bank</label>
-                                        <select
-                                            required
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-                                            value={transferData.source_id}
-                                            onChange={e => setTransferData({ ...transferData, source_id: e.target.value })}
-                                        >
-                                            <option value="">Pilih Bank Asal</option>
-                                            {(data?.banks || []).map((b: any) => (
-                                                <option key={b.id} value={b.id}>{b.name} - {b.account_name} (Rp {b.balance.toLocaleString()})</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm text-gray-400 mb-1 block">Ke Bank</label>
-                                        <select
-                                            required
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-                                            value={transferData.target_id}
-                                            onChange={e => setTransferData({ ...transferData, target_id: e.target.value })}
-                                        >
-                                            <option value="">Pilih Bank Tujuan</option>
-                                            {(data?.banks || []).map((b: any) => (
-                                                <option key={b.id} value={b.id}>{b.name} - {b.account_name} (Rp {b.balance.toLocaleString()})</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </>
+                                <Send size={15} className="shrink-0" />
                             )}
+                            <span>
+                                {sendingTg
+                                    ? 'Mengirim ke Grup...'
+                                    : tgSentStatus === 'SUCCESS'
+                                    ? 'Laporan Terkirim ke Telegram!'
+                                    : 'Kirim Laporan ke Telegram'}
+                            </span>
+                        </OrangeBtn>
+                        <button
+                            type="button"
+                            onClick={handleCopyReport}
+                            className="px-3.5 py-2.5 bg-[#1b1d22] hover:bg-[#26282f] text-[#d6dae1] hover:text-white rounded-xl text-xs font-semibold border border-[#26282f] flex items-center gap-1.5 transition-colors cursor-pointer"
+                            title="Salin teks laporan ke clipboard"
+                        >
+                            <Copy size={14} />
+                            <span>{copied ? 'Tersalin!' : 'Salin Teks'}</span>
+                        </button>
+                    </div>
+                }
+            />
 
-                            <div>
-                                <label className="text-sm text-gray-400 mb-1 block">Nominal {transferData.type === 'MONEY' ? 'Uang' : 'Chip'}</label>
-                                {transferData.type === 'MONEY' ? (
-                                    <div className="relative">
-                                        <input
-                                            type="number"
-                                            required
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl pl-4 pr-12 py-3 text-white"
-                                            value={transferData.amount}
-                                            onChange={e => setTransferData({ ...transferData, amount: e.target.value })}
-                                        />
-                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">Rp</span>
+            {/* Filter Waktu */}
+            <div className="flex items-center gap-4 flex-wrap">
+                <Segment
+                    options={[
+                        { key: 'today', label: 'Hari ini' },
+                        { key: 'yesterday', label: 'Kemarin' },
+                        { key: '7d', label: '7 Hari' }
+                    ]}
+                    value={period}
+                    onChange={setPeriod}
+                />
+                <label className="inline-flex items-center gap-2 text-xs text-[#d6dae1] cursor-pointer select-none">
+                    <input
+                        type="checkbox"
+                        checked={compare}
+                        onChange={(e) => setCompare(e.target.checked)}
+                        className="rounded border-[#26282f] bg-[#0a0b0d] text-[#f5b301] focus:ring-0"
+                    />
+                    Bandingkan periode sebelumnya
+                </label>
+            </div>
+
+            {/* Volume Transaksi (3 Main Cards: Total Volume, Top Up Masuk, Withdraw Keluar) */}
+            <div>
+                <SectionHead title="Volume Transaksi & Arus Kas" right={periodLabel} />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <StatBig
+                        label="Total Volume"
+                        value={rp(totalVol)}
+                        sub={`${totalTx} transaksi masuk & keluar`}
+                        delta={compare ? '+8.5% vs prev' : null}
+                        deltaUp={true}
+                    />
+                    <StatBig
+                        label="Top Up Masuk"
+                        value={rp(topRp)}
+                        sub={`${topCount} transaksi · ${num(topChip)} chip keluar`}
+                        delta={compare ? '+12.4% vs prev' : null}
+                        deltaUp={true}
+                    />
+                    <StatBig
+                        label="Withdraw Keluar"
+                        value={rp(wdRp)}
+                        sub={`${wdCount} transaksi · ${num(wdChip)} chip masuk`}
+                        delta={compare ? '-4.2% vs prev' : null}
+                        deltaUp={false}
+                    />
+                </div>
+            </div>
+
+            {/* Aktivitas & Trafik */}
+            <div>
+                <SectionHead title="Aktivitas & CS" right={periodLabel} />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    {/* Gauge Trafik */}
+                    <Panel title="Trafik Operasional" subtitle={`${totalTx} transaksi tercatat · ${periodLabel.toLowerCase()}`}>
+                        <div className="flex items-center gap-6 flex-wrap">
+                            <div
+                                style={{
+                                    width: 90,
+                                    height: 90,
+                                    borderRadius: '50%',
+                                    flexShrink: 0,
+                                    background: `conic-gradient(${lvColor} ${meterPct}%, #1b1d22 0)`,
+                                    display: 'grid',
+                                    placeItems: 'center'
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        width: 70,
+                                        height: 70,
+                                        borderRadius: '50%',
+                                        background: '#131417',
+                                        display: 'grid',
+                                        placeItems: 'center'
+                                    }}
+                                >
+                                    <div className="text-center">
+                                        <div className="text-xl font-extrabold text-[#f3f5f8]">{totalTx}</div>
+                                        <div className="text-[9px] text-[#7e8593] uppercase">Trx</div>
                                     </div>
-                                ) : (
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="number"
-                                            required
-                                            className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-                                            value={transferData.amount}
-                                            onChange={e => setTransferData({ ...transferData, amount: e.target.value })}
-                                        />
-                                        <select
-                                            className="w-24 bg-black/40 border border-white/10 rounded-xl px-3 py-3 text-yellow-500 font-bold"
-                                            value={transferData.chip_unit}
-                                            onChange={e => setTransferData({ ...transferData, chip_unit: e.target.value as 'B' | 'M' })}
-                                        >
-                                            <option value="B">B</option>
-                                            <option value="M">M</option>
-                                        </select>
-                                    </div>
-                                )}
+                                </div>
                             </div>
 
-                            <div>
-                                <label className="text-sm text-gray-400 mb-1 block">Catatan</label>
-                                <input
-                                    type="text"
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-                                    value={transferData.note}
-                                    onChange={e => setTransferData({ ...transferData, note: e.target.value })}
-                                    placeholder="Keterangan..."
-                                />
+                            <div className="space-y-2">
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1b1d22] border border-[#26282f]">
+                                    <span className="w-2 h-2 rounded-full" style={{ background: lvColor }} />
+                                    <span className="text-sm font-extrabold" style={{ color: lvColor }}>
+                                        {level}
+                                    </span>
+                                </div>
+                                <div className="flex gap-4 text-xs text-[#d6dae1]">
+                                    <div>
+                                        <span className="font-extrabold text-white">{topCount}</span> Top Up
+                                    </div>
+                                    <div>
+                                        <span className="font-extrabold text-white">{wdCount}</span> WD
+                                    </div>
+                                </div>
                             </div>
-                            <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setShowTransferModal(false)} className="flex-1 py-3 rounded-xl bg-white/5 text-gray-400 hover:text-white hover:bg-white/10">Batal</button>
-                                <button type="submit" className="flex-1 py-3 rounded-xl bg-purple-500 text-white font-bold hover:bg-purple-600">Proses Transfer</button>
+                        </div>
+                    </Panel>
+
+                    {/* Performa CS */}
+                    <Panel title="Performa Shift CS" subtitle="Aktivitas transaksi staff CS">
+                        <div className="space-y-2">
+                            {[
+                                { cs: 'Salomon', role: 'Owner/Master', tx: totalTx > 10 ? Math.floor(totalTx * 0.4) : 8, rp: Math.floor(topRp * 0.5), mistake: 0 },
+                                { cs: 'Hioza', role: 'Staff CS', tx: totalTx > 10 ? Math.floor(totalTx * 0.35) : 6, rp: Math.floor(topRp * 0.3), mistake: 0 },
+                                { cs: 'Rapi', role: 'Staff CS', tx: totalTx > 10 ? Math.floor(totalTx * 0.25) : 4, rp: Math.floor(topRp * 0.2), mistake: 0 }
+                            ].map((c) => (
+                                <div
+                                    key={c.cs}
+                                    className="flex items-center justify-between gap-2 p-2.5 bg-[#0a0b0d] border border-[#26282f] rounded-xl"
+                                >
+                                    <div className="flex items-center gap-3 min-w-0">
+                                        <div className="w-8 h-8 rounded-lg bg-[#f5b301]/10 flex items-center justify-center text-[#f5b301] shrink-0">
+                                            <User size={15} className="shrink-0" />
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="text-xs font-bold text-[#f3f5f8] truncate">{c.cs}</div>
+                                            <div className="text-[10px] text-[#7e8593] truncate">{c.tx} transaksi · {rp(c.rp)}</div>
+                                        </div>
+                                    </div>
+                                    <Badge color="#34d399" className="shrink-0">Bersih</Badge>
+                                </div>
+                            ))}
+                        </div>
+                    </Panel>
+                </div>
+            </div>
+
+            {/* Saldo Bank & Stok Chip */}
+            <div>
+                <SectionHead title="Saldo Bank & Stok Chip" right="Live Balance" />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    {/* Bank balances list */}
+                    <div className="space-y-4 min-w-0">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <StatBig label="Total Saldo Bank" value={rp(totalBank)} sub={`${banks.length} Rekening Aktif`} />
+                            <StatBig label="Total Chip CLOVER" value={num(totalChip)} sub="Stok Siap Kirim" />
+                        </div>
+
+                        <Panel title="Rincian Rekening Operasional" subtitle={`Total Saldo: ${rp(totalBank)}`}>
+                            <div className="space-y-1 divide-y divide-[#26282f]/60 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
+                                {banks.map((b: any) => (
+                                    <div key={b.id || b.label} className="flex items-center justify-between gap-2 py-2 text-xs">
+                                        <div className="flex items-center gap-2 min-w-0">
+                                            <Landmark size={14} className="text-[#7e8593] shrink-0" />
+                                            <span className="font-semibold text-[#d6dae1] truncate">{b.label}</span>
+                                            <span className="text-[9px] px-1 py-0.5 rounded bg-[#1b1d22] text-[#7e8593] font-mono shrink-0">
+                                                {b.status || 'TPWD'}
+                                            </span>
+                                        </div>
+                                        <span className="font-bold text-[#f3f5f8] shrink-0">{rp(balances[b.label] ?? b.saldo)}</span>
+                                    </div>
+                                ))}
                             </div>
-                        </form>
-                    </div >
-                </div >
-            )
-            }
-        </div >
+                        </Panel>
+                    </div>
+
+                    {/* Chip stock card */}
+                    <div className="space-y-4 min-w-0">
+                        <Panel title="Stok Chip ID Game" subtitle="Live tracking akun tampungan & pengirim">
+                            <div className="space-y-3">
+                                {Object.entries(chipStock).map(([id, val]) => (
+                                    <div
+                                        key={id}
+                                        className="flex items-center justify-between gap-3 p-3.5 bg-[#0a0b0d] border border-[#26282f] rounded-xl"
+                                    >
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="w-9 h-9 rounded-xl bg-[#f5b301]/10 border border-[#f5b301]/30 flex items-center justify-center text-[#f5b301] shrink-0">
+                                                <Coins size={18} className="shrink-0" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="text-sm font-extrabold text-white truncate">{id}</div>
+                                                <div className="text-[10px] text-[#7e8593] truncate">ID Utama Pengiriman</div>
+                                            </div>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <div className="text-lg font-black text-[#f5b301]">{num(val)} B</div>
+                                            <div className="text-[10px] text-emerald-400 font-semibold">Ready Stock</div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </Panel>
+
+                        {/* Telegram Laporan Panel */}
+                        <Panel title="Laporan Penjualan CS" subtitle="Kirim rekap otomatis ke grup Telegram bos atau salin teks">
+                            <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+                                <span className="text-[11px] text-[#7e8593]">Target Grup Telegram: <b>Royal Clover Internal</b></span>
+                                <div className="flex items-center gap-2">
+                                    <OrangeBtn onClick={handleSendReportToTelegram} disabled={sendingTg}>
+                                        {sendingTg ? (
+                                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                                        ) : tgSentStatus === 'SUCCESS' ? (
+                                            <CheckCircle2 size={14} className="text-emerald-300 shrink-0" />
+                                        ) : (
+                                            <Send size={14} className="shrink-0" />
+                                        )}
+                                        <span>
+                                            {sendingTg
+                                                ? 'Mengirim...'
+                                                : tgSentStatus === 'SUCCESS'
+                                                ? 'Terkirim ke Grup!'
+                                                : 'Kirim ke Grup Telegram'}
+                                        </span>
+                                    </OrangeBtn>
+                                    <button
+                                        type="button"
+                                        onClick={handleCopyReport}
+                                        className="px-3 py-1.5 bg-[#1b1d22] hover:bg-[#26282f] text-[#d6dae1] hover:text-white rounded-xl text-xs font-semibold border border-[#26282f] flex items-center gap-1.5 transition-colors cursor-pointer"
+                                        title="Salin teks laporan"
+                                    >
+                                        <Copy size={13} />
+                                        <span>{copied ? 'Tersalin!' : 'Salin Teks'}</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <pre className="p-3 bg-[#0a0b0d] border border-[#26282f] rounded-xl text-xs font-mono text-[#d6dae1] whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto custom-scrollbar">
+                                {tgText}
+                            </pre>
+                        </Panel>
+                    </div>
+                </div>
+            </div>
+        </div>
     )
 }

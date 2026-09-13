@@ -10,7 +10,15 @@ export default function FloatingChat() {
     const pathname = usePathname()
     const { config } = useConfig()
 
-    if (pathname.startsWith('/admin')) return null
+    if (
+        pathname.startsWith('/admin') ||
+        pathname === '/' ||
+        pathname.startsWith('/preview-topup') ||
+        pathname.startsWith('/topup') ||
+        pathname === '/terms' ||
+        pathname === '/privacy' ||
+        pathname === '/check-transaction'
+    ) return null
     if (!isVisible) return null
 
     const handleChat = () => {

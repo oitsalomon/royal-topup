@@ -1,11 +1,32 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Check, X, Clock, Pencil, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback, useTransition, useRef } from 'react'
+import Image from 'next/image'
+import {
+    Check,
+    X,
+    Clock,
+    Pencil,
+    ChevronLeft,
+    ChevronRight,
+    RefreshCw,
+    ImageOff,
+    ArrowUpRight,
+    ArrowDownLeft,
+    Wallet,
+    AlertCircle,
+    Trophy,
+    TrendingUp,
+    TrendingDown,
+    Search
+} from 'lucide-react'
+import DateTimePickerRange, { DateTimeRangeValue } from '@/components/admin/DateTimePickerRange'
+import { parseJakartaDateTime, getJakartaTodayRange, formatJakartaDisplay } from '@/lib/timezone'
+import type { PeriodStats } from '@/services/transactions'
 
 interface Transaction {
     id: number
+    trx_id?: string | null
     user_wa: string
     nickname: string
     user_game_id?: string
@@ -35,7 +56,14 @@ interface Transaction {
 
 interface TransactionsClientProps {
     initialTransactions: Transaction[]
-    initialPagination: { totalPages: number, page: number }
+    initialPagination: { totalPages: number; page: number; total?: number }
+    initialStats: PeriodStats
+    initialDateRange: {
+        startDateStr: string
+        startTimeStr: string
+        endDateStr: string
+        endTimeStr: string
+    }
     gameAccounts: any[]
     banks: any[]
 }
@@ -43,133 +71,52 @@ interface TransactionsClientProps {
 export default function TransactionsClient({
     initialTransactions,
     initialPagination,
+    initialStats,
+    initialDateRange,
     gameAccounts,
     banks
 }: TransactionsClientProps) {
-    const router = useRouter()
+    const [isPending, startTransition] = useTransition()
     const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions)
-    const [totalPages, setTotalPages] = useState(initialPagination.totalPages)
-    const [localGameAccounts, setLocalGameAccounts] = useState<any[]>(gameAccounts)
-    const [localBanks, setLocalBanks] = useState<any[]>(banks)
+    const [pagination, setPagination] = useState(initialPagination)
+    const [stats, setStats] = useState<PeriodStats>(initialStats)
+    const [localGameAccounts] = useState<any[]>(gameAccounts)
+    const [localBanks] = useState<any[]>(banks)
     const [loading, setLoading] = useState(false)
 
-    // RESTORED STATE
+    // Admin Session ID
     const [currentAdminId, setCurrentAdminId] = useState<number>(1)
-    const [filterDate, setFilterDate] = useState('')
-    const [filterBank, setFilterBank] = useState('all')
-    const [filterType, setFilterType] = useState('all')
-    const [searchQuery, setSearchQuery] = useState('')
-    const [localSearchQuery, setLocalSearchQuery] = useState('') // OPTIMIZATION: local search state for smooth typing
-    const [page, setPage] = useState(initialPagination.page)
 
-    // Selection
+    // A1 Date-Time Range State (Default: Today 00:00 - 23:59 WIB)
+    const [dateRange, setDateRange] = useState<DateTimeRangeValue>(initialDateRange)
+
+    // A3 Filter State
+    const [filterType, setFilterType] = useState<'all' | 'TOPUP' | 'WITHDRAW'>('all')
+    const [filterStatus, setFilterStatus] = useState<'all' | 'PENDING' | 'APPROVED' | 'DECLINED'>('all')
+    const [filterBank, setFilterBank] = useState<string>('all')
+    const [searchQuery, setSearchQuery] = useState('')
+    const [localSearchQuery, setLocalSearchQuery] = useState('')
+    const [page, setPage] = useState(initialPagination.page || 1)
+
+    // Selection & Editing
     const [selectedAccountId, setSelectedAccountId] = useState<number | ''>('')
     const [selectedBankId, setSelectedBankId] = useState<number | ''>('')
     const [previewImage, setPreviewImage] = useState<string | null>(null)
-
-    // Edit State
-    const [editingDetail, setEditingDetail] = useState<{ id: number, field: 'TARGET' | 'GAME_ID', value: string } | null>(null)
+    const [editingDetail, setEditingDetail] = useState<{ id: number; field: 'TARGET' | 'GAME_ID'; value: string } | null>(null)
     const [saving, setSaving] = useState(false)
+    const [processingId, setProcessingId] = useState<number | null>(null)
 
-    // Initial Data Fetch - REDUNDANT (Handled by SSR)
-    // useEffect(() => { ... }, [])
-
-    /*
-     * We no longer need to fetch initial data or helper data on mount.
-     * It is passed directly from the server component.
-     * We just need to load the user session.
-     */
+    // Load admin ID from localStorage
     useEffect(() => {
-        // Load User Session
         try {
             const userStr = localStorage.getItem('user')
             if (userStr) {
                 const user = JSON.parse(userStr)
                 if (user.id) setCurrentAdminId(Number(user.id))
             }
-        } catch (e) { }
+        } catch { }
     }, [])
 
-    // Ensure loading is false initially since we have data
-    // const [loading, setLoading] = useState(true) -> false
-
-
-    const fetchData = async () => {
-        setLoading(true)
-        try {
-            const params = new URLSearchParams()
-            params.append('page', page.toString())
-            params.append('limit', '20')
-            if (filterDate) params.append('date', filterDate)
-            if (filterBank !== 'all') params.append('bank_id', filterBank)
-            if (filterType !== 'all') params.append('type', filterType)
-            if (searchQuery) params.append('search', searchQuery)
-
-            const res = await fetch(`/api/transactions?${params.toString()}`)
-            const data = await res.json()
-
-            if (data && data.data) {
-                setTransactions(data.data)
-                setTotalPages(Number(data.pagination.totalPages) || 1)
-            }
-        } catch (error) {
-            console.error('Fetch error:', error)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    // Auto-refresh setiap 10s — dikurangi dari 3.5s untuk hemat bandwidth dan CPU
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const fetchSilent = async () => {
-                try {
-                    const params = new URLSearchParams()
-                    params.append('page', page.toString())
-                    params.append('limit', '20')
-                    if (filterDate) params.append('date', filterDate)
-                    if (filterBank !== 'all') params.append('bank_id', filterBank)
-                    if (filterType !== 'all') params.append('type', filterType)
-                    if (searchQuery) params.append('search', searchQuery)
-
-                    const res = await fetch(`/api/transactions?${params.toString()}`)
-                    const data = await res.json()
-
-                    if (data && data.data) {
-                        // OPTIMIZATION: Bandingkan hanya ID+status (jauh lebih murah dari JSON.stringify seluruh objek)
-                        setTransactions(prev => {
-                            const prevFingerprint = prev.map(t => `${t.id}:${t.status}`).join(',')
-                            const newFingerprint = data.data.map((t: any) => `${t.id}:${t.status}`).join(',')
-                            if (prevFingerprint === newFingerprint) return prev
-                            return data.data
-                        })
-                    }
-                } catch (e) { console.error('Silent refresh failed', e) }
-            }
-            fetchSilent()
-        }, 10000) // 10s — cukup responsif, hemat network 3x
-        return () => clearInterval(interval)
-    }, [filterDate, filterBank, filterType, page, searchQuery])
-
-    // Fetch on filter change
-    useEffect(() => {
-        // Only fetch if it's not the initial mount conditions (SSR handles that)
-        if (page === 1 && !searchQuery && !filterDate && filterBank === 'all' && filterType === 'all') return
-        fetchData()
-    }, [page, filterDate, filterBank, filterType, searchQuery])
-
-    // OPTIMIZATION: Debounce Search Effect Separately
-    // This allows typing to be extremely smooth without triggering 20-item map re-renders on every keystroke
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setSearchQuery(localSearchQuery)
-            if (localSearchQuery !== searchQuery) setPage(1)
-        }, 500) // 500ms delay
-
-        return () => clearTimeout(timer)
-    }, [localSearchQuery])
-
-    // RESTORED HELPER FUNCTIONS
     const getAuthHeaders = () => {
         const headers: any = { 'Content-Type': 'application/json' }
         try {
@@ -178,10 +125,137 @@ export default function TransactionsClient({
                 const user = JSON.parse(userStr)
                 if (user.id) headers['X-User-Id'] = String(user.id)
             }
-        } catch (e) { }
+        } catch { }
         return headers
     }
 
+    // Fetch transactions with server-side pagination and SQL aggregation
+    const fetchData = useCallback(async (customPage?: number, skipStats?: boolean) => {
+        setLoading(true)
+        try {
+            const targetPage = customPage !== undefined ? customPage : page
+            const params = new URLSearchParams()
+            params.append('page', targetPage.toString())
+            params.append('limit', '20')
+
+            // Date range converted to UTC ISO using IANA Asia/Jakarta parser
+            const startUTC = parseJakartaDateTime(dateRange.startDateStr, dateRange.startTimeStr)
+            const endUTC = new Date(parseJakartaDateTime(dateRange.endDateStr, dateRange.endTimeStr).getTime() + 59999)
+            params.append('startDate', startUTC.toISOString())
+            params.append('endDate', endUTC.toISOString())
+
+            if (filterType !== 'all') params.append('type', filterType)
+            if (filterStatus !== 'all') params.append('status', filterStatus)
+            if (filterBank !== 'all') params.append('bank_id', filterBank)
+            if (searchQuery.trim()) params.append('search', searchQuery.trim())
+            if (skipStats) params.append('includeStats', 'false')
+
+            const res = await fetch(`/api/transactions?${params.toString()}`, {
+                headers: getAuthHeaders()
+            })
+            const result = await res.json()
+
+            if (result && result.data) {
+                setTransactions(result.data)
+                setPagination(result.pagination || { totalPages: 1, page: targetPage, total: 0 })
+                if (result.stats) {
+                    setStats(result.stats)
+                }
+            }
+        } catch (err) {
+            console.error('Fetch transactions error:', err)
+        } finally {
+            setLoading(false)
+        }
+    }, [page, dateRange, filterType, filterStatus, filterBank, searchQuery])
+
+    // Trigger fetch on filter / page changes (avoiding duplicate on initial SSR mount)
+    const [isMounted, setIsMounted] = useState(false)
+    const prevFilterRef = useRef({ dateRange, filterType, filterStatus, filterBank, searchQuery })
+
+    useEffect(() => {
+        if (!isMounted) {
+            setIsMounted(true)
+            return
+        }
+
+        const filtersChanged = (
+            prevFilterRef.current.dateRange.startDateStr !== dateRange.startDateStr ||
+            prevFilterRef.current.dateRange.startTimeStr !== dateRange.startTimeStr ||
+            prevFilterRef.current.dateRange.endDateStr !== dateRange.endDateStr ||
+            prevFilterRef.current.dateRange.endTimeStr !== dateRange.endTimeStr ||
+            prevFilterRef.current.filterType !== filterType ||
+            prevFilterRef.current.filterStatus !== filterStatus ||
+            prevFilterRef.current.filterBank !== filterBank ||
+            prevFilterRef.current.searchQuery !== searchQuery
+        )
+
+        prevFilterRef.current = { dateRange, filterType, filterStatus, filterBank, searchQuery }
+
+        // If only page changed (pure pagination), skip heavy stats recalculation
+        fetchData(page, !filtersChanged)
+    }, [page, dateRange, filterType, filterStatus, filterBank, searchQuery])
+
+    // Debounce search query input
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (localSearchQuery !== searchQuery) {
+                setSearchQuery(localSearchQuery)
+                setPage(1)
+            }
+        }, 400)
+        return () => clearTimeout(timer)
+    }, [localSearchQuery, searchQuery])
+
+    // Auto-refresh silent polling every 15 seconds
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const silentRefresh = async () => {
+                try {
+                    const params = new URLSearchParams()
+                    params.append('page', page.toString())
+                    params.append('limit', '20')
+                    const startUTC = parseJakartaDateTime(dateRange.startDateStr, dateRange.startTimeStr)
+                    const endUTC = new Date(parseJakartaDateTime(dateRange.endDateStr, dateRange.endTimeStr).getTime() + 59999)
+                    params.append('startDate', startUTC.toISOString())
+                    params.append('endDate', endUTC.toISOString())
+                    if (filterType !== 'all') params.append('type', filterType)
+                    if (filterStatus !== 'all') params.append('status', filterStatus)
+                    if (filterBank !== 'all') params.append('bank_id', filterBank)
+                    if (searchQuery.trim()) params.append('search', searchQuery.trim())
+
+                    const res = await fetch(`/api/transactions?${params.toString()}`, {
+                        headers: getAuthHeaders()
+                    })
+                    const result = await res.json()
+                    if (result?.data) {
+                        setTransactions(prev => {
+                            const prevFingerprint = prev.map(t => `${t.id}:${t.status}`).join(',')
+                            const nextFingerprint = result.data.map((t: any) => `${t.id}:${t.status}`).join(',')
+                            return prevFingerprint === nextFingerprint ? prev : result.data
+                        })
+                        if (result.stats) setStats(result.stats)
+                    }
+                } catch { }
+            }
+            silentRefresh()
+        }, 15000)
+        return () => clearInterval(interval)
+    }, [page, dateRange, filterType, filterStatus, filterBank, searchQuery])
+
+    // Reset date range handler
+    const handleResetDate = () => {
+        const today = getJakartaTodayRange()
+        setDateRange({
+            startDateStr: today.startDateStr,
+            startTimeStr: today.startTimeStr,
+            endDateStr: today.endDateStr,
+            endTimeStr: today.endTimeStr
+        })
+        setPage(1)
+    }
+
+    // Editable fields handler
     const handleStartEdit = (id: number, field: 'TARGET' | 'GAME_ID', currentValue: string) => {
         setEditingDetail({ id, field, value: currentValue || '' })
     }
@@ -200,23 +274,29 @@ export default function TransactionsClient({
                 body: JSON.stringify(body)
             })
             if (res.ok) {
-                fetchData() // Refresh data
+                setTransactions(prev => prev.map(t => {
+                    if (t.id !== editingDetail.id) return t
+                    return {
+                        ...t,
+                        target_payment_details: editingDetail.field === 'TARGET' ? editingDetail.value : t.target_payment_details,
+                        user_game_id: editingDetail.field === 'GAME_ID' ? editingDetail.value : t.user_game_id
+                    }
+                }))
                 setEditingDetail(null)
             } else {
                 alert('Gagal update data')
             }
         } catch (e) {
             console.error(e)
-            alert('Error updating')
+            alert('Terjadi kesalahan saat menyimpan data.')
         } finally {
             setSaving(false)
         }
     }
 
-    const [processingId, setProcessingId] = useState<number | null>(null)
-
+    // C3: Optimistic Approval / Decline Action
     const handleApproval = async (id: number, stage: number, action: 'APPROVE' | 'DECLINE', type: 'TOPUP' | 'WITHDRAW') => {
-        if (processingId) return // Prevent double actions
+        if (processingId) return
 
         if (action === 'APPROVE') {
             if (type === 'TOPUP' && stage === 2 && !selectedAccountId) {
@@ -231,6 +311,29 @@ export default function TransactionsClient({
                 alert('Pilih Bank (Panel Bank) pengirim uang!')
                 return
             }
+        }
+
+        // Snapshot previous state for rollback on error
+        const previousTransactions = [...transactions]
+        const previousStats = { ...stats }
+
+        // Compute optimistic status
+        let nextStatus = 'PENDING'
+        if (action === 'DECLINE') {
+            nextStatus = 'DECLINED'
+        } else if (type === 'TOPUP') {
+            nextStatus = stage === 1 ? 'APPROVED_1' : 'APPROVED_2'
+        } else if (type === 'WITHDRAW') {
+            nextStatus = stage === 1 ? 'APPROVED_1' : 'APPROVED_2'
+        }
+
+        // Optimistic UI Update (Immediate feedback)
+        setTransactions(prev => prev.map(t => (t.id === id ? { ...t, status: nextStatus } : t)))
+        if (action === 'APPROVE' || action === 'DECLINE') {
+            setStats(prev => ({
+                ...prev,
+                pendingCount: Math.max(0, prev.pendingCount - (stage === 1 ? 1 : 0))
+            }))
         }
 
         setProcessingId(id)
@@ -250,62 +353,317 @@ export default function TransactionsClient({
 
             if (res.status === 409) {
                 const data = await res.json()
-                alert(`⚠️ KONFLIK: ${data.error}`)
-                fetchData() // Immediate refresh
+                alert(`KONFLIK: ${data.error}`)
+                setTransactions(previousTransactions)
+                setStats(previousStats)
+                fetchData()
                 return
             }
 
-            if (res.ok) {
-                await fetchData()
+            if (!res.ok) {
+                const data = await res.json()
+                alert(`Gagal: ${data.error || 'Terjadi kesalahan sistem'}`)
+                // Rollback optimistic update
+                setTransactions(previousTransactions)
+                setStats(previousStats)
+            } else {
+                // Success: clear inputs and refresh stats in background
                 setSelectedAccountId('')
                 setSelectedBankId('')
-            } else {
-                const data = await res.json()
-                alert(`Gagal: ${data.error || 'Unknown error'}`)
+                fetchData()
             }
         } catch (error) {
-            console.error(error)
-            alert('Kesalahan koneksi')
+            console.error('Approval request failed:', error)
+            alert('Kesalahan koneksi ke server.')
+            setTransactions(previousTransactions)
+            setStats(previousStats)
         } finally {
             setProcessingId(null)
         }
     }
 
+    // Helper: Level visual styling
+    const getLevelData = (level?: string) => {
+        switch (level) {
+            case 'DIAMOND':
+                return {
+                    badgeClass: 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30',
+                    borderClass: 'border-l-cyan-500'
+                }
+            case 'PLATINUM':
+                return {
+                    badgeClass: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30',
+                    borderClass: 'border-l-fuchsia-500'
+                }
+            case 'GOLD':
+                return {
+                    badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+                    borderClass: 'border-l-amber-500'
+                }
+            case 'SILVER':
+                return {
+                    badgeClass: 'bg-slate-400/15 text-slate-300 border-slate-400/30',
+                    borderClass: 'border-l-slate-400'
+                }
+            case 'BRONZE':
+                return {
+                    badgeClass: 'bg-orange-600/15 text-orange-400 border-orange-600/30',
+                    borderClass: 'border-l-orange-500'
+                }
+            default:
+                return {
+                    badgeClass: 'bg-white/5 text-gray-400 border-white/10',
+                    borderClass: 'border-l-white/20'
+                }
+        }
+    }
+
     return (
-        <div>
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+        <div className="space-y-6">
+            {/* Header Title & Quick Actions */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-3">
-                        <h1 className="text-3xl font-bold text-white">Manajemen Transaksi</h1>
-                        <button 
-                            onClick={fetchData} 
+                        <h1 className="text-2xl font-bold text-[#f3ecd8] tracking-tight">Manajemen Transaksi</h1>
+                        <button
+                            onClick={() => fetchData()}
                             disabled={loading}
-                            className={`p-2 bg-amber-500/10 text-amber-500 rounded-lg hover:bg-amber-500/20 transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            className={`p-2 bg-[#c5a369]/10 text-[#c5a369] rounded-lg hover:bg-[#c5a369]/20 transition-colors ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                             title="Refresh Data"
                         >
-                            <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
+                            <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                         </button>
                     </div>
-                    <p className="text-gray-400 mt-1">Kelola Top Up dan Withdraw (Showing Page {page} of {totalPages})</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                        Kelola verifikasi Top Up & Withdraw secara real-time. Menampilkan halaman {pagination.page} dari {pagination.totalPages || 1} ({pagination.total || 0} transaksi)
+                    </p>
                 </div>
 
-                {/* Filters */}
-                <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
-                    <input
-                        type="text"
-                        placeholder="Cari ID/Nickname/WA..."
-                        className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white text-sm outline-none focus:border-cyan-500 min-w-[200px]"
-                        value={localSearchQuery}
-                        onChange={(e) => setLocalSearchQuery(e.target.value)}
+                {/* A1: Calendar Date-Time Range Picker */}
+                <div className="w-full lg:w-auto flex items-center justify-start lg:justify-end">
+                    <DateTimePickerRange
+                        value={dateRange}
+                        onChange={(newRange) => {
+                            setDateRange(newRange)
+                            setPage(1)
+                        }}
+                        onReset={handleResetDate}
                     />
-                    <input
-                        type="date"
-                        className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white text-sm outline-none focus:border-blue-500"
-                        value={filterDate}
-                        onChange={(e) => { setFilterDate(e.target.value); setPage(1); }}
-                    />
+                </div>
+            </div>
+
+            {/* A2: Active Period Stat Bar */}
+            <div className="bg-[#17171a] border border-[#c5a369]/25 rounded-2xl p-4 shadow-xl">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pb-4 border-b border-white/5">
+                    {/* Total Top Up */}
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-xs text-emerald-400">
+                            <ArrowUpRight size={15} strokeWidth={2} />
+                            <span className="font-semibold uppercase tracking-wider text-[11px]">Total Top Up</span>
+                        </div>
+                        <div className="font-bold text-white text-base">
+                            {stats.totalTopupChip >= 1
+                                ? `${stats.totalTopupChip.toFixed(1)} B`
+                                : `${(stats.totalTopupChip * 1000).toLocaleString('id-ID')} M`
+                            }
+                        </div>
+                        <div className="text-[11px] text-gray-400 font-mono">
+                            Rp {stats.totalTopupNom.toLocaleString('id-ID')}
+                        </div>
+                    </div>
+
+                    {/* Total Withdraw */}
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-xs text-rose-400">
+                            <ArrowDownLeft size={15} strokeWidth={2} />
+                            <span className="font-semibold uppercase tracking-wider text-[11px]">Total Withdraw</span>
+                        </div>
+                        <div className="font-bold text-white text-base">
+                            {stats.totalWdChip >= 1
+                                ? `${stats.totalWdChip.toFixed(1)} B`
+                                : `${(stats.totalWdChip * 1000).toLocaleString('id-ID')} M`
+                            }
+                        </div>
+                        <div className="text-[11px] text-gray-400 font-mono">
+                            Rp {stats.totalWdNom.toLocaleString('id-ID')}
+                        </div>
+                    </div>
+
+                    {/* Net (Top Up - WD) */}
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-xs text-[#c5a369]">
+                            <Wallet size={15} strokeWidth={2} />
+                            <span className="font-semibold uppercase tracking-wider text-[11px]">Net Periode</span>
+                        </div>
+                        <div className={`font-bold text-base ${stats.netChip >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {stats.netChip >= 0 ? '+' : ''}{stats.netChip.toFixed(1)} B
+                        </div>
+                        <div className="text-[11px] text-gray-400 font-mono">
+                            {stats.netNom >= 0 ? '+' : ''}Rp {stats.netNom.toLocaleString('id-ID')}
+                        </div>
+                    </div>
+
+                    {/* Pending Count */}
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-xs text-amber-400">
+                            <AlertCircle size={15} strokeWidth={2} />
+                            <span className="font-semibold uppercase tracking-wider text-[11px]">Pending Approval</span>
+                        </div>
+                        <div className="font-bold text-white text-base">
+                            {stats.pendingCount}{' '}
+                            <span className="text-xs font-normal text-gray-400">transaksi</span>
+                        </div>
+                        <div className="text-[11px]">
+                            {stats.pendingCount > 0 ? (
+                                <span className="text-amber-400/90 font-medium">Perlu tindakan segera</span>
+                            ) : (
+                                <span className="text-gray-500">Semua telah diproses</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Top 3 Spenders & Top 3 WD */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-3 text-xs">
+                    {/* Top 3 Top Up */}
+                    <div className="flex items-start gap-2 text-gray-300">
+                        <Trophy size={15} className="text-[#c5a369] shrink-0 mt-0.5" strokeWidth={1.8} />
+                        <div className="min-w-0">
+                            <span className="font-semibold text-[#f3ecd8] mr-1.5">Top Spender:</span>
+                            {stats.top3Topup && stats.top3Topup.length > 0 ? (
+                                <span className="text-gray-400 font-mono">
+                                    {stats.top3Topup.map((t, i) => (
+                                        <span key={i} className="inline-block mr-2">
+                                            <strong className="text-white">{t.user_game_id}</strong> (Rp {t.amount_money.toLocaleString('id-ID')})
+                                            {i < stats.top3Topup.length - 1 ? ' ·' : ''}
+                                        </span>
+                                    ))}
+                                </span>
+                            ) : (
+                                <span className="text-gray-500 italic">Belum ada transaksi</span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Top 3 WD */}
+                    <div className="flex items-start gap-2 text-gray-300">
+                        <TrendingDown size={15} className="text-rose-400 shrink-0 mt-0.5" strokeWidth={1.8} />
+                        <div className="min-w-0">
+                            <span className="font-semibold text-[#f3ecd8] mr-1.5">Top WD:</span>
+                            {stats.top3Wd && stats.top3Wd.length > 0 ? (
+                                <span className="text-gray-400 font-mono">
+                                    {stats.top3Wd.map((w, i) => (
+                                        <span key={i} className="inline-block mr-2">
+                                            <strong className="text-white">{w.user_game_id}</strong> (Rp {w.amount_money.toLocaleString('id-ID')})
+                                            {i < stats.top3Wd.length - 1 ? ' ·' : ''}
+                                        </span>
+                                    ))}
+                                </span>
+                            ) : (
+                                <span className="text-gray-500 italic">Belum ada transaksi</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* A3: Filter Tabs (Type & Status) & Search */}
+            <div className="space-y-3">
+                {/* Row 1: Type Tabs & Status Tabs */}
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    {/* Tipe Tabs */}
+                    <div className="flex items-center p-1 bg-[#17171a] border border-white/10 rounded-xl">
+                        <button
+                            onClick={() => { setFilterType('all'); setPage(1); }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                filterType === 'all'
+                                    ? 'bg-[#c5a369] text-black font-semibold shadow-sm'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            Semua Tipe
+                        </button>
+                        <button
+                            onClick={() => { setFilterType('TOPUP'); setPage(1); }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                filterType === 'TOPUP'
+                                    ? 'bg-[#c5a369] text-black font-semibold shadow-sm'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            Top Up
+                        </button>
+                        <button
+                            onClick={() => { setFilterType('WITHDRAW'); setPage(1); }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                filterType === 'WITHDRAW'
+                                    ? 'bg-[#c5a369] text-black font-semibold shadow-sm'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            Withdraw
+                        </button>
+                    </div>
+
+                    {/* Status Tabs */}
+                    <div className="flex items-center p-1 bg-[#17171a] border border-white/10 rounded-xl">
+                        <button
+                            onClick={() => { setFilterStatus('all'); setPage(1); }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                filterStatus === 'all'
+                                    ? 'bg-white/15 text-white font-semibold'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            Semua Status
+                        </button>
+                        <button
+                            onClick={() => { setFilterStatus('PENDING'); setPage(1); }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                filterStatus === 'PENDING'
+                                    ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/30'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            Pending
+                        </button>
+                        <button
+                            onClick={() => { setFilterStatus('APPROVED'); setPage(1); }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                filterStatus === 'APPROVED'
+                                    ? 'bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            Approved
+                        </button>
+                        <button
+                            onClick={() => { setFilterStatus('DECLINED'); setPage(1); }}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                filterStatus === 'DECLINED'
+                                    ? 'bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/30'
+                                    : 'text-gray-400 hover:text-white'
+                            }`}
+                        >
+                            Declined
+                        </button>
+                    </div>
+                </div>
+
+                {/* Row 2: Auto-detect Search & Bank Selector */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1">
+                        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                        <input
+                            type="text"
+                            placeholder="Cari Royal ID / No WA / Nickname..."
+                            className="w-full bg-[#17171a] border border-white/10 rounded-xl pl-9 pr-4 py-2 text-white text-xs outline-none focus:border-[#c5a369] transition-colors"
+                            value={localSearchQuery}
+                            onChange={(e) => setLocalSearchQuery(e.target.value)}
+                        />
+                    </div>
                     <select
-                        className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white text-sm outline-none focus:border-blue-500"
+                        className="bg-[#17171a] border border-white/10 rounded-xl px-3 py-2 text-white text-xs outline-none focus:border-[#c5a369] transition-colors min-w-[160px]"
                         value={filterBank}
                         onChange={(e) => { setFilterBank(e.target.value); setPage(1); }}
                     >
@@ -314,319 +672,296 @@ export default function TransactionsClient({
                             <option key={b.id} value={b.id}>{b.name}</option>
                         ))}
                     </select>
-                    <select
-                        className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-white text-sm outline-none focus:border-blue-500"
-                        value={filterType}
-                        onChange={(e) => { setFilterType(e.target.value); setPage(1); }}
-                    >
-                        <option value="all">Semua Tipe</option>
-                        <option value="TOPUP">Top Up</option>
-                        <option value="WITHDRAW">Withdraw</option>
-                    </select>
                 </div>
             </div>
 
-            <div className="space-y-4">
+            {/* A4: Transaction Rows (Compact 2-Row Format, ~90-100px height, 12px padding) */}
+            <div className="space-y-2.5">
                 {loading && (
-                    <div className="space-y-4 animate-pulse">
+                    <div className="space-y-2 animate-pulse">
                         {[1, 2, 3, 4, 5].map(i => (
-                            <div key={i} className="bg-white/5 h-20 rounded-xl border border-white/5"></div>
+                            <div key={i} className="bg-[#17171a] h-24 rounded-xl border border-white/5"></div>
                         ))}
                     </div>
                 )}
 
                 {!loading && transactions.map((tx) => {
-                    // HELPER: Stronger Visual Styles for Levels
-                    const getLevelData = (level?: string) => {
-                        switch (level) {
-                            case 'DIAMOND':
-                                return {
-                                    cardClass: 'bg-[#050505] border-cyan-500/30 hover:border-cyan-500/60 shadow-[inset_2px_0_0_0_rgba(34,211,238,1)]',
-                                    badgeClass: 'bg-cyan-500/10 text-cyan-400 font-bold border border-cyan-500/20',
-                                    textClass: 'text-cyan-300'
-                                }
-                            case 'PLATINUM':
-                                return {
-                                    cardClass: 'bg-[#050505] border-fuchsia-500/30 hover:border-fuchsia-500/60 shadow-[inset_2px_0_0_0_rgba(217,70,239,1)]',
-                                    badgeClass: 'bg-fuchsia-500/10 text-fuchsia-400 font-bold border border-fuchsia-500/20',
-                                    textClass: 'text-fuchsia-400'
-                                }
-                            case 'GOLD':
-                                return {
-                                    cardClass: 'bg-[#050505] border-amber-500/30 hover:border-amber-500/60 shadow-[inset_2px_0_0_0_rgba(251,191,36,1)]',
-                                    badgeClass: 'bg-amber-500/10 text-amber-400 font-bold border border-amber-500/20',
-                                    textClass: 'text-amber-400'
-                                }
-                            case 'SILVER':
-                                return {
-                                    cardClass: 'bg-[#050505] border-slate-400/30 hover:border-slate-400/60 shadow-[inset_2px_0_0_0_rgba(148,163,184,1)]',
-                                    badgeClass: 'bg-slate-500/10 text-slate-300 font-bold border border-slate-500/20',
-                                    textClass: 'text-slate-300'
-                                }
-                            case 'BRONZE':
-                                return {
-                                    cardClass: 'bg-[#050505] border-orange-600/30 hover:border-orange-600/60 shadow-[inset_2px_0_0_0_rgba(234,88,12,1)]',
-                                    badgeClass: 'bg-orange-600/10 text-orange-500 font-bold border border-orange-600/20',
-                                    textClass: 'text-orange-500'
-                                }
-                            default: // GUEST / MEMBER
-                                return {
-                                    cardClass: 'bg-[#0a0a0a] border-white/5 hover:border-white/10 shadow-[inset_2px_0_0_0_rgba(255,255,255,0.1)]',
-                                    badgeClass: 'bg-white/5 text-gray-400 border border-white/10',
-                                    textClass: 'text-gray-400'
-                                }
-                        }
-                    }
-
                     const style = getLevelData(tx.user?.level)
+                    const isPendingAction = tx.status === 'PENDING' || tx.status === 'APPROVED_1'
 
                     return (
-                        <div key={tx.id} className={`rounded-xl overflow-hidden transition-colors group border relative ${style.cardClass}`}>
-                            <div className="p-3 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center relative z-10">
-                                {/* 1. Identity (Col Span 3) */}
-                                <div className="lg:col-span-3 min-w-0 pl-2">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="font-mono text-[10px] text-gray-500">#{tx.id}</span>
-                                        <div className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${tx.type === 'TOPUP' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
-                                            {tx.type}
-                                        </div>
-                                        <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                                            <Clock size={10} />
-                                            {new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </span>
-                                    </div>
-                                    <h3 className="text-white font-bold text-sm truncate flex items-center gap-2">
-                                        {tx.nickname}
-                                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${style.badgeClass} flex items-center justify-center min-w-[50px]`}>
-                                            {tx.user?.level || 'GUEST'}
-                                        </span>
-                                    </h3>
-                                    <p className={`text-xs truncate font-medium ${style.textClass} mt-0.5`}>{tx.game?.name}</p>
+                        <div
+                            key={tx.id}
+                            className={`bg-[#17171a] border border-white/10 hover:border-[#c5a369]/40 rounded-xl p-3 transition-colors border-l-4 ${style.borderClass}`}
+                        >
+                            {/* Row 1: Identitas, Status, Jam, Nickname, Level (whitespace-nowrap) */}
+                            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-white/5 text-xs whitespace-nowrap">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-mono text-gray-500 font-bold">#{tx.id}</span>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border ${
+                                        tx.type === 'TOPUP'
+                                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+                                            : 'bg-rose-500/15 text-rose-400 border-rose-500/25'
+                                    }`}>
+                                        {tx.type}
+                                    </span>
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                                        tx.status === 'PENDING'
+                                            ? 'bg-amber-500/15 text-amber-400 border-amber-500/25'
+                                            : tx.status.includes('APPROVED')
+                                                ? 'bg-blue-500/15 text-blue-400 border-blue-500/25'
+                                                : 'bg-rose-500/15 text-rose-400 border-rose-500/25'
+                                    }`}>
+                                        {tx.status.replace('_', ' ')}
+                                    </span>
+                                    <span className="text-[11px] text-gray-400 flex items-center gap-1 font-mono">
+                                        <Clock size={11} className="text-gray-500" />
+                                        {formatJakartaDisplay(tx.createdAt)}
+                                    </span>
                                 </div>
 
-                                {/* 2. User & Game ID (Col Span 2) */}
-                                <div className="lg:col-span-2 min-w-0 space-y-1">
-                                    {/* Editable Game ID */}
-                                    <div className="flex items-center gap-1 text-xs">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-white font-semibold text-xs truncate max-w-[160px]">
+                                        {tx.nickname}
+                                    </span>
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${style.badgeClass}`}>
+                                        {tx.user?.level || 'GUEST'}
+                                    </span>
+                                    <span className="text-[11px] text-gray-400 font-medium">
+                                        {tx.game?.name}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Row 2: Royal ID, Single WA, Amount Chip, Amount Rp, Target/Method, Proof Image, Action Buttons */}
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center pt-2 text-xs">
+                                {/* Royal ID & Single WA (Col 3) */}
+                                <div className="md:col-span-3 min-w-0 space-y-1">
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-[11px] text-gray-400">ID:</span>
                                         {editingDetail?.id === tx.id && editingDetail.field === 'GAME_ID' ? (
-                                            <div className="flex items-center gap-1 w-full">
+                                            <div className="flex items-center gap-1">
                                                 <input
-                                                    className="bg-black/50 border border-white/20 rounded px-1 py-0.5 text-[10px] text-white w-full"
+                                                    className="bg-black border border-white/20 rounded px-1.5 py-0.5 text-xs text-white w-28"
                                                     value={editingDetail.value}
                                                     onChange={e => setEditingDetail({ ...editingDetail, value: e.target.value })}
                                                 />
-                                                <button onClick={handleSaveEdit} className="text-green-400"><Check size={12} /></button>
+                                                <button onClick={handleSaveEdit} disabled={saving} className="text-emerald-400">
+                                                    <Check size={13} />
+                                                </button>
                                             </div>
                                         ) : (
-                                            <div className="flex items-center gap-1 group/edit w-full">
-                                                <span className="font-mono text-gray-300 bg-white/5 px-1 py-0.5 rounded text-[10px] truncate">{tx.user_game_id || '-'}</span>
+                                            <div className="flex items-center gap-1 group/edit">
+                                                <span className="font-mono text-white bg-white/5 px-1.5 py-0.5 rounded text-xs font-semibold">
+                                                    {tx.user_game_id || '-'}
+                                                </span>
                                                 {tx.status === 'PENDING' && (
-                                                    <button onClick={() => handleStartEdit(tx.id, 'GAME_ID', tx.user_game_id || '')} className="text-gray-600 hover:text-white opacity-0 group-hover/edit:opacity-100 transition-opacity">
-                                                        <Pencil size={10} />
+                                                    <button
+                                                        onClick={() => handleStartEdit(tx.id, 'GAME_ID', tx.user_game_id || '')}
+                                                        className="text-gray-500 hover:text-white opacity-0 group-hover/edit:opacity-100 transition-opacity"
+                                                        title="Edit Game ID"
+                                                    >
+                                                        <Pencil size={11} />
                                                     </button>
                                                 )}
                                             </div>
                                         )}
                                     </div>
-                                    <div className="text-[10px] text-gray-500 font-mono truncate">{tx.user_wa}</div>
-
-                                    {/* Bank Info for Logged User (Compact) */}
-                                    {tx.user?.bank_name && (
-                                        <div className="text-[9px] text-gray-400 truncate border-t border-white/5 pt-1 mt-1">
-                                            <span className="text-cyan-500">{tx.user.bank_name}</span> • {tx.user.account_number}
-                                        </div>
-                                    )}
+                                    {/* Single WhatsApp display */}
+                                    <div className="text-[11px] text-gray-400 font-mono truncate">
+                                        WA: <span className="text-gray-300">{tx.user_wa}</span>
+                                    </div>
                                 </div>
 
-                                {/* 3. Value & Method (Col Span 3) */}
-                                <div className="lg:col-span-3 min-w-0 grid grid-cols-2 gap-2 border-l border-white/5 pl-4">
+                                {/* Nominal Chip & Rupiah (Col 3) */}
+                                <div className="md:col-span-3 min-w-0 flex items-center justify-between md:justify-start md:gap-4 border-l border-white/5 pl-2">
                                     <div>
-                                        <p className="text-[9px] text-gray-500 uppercase">Chip</p>
-                                        <p className="font-bold text-yellow-500 text-sm">
+                                        <p className="text-[10px] text-gray-400 uppercase tracking-wider">Chip</p>
+                                        <p className="font-bold text-[#c5a369] text-xs">
                                             {tx.amount_chip < 1
-                                                ? `${(tx.amount_chip * 1000).toLocaleString()} M`
-                                                : `${tx.amount_chip.toLocaleString()} B`
+                                                ? `${(tx.amount_chip * 1000).toLocaleString('id-ID')} M`
+                                                : `${tx.amount_chip.toLocaleString('id-ID')} B`
                                             }
                                         </p>
                                     </div>
                                     <div>
-                                        <p className="text-[9px] text-gray-500 uppercase">Harga</p>
-                                        <p className="font-bold text-white text-sm">Rp {tx.amount_money.toLocaleString()}</p>
-                                    </div>
-                                    <div className="col-span-2 pt-1 mt-1">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[9px] text-gray-500">{tx.type === 'TOPUP' ? 'Metode:' : 'Tujuan:'}</span>
-                                            <span className="text-[10px] text-cyan-400 font-medium truncate">
-                                                {tx.type === 'TOPUP' ? (tx.paymentMethod?.name || '-') : (tx.withdrawMethod?.name || '-')}
-                                            </span>
-                                        </div>
-                                        {/* WD Target Details */}
-                                        {tx.type === 'WITHDRAW' && (
-                                            <div className="mt-0.5">
-                                                {editingDetail?.id === tx.id && editingDetail.field === 'TARGET' ? (
-                                                    <div className="flex items-center gap-1">
-                                                        <input
-                                                            className="bg-black/50 border border-white/20 rounded px-1 py-0.5 text-[10px] text-white w-full"
-                                                            value={editingDetail.value}
-                                                            onChange={e => setEditingDetail({ ...editingDetail, value: e.target.value })}
-                                                        />
-                                                        <button onClick={handleSaveEdit} className="text-green-400"><Check size={12} /></button>
-                                                    </div>
-                                                ) : (
-                                                    <div className="flex items-center gap-1 group/edit-target">
-                                                        <span className="text-[10px] text-gray-400 block break-words truncate max-w-[150px]">{tx.target_payment_details || '-'}</span>
-                                                        {tx.status === 'PENDING' && (
-                                                            <button onClick={() => handleStartEdit(tx.id, 'TARGET', tx.target_payment_details || '')} className="text-gray-600 hover:text-white opacity-0 group-hover/edit-target:opacity-100 transition-opacity">
-                                                                <Pencil size={10} />
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
+                                        <p className="text-[10px] text-gray-400 uppercase tracking-wider">Nominal</p>
+                                        <p className="font-bold text-white text-xs font-mono">
+                                            Rp {tx.amount_money.toLocaleString('id-ID')}
+                                        </p>
                                     </div>
                                 </div>
 
-                                {/* 4. Proof & Status (Col Span 2) */}
-                                <div className="lg:col-span-2 flex flex-col items-center justify-center gap-2">
+                                {/* Payment Method / Tujuan WD (Col 2) */}
+                                <div className="md:col-span-2 min-w-0 border-l border-white/5 pl-2">
+                                    <p className="text-[10px] text-gray-400 uppercase tracking-wider">
+                                        {tx.type === 'TOPUP' ? 'Metode' : 'Tujuan WD'}
+                                    </p>
+                                    <p className="text-xs text-cyan-300 font-medium truncate">
+                                        {tx.type === 'TOPUP' ? (tx.paymentMethod?.name || '-') : (tx.withdrawMethod?.name || '-')}
+                                    </p>
+                                    {tx.type === 'WITHDRAW' && tx.target_payment_details && (
+                                        <p className="text-[10px] text-gray-400 font-mono truncate mt-0.5">
+                                            {tx.target_payment_details}
+                                        </p>
+                                    )}
+                                </div>
+
+                                {/* Proof Image (Col 1) - Lucide ImageOff if no img */}
+                                <div className="md:col-span-1 flex items-center justify-center">
                                     {tx.proof_image ? (
                                         tx.proof_image === 'MANUAL_ENTRY' ? (
-                                            <div className="w-10 h-10 bg-cyan-900/20 rounded flex items-center justify-center text-cyan-500 border border-cyan-500/20">
+                                            <div className="w-8 h-8 bg-cyan-900/20 rounded flex items-center justify-center text-cyan-400 border border-cyan-500/20" title="Manual Entry">
                                                 <Check size={14} />
                                             </div>
                                         ) : (
-                                            <div onClick={() => setPreviewImage(tx.proof_image)} className="group/img cursor-pointer relative">
-                                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                                <img src={tx.proof_image} alt="Bukti" className="w-10 h-10 object-cover rounded border border-white/10 hover:scale-125 transition-transform origin-center z-10" />
+                                            <div
+                                                onClick={() => setPreviewImage(tx.proof_image)}
+                                                className="cursor-pointer relative group"
+                                                title="Klik untuk perbesar bukti"
+                                            >
+                                                <Image
+                                                    src={tx.proof_image}
+                                                    alt="Bukti"
+                                                    width={32}
+                                                    height={32}
+                                                    className="w-8 h-8 object-cover rounded border border-white/10 group-hover:scale-110 transition-transform"
+                                                    unoptimized
+                                                />
                                             </div>
                                         )
                                     ) : (
-                                        <div className="w-10 h-10 bg-white/5 rounded flex items-center justify-center text-[8px] text-gray-600">No Img</div>
+                                        <div className="w-8 h-8 rounded flex items-center justify-center bg-white/5 text-white/20 border border-white/5" title="Tidak ada bukti foto">
+                                            <ImageOff size={16} strokeWidth={1.5} />
+                                        </div>
                                     )}
-                                    <div className={`px-2 py-0.5 rounded text-[9px] font-bold border ${tx.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
-                                        tx.status.includes('APPROVED') ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                                            'bg-red-500/10 text-red-400 border-red-500/20'
-                                        }`}>
-                                        {tx.status.replace('_', ' ')}
-                                    </div>
                                 </div>
 
-                                {/* 5. Actions (Col Span 2) */}
-                                <div className="lg:col-span-2 text-right">
+                                {/* Action Buttons (Col 3) */}
+                                <div className="md:col-span-3 flex items-center justify-end gap-1.5">
                                     {tx.status === 'DECLINED' || tx.status === 'APPROVED_2' ? (
-                                        <div className="flex justify-end">
-                                            <span className="text-[10px] font-medium text-emerald-500 border border-emerald-500/20 bg-emerald-500/5 px-2 py-1 rounded-full flex items-center gap-1">
-                                                <Check size={10} /> Selesai
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            {/* ACTION LOGIC (Compact) */}
-                                            {tx.type === 'TOPUP' && (
+                                        <span className="text-[11px] font-medium text-emerald-400 border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 rounded-lg flex items-center gap-1">
+                                            <Check size={12} /> Selesai
+                                        </span>
+                                    ) : isPendingAction ? (
+                                        <div className="flex items-center gap-1.5 w-full justify-end">
+                                            {/* Stage 1: TOPUP PENDING */}
+                                            {tx.type === 'TOPUP' && tx.status === 'PENDING' && (
                                                 <>
-                                                    {tx.status === 'PENDING' && (
-                                                        <div className="flex gap-1 justify-end">
-                                                            <button
-                                                                disabled={processingId === tx.id}
-                                                                onClick={() => handleApproval(tx.id, 1, 'APPROVE', 'TOPUP')}
-                                                                className="px-3 bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded text-[10px] font-bold disabled:opacity-50"
-                                                            >
-                                                                {processingId === tx.id ? 'Loading...' : 'Terima'}
-                                                            </button>
-                                                            <button
-                                                                disabled={processingId === tx.id}
-                                                                onClick={() => handleApproval(tx.id, 1, 'DECLINE', 'TOPUP')}
-                                                                className="px-3 bg-white/5 hover:bg-red-500/20 text-red-400 py-1.5 rounded text-[10px] disabled:opacity-50"
-                                                            >
-                                                                Tolak
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                    {tx.status === 'APPROVED_1' && (
-                                                        <div className="space-y-1">
-                                                            <select
-                                                                className="w-full bg-black/40 border border-white/10 rounded p-1 text-[10px] text-white outline-none"
-                                                                value={selectedAccountId}
-                                                                onChange={(e) => setSelectedAccountId(e.target.value ? Number(e.target.value) : '')}
-                                                            >
-                                                                <option value="">Pilih ID...</option>
-                                                                {localGameAccounts.map(acc => (
-                                                                    <option key={acc.id} value={acc.id} className="text-black">
-                                                                        {acc.username}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                            <div className="flex gap-1 justify-end">
-                                                                <button disabled={processingId === tx.id} onClick={() => handleApproval(tx.id, 2, 'APPROVE', 'TOPUP')} className="px-3 bg-blue-600 hover:bg-blue-500 text-white py-1.5 rounded text-[10px] font-bold disabled:opacity-50">
-                                                                    {processingId === tx.id ? 'Sending...' : 'Kirim'}
-                                                                </button>
-                                                                <button disabled={processingId === tx.id} onClick={() => handleApproval(tx.id, 2, 'DECLINE', 'TOPUP')} className="px-3 bg-white/5 hover:bg-red-500/20 text-red-400 py-1.5 rounded text-[10px] disabled:opacity-50">Batal</button>
-                                                            </div>
-                                                        </div>
-                                                    )}
+                                                    <button
+                                                        disabled={processingId === tx.id}
+                                                        onClick={() => handleApproval(tx.id, 1, 'APPROVE', 'TOPUP')}
+                                                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold disabled:opacity-50 transition-colors"
+                                                    >
+                                                        {processingId === tx.id ? '...' : 'Terima'}
+                                                    </button>
+                                                    <button
+                                                        disabled={processingId === tx.id}
+                                                        onClick={() => handleApproval(tx.id, 1, 'DECLINE', 'TOPUP')}
+                                                        className="px-2.5 py-1 bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 rounded text-xs font-semibold disabled:opacity-50 transition-colors"
+                                                    >
+                                                        Tolak
+                                                    </button>
                                                 </>
                                             )}
 
-                                            {tx.type === 'WITHDRAW' && (
-                                                <>
-                                                    {tx.status === 'PENDING' && (
-                                                        <div className="space-y-1">
-                                                            <select
-                                                                className="w-full bg-black/40 border border-white/10 rounded p-1 text-[10px] text-white outline-none"
-                                                                value={selectedAccountId}
-                                                                onChange={(e) => setSelectedAccountId(e.target.value ? Number(e.target.value) : '')}
-                                                            >
-                                                                <option value="">Pilih ID...</option>
-                                                                {localGameAccounts.map(acc => (
-                                                                    <option key={acc.id} value={acc.id} className="text-black">
-                                                                        {acc.username}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                            <div className="flex gap-1 justify-end">
-                                                                <button
-                                                                    disabled={processingId === tx.id}
-                                                                    onClick={() => handleApproval(tx.id, 1, 'APPROVE', 'WITHDRAW')}
-                                                                    className="px-3 bg-emerald-600 hover:bg-emerald-500 text-white py-1.5 rounded text-[10px] font-bold disabled:opacity-50"
-                                                                >
-                                                                    {processingId === tx.id ? 'Loading...' : 'Terima'}
-                                                                </button>
-                                                                <button
-                                                                    disabled={processingId === tx.id}
-                                                                    onClick={() => handleApproval(tx.id, 1, 'DECLINE', 'WITHDRAW')}
-                                                                    className="px-3 bg-white/5 hover:bg-red-500/20 text-red-400 py-1.5 rounded text-[10px] disabled:opacity-50"
-                                                                >
-                                                                    Tolak
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {tx.status === 'APPROVED_1' && (
-                                                        <div className="space-y-1">
-                                                            <select
-                                                                className="w-full bg-black/40 border border-white/10 rounded p-1 text-[10px] text-white outline-none"
-                                                                value={selectedBankId}
-                                                                onChange={(e) => setSelectedBankId(e.target.value ? Number(e.target.value) : '')}
-                                                            >
-                                                                <option value="">Pilih Bank...</option>
-                                                                {localBanks.map(bank => (
-                                                                    <option key={bank.id} value={bank.id} className="text-black">
-                                                                        {bank.name}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
-                                                            <div className="flex gap-1 justify-end">
-                                                                <button disabled={processingId === tx.id} onClick={() => handleApproval(tx.id, 2, 'APPROVE', 'WITHDRAW')} className="px-3 bg-blue-600 hover:bg-blue-500 text-white py-1.5 rounded text-[10px] font-bold disabled:opacity-50">
-                                                                    {processingId === tx.id ? 'Sending...' : 'Transfer'}
-                                                                </button>
-                                                                <button disabled={processingId === tx.id} onClick={() => handleApproval(tx.id, 2, 'DECLINE', 'WITHDRAW')} className="px-3 bg-white/5 hover:bg-red-500/20 text-red-400 py-1.5 rounded text-[10px] disabled:opacity-50">Batal</button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </>
+                                            {/* Stage 2: TOPUP APPROVED_1 */}
+                                            {tx.type === 'TOPUP' && tx.status === 'APPROVED_1' && (
+                                                <div className="flex items-center gap-1">
+                                                    <select
+                                                        className="bg-black border border-white/20 rounded px-1.5 py-1 text-[11px] text-white outline-none max-w-[110px]"
+                                                        value={selectedAccountId}
+                                                        onChange={(e) => setSelectedAccountId(e.target.value ? Number(e.target.value) : '')}
+                                                    >
+                                                        <option value="">Panel ID...</option>
+                                                        {localGameAccounts.map(acc => (
+                                                            <option key={acc.id} value={acc.id} className="text-black">
+                                                                {acc.username}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <button
+                                                        disabled={processingId === tx.id}
+                                                        onClick={() => handleApproval(tx.id, 2, 'APPROVE', 'TOPUP')}
+                                                        className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-semibold disabled:opacity-50 transition-colors"
+                                                    >
+                                                        Kirim
+                                                    </button>
+                                                    <button
+                                                        disabled={processingId === tx.id}
+                                                        onClick={() => handleApproval(tx.id, 2, 'DECLINE', 'TOPUP')}
+                                                        className="px-2 py-1 bg-white/5 hover:bg-rose-500/20 text-rose-400 rounded text-xs disabled:opacity-50"
+                                                    >
+                                                        Batal
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* Stage 1: WITHDRAW PENDING */}
+                                            {tx.type === 'WITHDRAW' && tx.status === 'PENDING' && (
+                                                <div className="flex items-center gap-1">
+                                                    <select
+                                                        className="bg-black border border-white/20 rounded px-1.5 py-1 text-[11px] text-white outline-none max-w-[110px]"
+                                                        value={selectedAccountId}
+                                                        onChange={(e) => setSelectedAccountId(e.target.value ? Number(e.target.value) : '')}
+                                                    >
+                                                        <option value="">Panel ID...</option>
+                                                        {localGameAccounts.map(acc => (
+                                                            <option key={acc.id} value={acc.id} className="text-black">
+                                                                {acc.username}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <button
+                                                        disabled={processingId === tx.id}
+                                                        onClick={() => handleApproval(tx.id, 1, 'APPROVE', 'WITHDRAW')}
+                                                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold disabled:opacity-50 transition-colors"
+                                                    >
+                                                        Terima
+                                                    </button>
+                                                    <button
+                                                        disabled={processingId === tx.id}
+                                                        onClick={() => handleApproval(tx.id, 1, 'DECLINE', 'WITHDRAW')}
+                                                        className="px-2 py-1 bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 rounded text-xs disabled:opacity-50"
+                                                    >
+                                                        Tolak
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* Stage 2: WITHDRAW APPROVED_1 */}
+                                            {tx.type === 'WITHDRAW' && tx.status === 'APPROVED_1' && (
+                                                <div className="flex items-center gap-1">
+                                                    <select
+                                                        className="bg-black border border-white/20 rounded px-1.5 py-1 text-[11px] text-white outline-none max-w-[110px]"
+                                                        value={selectedBankId}
+                                                        onChange={(e) => setSelectedBankId(e.target.value ? Number(e.target.value) : '')}
+                                                    >
+                                                        <option value="">Bank...</option>
+                                                        {localBanks.map(bank => (
+                                                            <option key={bank.id} value={bank.id} className="text-black">
+                                                                {bank.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <button
+                                                        disabled={processingId === tx.id}
+                                                        onClick={() => handleApproval(tx.id, 2, 'APPROVE', 'WITHDRAW')}
+                                                        className="px-2.5 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-semibold disabled:opacity-50 transition-colors"
+                                                    >
+                                                        Transfer
+                                                    </button>
+                                                    <button
+                                                        disabled={processingId === tx.id}
+                                                        onClick={() => handleApproval(tx.id, 2, 'DECLINE', 'WITHDRAW')}
+                                                        className="px-2 py-1 bg-white/5 hover:bg-rose-500/20 text-rose-400 rounded text-xs disabled:opacity-50"
+                                                    >
+                                                        Batal
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
-                                    )}
+                                    ) : null}
                                 </div>
                             </div>
                         </div>
@@ -634,53 +969,59 @@ export default function TransactionsClient({
                 })}
 
                 {!loading && transactions.length === 0 && (
-                    <div className="text-center text-gray-500 py-20 bg-white/5 rounded-3xl border border-white/5 border-dashed">
-                        <p>{searchQuery ? 'Tidak ada transaksi yang cocok.' : 'Belum ada transaksi saat ini.'}</p>
+                    <div className="text-center text-gray-500 py-16 bg-[#17171a] rounded-2xl border border-white/5 border-dashed">
+                        <p className="text-sm">
+                            {searchQuery ? 'Tidak ada transaksi yang cocok dengan pencarian.' : 'Tidak ada transaksi pada periode yang dipilih.'}
+                        </p>
                     </div>
                 )}
             </div>
 
             {/* Pagination Controls */}
-            {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-4 mt-8 pb-8">
+            {pagination.totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 pt-4 pb-8">
                     <button
-                        disabled={page === 1}
+                        disabled={page <= 1}
                         onClick={() => setPage(p => Math.max(1, p - 1))}
-                        className="p-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-white/5 transition-all text-white"
+                        className="p-2 rounded-lg bg-[#17171a] border border-white/10 hover:border-[#c5a369]/50 disabled:opacity-30 transition-colors text-white"
+                        title="Halaman Sebelumnya"
                     >
-                        <ChevronLeft size={24} />
+                        <ChevronLeft size={18} />
                     </button>
-                    <span className="text-white font-mono text-sm px-4">
-                        Page {page} of {totalPages}
+                    <span className="text-gray-300 font-mono text-xs px-3">
+                        Halaman {page} dari {pagination.totalPages}
                     </span>
                     <button
-                        disabled={page === totalPages}
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        className="p-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-white/5 transition-all text-white"
+                        disabled={page >= pagination.totalPages}
+                        onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                        className="p-2 rounded-lg bg-[#17171a] border border-white/10 hover:border-[#c5a369]/50 disabled:opacity-30 transition-colors text-white"
+                        title="Halaman Selanjutnya"
                     >
-                        <ChevronRight size={24} />
+                        <ChevronRight size={18} />
                     </button>
                 </div>
             )}
 
-            {/* Image Preview Modal */}
+            {/* Proof Image Preview Modal */}
             {previewImage && (
                 <div
-                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in"
+                    className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm"
                     onClick={() => setPreviewImage(null)}
                 >
-                    <div className="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                    <div className="relative max-w-3xl max-h-[85vh] w-full h-full flex items-center justify-center">
+                        <Image
                             src={previewImage}
-                            alt="Bukti Full"
-                            className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                            alt="Bukti Transfer"
+                            width={700}
+                            height={700}
+                            className="max-w-full max-h-full object-contain rounded-xl shadow-2xl border border-white/10"
+                            unoptimized
                         />
                         <button
-                            className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+                            className="absolute top-2 right-2 p-2 bg-black/60 hover:bg-black/90 text-white rounded-full transition-colors"
                             onClick={() => setPreviewImage(null)}
                         >
-                            <X size={24} />
+                            <X size={20} />
                         </button>
                     </div>
                 </div>

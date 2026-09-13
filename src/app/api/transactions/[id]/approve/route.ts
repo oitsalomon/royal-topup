@@ -2,11 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { updateMemberStats, awardLoyaltyPoints } from '@/services/member'
 import { processReferralBonus, reverseReferralBonus } from '@/services/referral'
-
-const getUserId = (req: Request) => {
-    const id = req.headers.get('X-User-Id')
-    return id ? Number(id) : null
-}
+import { getAdminSessionFromRequest } from '@/lib/auth'
 
 export async function POST(
     request: Request,
@@ -17,10 +13,13 @@ export async function POST(
         const body = await request.json()
         const { stage, action, game_account_id, bank_id } = body // stage: 1 or 2, action: APPROVE or DECLINE
 
-        // Priority: Header ID -> Body ID -> 1 (System/Fallback)
-        let userId = getUserId(request)
-        if (!userId && body.admin_id) userId = Number(body.admin_id)
-        if (!userId) userId = 1
+        const adminSession = await getAdminSessionFromRequest(request)
+        if (!adminSession) {
+            return NextResponse.json({
+                error: 'Unauthorized: Hanya admin terotentikasi yang berwenang menyetujui transaksi.'
+            }, { status: 401 })
+        }
+        const userId = adminSession.id
 
         const transaction = await prisma.transaction.findUnique({
             where: { id: Number(id) }
@@ -102,13 +101,16 @@ export async function POST(
                 }
             })
 
+            const forwardedFor = request.headers.get('x-forwarded-for')
+            const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : (request.headers.get('x-real-ip') || '127.0.0.1')
+
             // Log Activity for both APPROVE and DECLINE
             await tx.activityLog.create({
                 data: {
                     user_id: userId,
                     action: action === 'APPROVE' ? 'APPROVE_TX' : 'DECLINE_TX',
-                    details: `Transaction #${id} ${transaction.type} Stage ${stage} ${action === 'APPROVE' ? 'Approved' : 'Declined'}`,
-                    ip_address: '127.0.0.1'
+                    details: `Transaction #${id} (TRX: ${transaction.trx_id || '-'}) ${transaction.type} Stage ${stage} ${action === 'APPROVE' ? 'Approved' : 'Declined'} | Rp ${transaction.amount_money.toLocaleString('id-ID')} | Chip: ${transaction.amount_chip}M by ${adminSession.username}`,
+                    ip_address: clientIp
                 }
             })
 

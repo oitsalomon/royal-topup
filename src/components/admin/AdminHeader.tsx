@@ -1,7 +1,6 @@
 'use client'
 
-import { Bell, Menu, Search } from 'lucide-react'
-
+import { Bell, Menu, Crown } from 'lucide-react'
 
 interface AdminHeaderProps {
     onMenuClick: () => void
@@ -9,39 +8,31 @@ interface AdminHeaderProps {
 
 export default function AdminHeader({ onMenuClick }: AdminHeaderProps) {
     return (
-        <header className="sticky top-0 z-30 flex items-center justify-between px-6 py-4 bg-[#0a0f1c]/80 backdrop-blur-md border-b border-white/5">
-            {/* Left: Mobile Toggle & Title */}
-            <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 py-3.5 bg-[#131417] border-b border-[#26282f] shrink-0">
+            {/* Left: Mobile/Tablet Toggle & Title */}
+            <div className="flex items-center gap-3">
                 <button
+                    type="button"
                     onClick={onMenuClick}
-                    className="md:hidden p-2 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 transition-colors"
+                    className="lg:hidden p-2 rounded-xl bg-[#1b1d22] border border-[#26282f] text-gray-300 hover:bg-[#26282f] hover:text-white transition-colors shrink-0"
+                    aria-label="Open navigation menu"
                 >
-                    <Menu size={20} />
+                    <Menu size={18} />
                 </button>
-                <div className="md:hidden font-bold text-white text-lg tracking-wide">
-                    CLOVER <span className="text-amber-500 text-xs align-top">ADMIN</span>
-                </div>
-
-                {/* Desktop Search (Optional Filler) */}
-                <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-black/20 border border-white/5 rounded-full text-gray-400 text-sm w-64 focus-within:border-amber-500/30 transition-colors">
-                    <Search size={16} />
-                    <input
-                        type="text"
-                        placeholder="Search..."
-                        className="bg-transparent border-none outline-none text-white w-full placeholder:text-gray-600"
-                    />
+                <div className="lg:hidden flex items-center gap-2 font-extrabold text-white text-base tracking-wide">
+                    <div className="w-7 h-7 rounded-lg bg-[#f5b301]/10 border border-[#f5b301]/30 flex items-center justify-center text-[#f5b301] shrink-0">
+                        <Crown size={15} />
+                    </div>
+                    <span>Royal Clover</span>
                 </div>
             </div>
 
             {/* Right: Actions */}
-            <div className="flex items-center gap-4">
-                <button className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
-                    <Bell size={20} />
-                </button>
-
-                {/* Profile Placeholder (Optional) */}
-                <div className="w-8 h-8 rounded-full bg-amber-600/20 border border-amber-500/30 flex items-center justify-center text-xs font-bold text-amber-400">
-                    AD
+            <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[#1b1d22] border border-[#26282f] text-xs">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                    <span className="text-[#f3f5f8] font-bold hidden sm:inline">Salomon</span>
+                    <span className="text-[10px] text-[#f5b301] font-extrabold uppercase">Master</span>
                 </div>
             </div>
         </header>

@@ -53,7 +53,8 @@ export async function getGames(activeOnly: boolean = false) {
         return games
     } catch (error) {
         console.error('Error fetching games:', error)
-        throw new Error('Failed to fetch games')
+        // Return empty array instead of throwing — prevents homepage crash if DB is down
+        return []
     }
 }
 

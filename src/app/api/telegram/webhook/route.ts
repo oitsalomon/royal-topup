@@ -10,6 +10,15 @@ import { processReferralBonus, reverseReferralBonus } from '@/services/referral'
 
 export async function POST(req: NextRequest) {
   try {
+    // Verifikasi Telegram Webhook Secret jika dikonfigurasi
+    const secretToken = process.env.TELEGRAM_WEBHOOK_SECRET
+    if (secretToken) {
+      const headerToken = req.headers.get('x-telegram-bot-api-secret-token')
+      if (headerToken !== secretToken) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
+    }
+
     const body = await req.json()
 
     // Hanya proses callback_query (tombol ditekan)

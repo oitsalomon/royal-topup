@@ -1,24 +1,85 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
-import { LayoutDashboard, Receipt, FileText, LogOut, Settings, Shield, Wallet, Coins, User, Users, Gamepad2, Package, TrendingUp, Gift } from 'lucide-react'
+import { useState } from 'react'
+import {
+    LayoutDashboard, User, ArrowLeftRight, FileText, SlidersHorizontal,
+    Landmark, ArrowDownToLine, Receipt, Crown, ScrollText, Wallet,
+    Gamepad2, Package, Settings, Shield, LogOut,
+    ChevronDown, X
+} from 'lucide-react'
 
 interface SidebarProps {
     isOpen: boolean
     onClose: () => void
 }
 
+interface NavSection {
+    title: string | null
+    master?: boolean
+    items: {
+        href: string
+        label: string
+        icon: any
+        badge?: string
+    }[]
+}
+
+const NAV_SECTIONS: NavSection[] = [
+    {
+        title: null,
+        items: [
+            { href: '/admin/dashboard', label: 'Overview', icon: LayoutDashboard },
+            { href: '/admin/members', label: 'Member CRM', icon: User, badge: '1.5K' },
+        ]
+    },
+    {
+        title: 'Transaksi',
+        items: [
+            { href: '/admin/transactions', label: 'Top Up / WD', icon: ArrowLeftRight },
+            { href: '/admin/manual-transaction', label: 'Input Cepat', icon: FileText },
+            { href: '/admin/adjustments', label: 'Adjustment', icon: SlidersHorizontal },
+        ]
+    },
+    {
+        title: 'Keuangan & Kas',
+        items: [
+            { href: '/admin/banks', label: 'Bank & Chip', icon: Landmark },
+            { href: '/admin/transfers', label: 'Transfer Bank', icon: ArrowDownToLine },
+            { href: '/admin/biaya', label: 'Biaya Operasional', icon: Receipt },
+            { href: '/admin/dcbos', label: 'DC Bos (Setoran)', icon: Crown },
+            { href: '/admin/rekap', label: 'Rekap Arus Kas', icon: ScrollText },
+        ]
+    },
+    {
+        title: 'Privat (Master)',
+        master: true,
+        items: [
+            { href: '/admin/bosreport', label: 'Laporan Bos', icon: LayoutDashboard },
+            { href: '/admin/payroll', label: 'Gaji & Kasbon', icon: Wallet },
+        ]
+    },
+    {
+        title: 'Katalog Web Toko',
+        items: [
+            { href: '/admin/packages', label: 'Manajemen Paket', icon: Package },
+            { href: '/admin/games', label: 'Kelola Game', icon: Gamepad2 },
+            { href: '/admin/staff', label: 'Staff & CS', icon: Shield },
+            { href: '/admin/logs', label: 'Log Aktivitas', icon: FileText },
+            { href: '/admin/settings', label: 'Pengaturan', icon: Settings },
+        ]
+    }
+]
+
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const router = useRouter()
     const pathname = usePathname()
+    const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
 
-    // ... handleLogout and links array remain same ...
-
-    // Close sidebar on route change (mobile)
-    // We can't easily do useEffect here without adding it validly. 
-    // Let's assume parent handles close or we add simple logic.
+    const toggleSection = (title: string) => {
+        setCollapsed(prev => ({ ...prev, [title]: !prev[title] }))
+    }
 
     const handleLogout = () => {
         if (confirm('Apakah anda yakin ingin logout?')) {
@@ -27,105 +88,122 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         }
     }
 
-    const links = [
-        { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { href: '/admin/transactions', label: 'Transaksi', icon: Receipt },
-        { href: '/admin/manual-transaction', label: 'Input Manual', icon: FileText },
-        { href: '/admin/games', label: 'Kelola Game', icon: Gamepad2 },
-        { href: '/admin/rtp', label: 'Manajemen RTP', icon: TrendingUp },
-        { href: '/admin/packages', label: 'Manajemen Paket', icon: Package },
-        { href: '/admin/promos', label: 'Kelola Promo', icon: Gift },
-        { href: '/admin/banks', label: 'Panel Bank', icon: Wallet },
-        { href: '/admin/withdraw-methods', label: 'Tujuan Withdraw', icon: Receipt },
-        { href: '/admin/game-accounts', label: 'Panel ID', icon: Coins },
-        { href: '/admin/members', label: 'Member / User', icon: User },
-        { href: '/admin/referrals', label: 'Monitoring Referral', icon: Users }, // New Link
-        { href: '/admin/referral-withdrawals', label: 'Withdraw Referral', icon: Wallet }, // New Dedicated Page
-        { href: '/admin/staff', label: 'Staff', icon: Shield },
-        { href: '/admin/adjustments', label: 'Riwayat Adjustment', icon: Coins },
-        { href: '/admin/transfers', label: 'Riwayat Transfer', icon: TrendingUp },
-        { href: '/admin/logs', label: 'Log Aktivitas', icon: FileText },
-        { href: '/admin/settings', label: 'Pengaturan', icon: Settings },
-    ]
-
     return (
         <>
-            {/* Mobile Overlay — solid bg, tidak perlu blur */}
+            {/* Mobile / Small Screen Overlay */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/80 z-30 md:hidden"
+                    className="fixed inset-0 bg-black/80 z-40 lg:hidden backdrop-blur-sm transition-opacity duration-200"
                     onClick={onClose}
                 />
             )}
 
-            {/* Sidebar Container — solid background replaces backdrop-blur-xl */}
+            {/* Sidebar Container: w-64 shrink-0, fixed below lg, static on lg */}
             <aside className={`
-                fixed inset-y-0 left-0 z-40 w-72 bg-[#0a0f1c] border-r border-white/10
+                fixed inset-y-0 left-0 z-50 w-64 shrink-0 bg-[#131417] border-r border-[#26282f]
                 transform transition-transform duration-300 ease-in-out
-                md:translate-x-0 md:static md:h-screen md:flex md:flex-col
+                lg:translate-x-0 lg:static lg:h-screen lg:flex lg:flex-col
                 ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-                shadow-2xl
+                shadow-2xl select-none
             `}>
-                <div className="p-6 flex flex-col h-full overflow-hidden">
-                    <div className="mb-8 flex items-center justify-between px-2">
-                        <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-lg shadow-amber-900/30">
-                            <Image
-                                src="/images/clover-logo.png"
-                                alt="Clover Logo"
-                                width={32}
-                                height={32}
-                                className="object-contain"
-                                priority
-                            />
+                <div className="p-4 flex flex-col h-full overflow-hidden">
+                    {/* Header Brand */}
+                    <div className="mb-4 flex items-center justify-between px-2 pb-3 border-b border-[#26282f] shrink-0">
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl bg-[#f5b301]/10 border border-[#f5b301]/30 flex items-center justify-center text-[#f5b301] shadow-lg shadow-[#f5b301]/5 shrink-0">
+                                <Crown size={20} />
                             </div>
-                            <div>
-                                <h1 className="text-xl font-bold text-white tracking-wide font-outfit">CLOVER</h1>
-                                <p className="text-[10px] text-amber-400 font-bold tracking-widest uppercase">
-                                    Admin v2.3
+                            <div className="min-w-0">
+                                <h1 className="text-base font-extrabold text-[#f3f5f8] tracking-tight truncate">Royal Clover</h1>
+                                <p className="text-[10px] font-bold text-[#f5b301] uppercase tracking-wider">
+                                    Ops Console
                                 </p>
                             </div>
                         </div>
-                        {/* Mobile Close Button - Explicit X */}
                         <button
+                            type="button"
                             onClick={onClose}
-                            className="md:hidden p-2 rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                            className="lg:hidden p-1.5 rounded-lg bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            <X size={18} />
                         </button>
                     </div>
 
-                    <nav className="flex-1 space-y-1.5 overflow-y-auto custom-scrollbar pr-2">
-                        {links.map((link) => {
-                            const Icon = link.icon
-                            const isActive = pathname.startsWith(link.href)
+                    {/* Navigation Links */}
+                    <nav className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar">
+                        {NAV_SECTIONS.map((sec, idx) => {
+                            const isClosed = sec.title ? collapsed[sec.title] : false
+
                             return (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    prefetch={false}
-                                    onClick={() => onClose()} // Close on click (mobile)
-                                    className={`flex items-center gap-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${isActive
-                                        ? 'bg-gradient-to-r from-amber-900/40 to-amber-900/20 text-amber-400 border border-amber-500/20 shadow-lg shadow-amber-900/10'
-                                        : 'text-gray-300 hover:bg-white/5 hover:text-white'
-                                        }`}
-                                >
-                                    <Icon size={20} className={isActive ? 'text-amber-400' : 'text-gray-500 group-hover:text-amber-300'} />
-                                    <span className={`text-sm font-medium tracking-wide ${isActive ? 'font-bold' : ''}`}>{link.label}</span>
-                                </Link>
+                                <div key={idx} className="space-y-1">
+                                    {sec.title && (
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleSection(sec.title!)}
+                                            className="w-full flex items-center justify-between px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-[#7e8593] hover:text-[#f3f5f8] transition-colors"
+                                        >
+                                            <span className="truncate">{sec.title}</span>
+                                            <ChevronDown
+                                                size={13}
+                                                className={`shrink-0 transition-transform duration-200 ${isClosed ? '-rotate-90' : ''}`}
+                                            />
+                                        </button>
+                                    )}
+
+                                    {!isClosed && (
+                                        <div className="space-y-0.5">
+                                            {sec.items.map((item) => {
+                                                const Icon = item.icon
+                                                const isActive = pathname === item.href || (item.href !== '/admin/dashboard' && pathname.startsWith(item.href))
+
+                                                return (
+                                                    <Link
+                                                        key={item.href}
+                                                        href={item.href}
+                                                        prefetch={false}
+                                                        onClick={() => onClose()}
+                                                        className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-150 ${
+                                                            isActive
+                                                                ? 'bg-[#f5b301]/15 text-[#f5b301] font-semibold border border-[#f5b301]/30 shadow-sm'
+                                                                : 'text-[#d6dae1] hover:bg-[#1b1d22] hover:text-white'
+                                                        }`}
+                                                    >
+                                                        <Icon size={17} className={`shrink-0 ${isActive ? 'text-[#f5b301]' : 'text-[#7e8593]'}`} />
+                                                        <span className="flex-1 truncate">{item.label}</span>
+                                                        {item.badge && (
+                                                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[#f5b301]/20 text-[#f5b301] border border-[#f5b301]/30 shrink-0">
+                                                                {item.badge}
+                                                            </span>
+                                                        )}
+                                                    </Link>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
                             )
                         })}
                     </nav>
 
-                    <div className="pt-6 mt-4 border-t border-[#1a2332]">
-                        <button
-                            onClick={handleLogout}
-                            className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors border border-transparent hover:border-red-500/10"
-                        >
-                            <div className="p-2 rounded-lg bg-red-500/10">
-                                <LogOut size={18} />
+                    {/* Footer Salomon / Logout */}
+                    <div className="pt-3 mt-2 border-t border-[#26282f] space-y-2 shrink-0">
+                        <div className="px-3 py-2 rounded-lg bg-[#1b1d22] border border-[#26282f] flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                                <span className="text-xs font-bold text-[#f3f5f8] truncate">Salomon</span>
                             </div>
-                            <span className="font-bold text-sm">Logout</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 shrink-0">
+                                OWNER
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={handleLogout}
+                            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"
+                        >
+                            <LogOut size={15} className="shrink-0" />
+                            <span>Keluar dari Panel</span>
                         </button>
                     </div>
                 </div>

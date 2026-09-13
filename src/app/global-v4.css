@@ -43,8 +43,8 @@ body.v4-theme {
   min-height: 100vh;
 }
 
-.v4-font-syne { font-family: var(--font-syne, 'Syne', sans-serif); }
-.v4-font-mono { font-family: var(--font-jetbrains-mono, 'JetBrains Mono', monospace); }
+.v4-font-syne { font-family: var(--font-poppins, 'Poppins', sans-serif); }
+.v4-font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
 
 /* AMBIENT BG (Global) */
 .v4-ambient {

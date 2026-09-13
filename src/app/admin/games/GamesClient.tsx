@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Plus, Gamepad2, Link as LinkIcon, Trash2, Edit } from 'lucide-react'
 
 interface Game {
@@ -157,8 +158,7 @@ export default function GamesClient({ initialGames }: GamesClientProps) {
                                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-cyan-500"></div>
                                 ) : formData.image ? (
                                     <>
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                                        <Image src={formData.image} alt="Preview" fill sizes="96px" className="object-cover" unoptimized />
                                         <button
                                             type="button"
                                             onClick={() => setFormData({ ...formData, image: '' })}
@@ -256,8 +256,7 @@ export default function GamesClient({ initialGames }: GamesClientProps) {
                     <div key={game.id} className={`glass p-4 rounded-2xl relative group ${!game.isActive ? 'opacity-50' : ''}`}>
                         <div className="aspect-video bg-black/40 rounded-xl mb-4 overflow-hidden relative">
                             {game.image ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={game.image} alt={game.name} className="w-full h-full object-cover" />
+                                <Image src={game.image} alt={game.name} fill sizes="(max-width: 768px) 100vw, 25vw" className="object-cover" unoptimized />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-gray-600">
                                     <Gamepad2 size={32} />

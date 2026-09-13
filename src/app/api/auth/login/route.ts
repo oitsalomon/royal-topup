@@ -1,81 +1,87 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { signSessionToken, ADMIN_COOKIE_NAME } from '@/lib/auth'
+import { checkLoginRateLimit, recordFailedLogin, resetLoginAttempts } from '@/lib/rate-limiter'
+import { loginSchema, sanitizeText } from '@/lib/validations'
 
 export async function POST(request: Request) {
+    // 1. Ekstrak IP klien untuk Rate Limiting
+    const forwardedFor = request.headers.get('x-forwarded-for')
+    const ip = forwardedFor ? forwardedFor.split(',')[0].trim() : '127.0.0.1'
+
+    // 2. Cek Rate Limiter (Maks 5 percobaan gagal per 15 menit)
+    const rateCheck = checkLoginRateLimit(ip)
+    if (!rateCheck.allowed) {
+        return NextResponse.json({
+            error: `Terlalu banyak percobaan login yang gagal. Akses dibatasi sementara. Coba lagi dalam ${rateCheck.retryAfterSeconds} detik.`
+        }, { status: 429 })
+    }
+
     try {
-        const body = await request.json()
-        let { username, password } = body
+        const body = await request.json().catch(() => ({}))
 
-        // Normalize Input
-        username = username?.trim()
-        password = password?.trim()
-
-        if (!username || !password) {
-            return NextResponse.json({ error: 'Username and password required' }, { status: 400 })
+        // 3. Validasi Input via Zod
+        const validation = loginSchema.safeParse(body)
+        if (!validation.success) {
+            return NextResponse.json({
+                error: validation.error.issues[0]?.message || 'Input username atau password tidak valid.'
+            }, { status: 400 })
         }
 
-        // 1. Try Exact Match First (Fastest)
+        const username = sanitizeText(validation.data.username)
+        const password = validation.data.password
+
+        // 4. Cari User di Database (Exact match lalu case-insensitive)
         let user = await prisma.user.findFirst({
-            where: { username: { equals: username } } // Default is usually case sensitive depending on Collation
+            where: { username: { equals: username } },
+            include: {
+                gameIds: { include: { game: true } }
+            }
         })
 
-        // 2. If not found, try Case-Insensitive Match (Postgres ILIKE behavior via mode: insensitive)
         if (!user) {
             user = await prisma.user.findFirst({
                 where: { username: { equals: username, mode: 'insensitive' } },
                 include: {
-                    gameIds: {
-                        include: { game: true }
-                    }
-                }
-            })
-        } else {
-            // Re-fetch with includes if found first try
-            user = await prisma.user.findUnique({
-                where: { id: user.id },
-                include: {
-                    gameIds: {
-                        include: { game: true }
-                    }
+                    gameIds: { include: { game: true } }
                 }
             })
         }
 
-        // Verify password (Exact Match Required for Security)
-        // Check for both exact match AND potential whitespace variants if critical
+        // 5. Verifikasi Password
         if (!user || user.password !== password) {
-            return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
+            recordFailedLogin(ip)
+            return NextResponse.json({
+                error: 'Username atau password salah.'
+            }, { status: 401 })
         }
 
         if (!user.isActive) {
-            return NextResponse.json({ error: 'Akun dinonaktifkan. Hubungi Super Admin.' }, { status: 403 })
+            return NextResponse.json({
+                error: 'Akun Anda dinonaktifkan. Silakan hubungi admin.'
+            }, { status: 403 })
         }
 
-        // Try to update last login (Best Effort)
-        try {
-            await prisma.user.update({
-                where: { id: user.id },
-                data: { lastLogin: new Date() }
-            })
-        } catch (e) {
-            console.warn('Skipping write Op (Read-only DB): Update Last Login')
-        }
+        // Login Berhasil -> Reset Rate Limit untuk IP ini
+        resetLoginAttempts(ip)
 
-        // Try to log activity (Best Effort)
-        try {
-            await prisma.activityLog.create({
-                data: {
-                    user_id: user.id,
-                    action: 'LOGIN',
-                    details: 'User logged in',
-                }
-            })
-        } catch (e) {
-            console.warn('Skipping write Op (Read-only DB): Activity Log')
-        }
+        // 6. Update last login & log aktivitas (non-blocking)
+        prisma.user.update({
+            where: { id: user.id },
+            data: { lastLogin: new Date() }
+        }).catch(() => {})
 
-        // Return success regardless of write failures
-        return NextResponse.json({
+        prisma.activityLog.create({
+            data: {
+                user_id: user.id,
+                action: 'LOGIN',
+                details: `User ${user.username} login successfully`,
+                ip_address: ip
+            }
+        }).catch(() => {})
+
+        // 7. Siapkan Response
+        const userResponse = {
             id: user.id,
             username: user.username,
             role: user.role,
@@ -88,11 +94,33 @@ export async function POST(request: Request) {
             balance_bonus: user.balance_bonus,
             whatsapp: user.whatsapp,
             permissions: user.permissions,
-            gameIds: (user as any).gameIds, // Type assertion
-            token: 'dummy-token'
-        })
+            gameIds: (user as any).gameIds,
+            token: 'authenticated'
+        }
+
+        const response = NextResponse.json(userResponse)
+
+        // 8. Jika Admin/Staff, terbitkan cryptographic httpOnly cookie
+        const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'STAFF'].includes(user.role)
+        if (isAdmin) {
+            const token = await signSessionToken({
+                id: user.id,
+                username: user.username,
+                role: user.role
+            }, 86400) // 24 jam
+
+            response.cookies.set(ADMIN_COOKIE_NAME, token, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/',
+                maxAge: 86400
+            })
+        }
+
+        return response
     } catch (error) {
         console.error('Login error:', error)
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+        return NextResponse.json({ error: 'Terjadi kesalahan sistem saat proses login.' }, { status: 500 })
     }
 }

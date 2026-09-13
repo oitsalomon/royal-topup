@@ -1,17 +1,21 @@
-import LandingContent from '@/components/home/LandingContent'
-import { getGames } from '@/services/games'
-import { getSystemConfig } from '@/services/config'
+import InstantTopUpForm from '@/components/preview/InstantTopUpForm'
+import { getStorePackages } from '@/services/store-packages'
 
-export const dynamic = 'force-dynamic'
-export const revalidate = 60 // Cache for 60 seconds
+export const revalidate = 60
 
 export default async function Home() {
-  const games = await getGames(true) // Fetch only active games
-  const config = await getSystemConfig()
+  const initialPackages = await getStorePackages()
 
   return (
-    <div className="min-h-screen">
-      <LandingContent games={games} config={config} />
+    <div className="min-h-screen bg-[#0d0d0f]">
+      <InstantTopUpForm
+        gameCode="royal-dream"
+        gameName="Royal Dream"
+        gameId={1}
+        initialPackages={initialPackages}
+      />
     </div>
   )
 }
+
+

@@ -144,6 +144,33 @@ export async function sendStatusUpdate(
   return sendMessage(text, []);
 }
 
+// Kirim pesan kustom (Laporan CS / Broadcast)
+export async function sendCustomMessage(
+  text: string,
+  parseMode: 'HTML' | 'Markdown' = 'HTML',
+  chatId?: string
+) {
+  const targetChatId = chatId || CHAT_ID;
+  if (!BOT_TOKEN || !targetChatId) {
+    return { ok: false, description: 'Telegram Bot Token or Chat ID not configured' };
+  }
+
+  const body: Record<string, unknown> = {
+    chat_id: targetChatId,
+    text,
+    parse_mode: parseMode,
+  };
+
+  const res = await fetch(`${BASE_URL}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  const data = await res.json();
+  return data;
+}
+
 // Base function kirim pesan
 async function sendMessage(
   text: string,

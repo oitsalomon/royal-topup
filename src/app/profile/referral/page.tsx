@@ -21,10 +21,8 @@ export default function ReferralPage() {
     const [generatingCode, setGeneratingCode] = useState(false)
 
     useEffect(() => {
-        if (!authLoading && !authUser) {
-            router.push('/login')
-        }
-    }, [authLoading, authUser, router])
+        router.replace('/profile')
+    }, [router])
 
     const fetchData = async () => {
         if (!authUser?.id) return

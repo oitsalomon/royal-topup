@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Plus, Wallet, CreditCard } from 'lucide-react'
 
 // Types must match what's returned from the server + prisma types
@@ -263,8 +264,7 @@ export default function BanksClient({ initialBanks, availableGames }: BanksClien
                             <label className="text-xs text-gray-400 mb-1 block">Foto QRIS (Optional)</label>
                             <div className="flex items-center gap-4">
                                 {formData.image && (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img src={formData.image} alt="Preview" className="w-16 h-16 object-cover rounded-lg border border-white/10" />
+                                    <Image src={formData.image} alt="Preview QRIS" width={64} height={64} className="w-16 h-16 object-cover rounded-lg border border-white/10" unoptimized />
                                 )}
                                 <input
                                     type="file"
@@ -289,10 +289,9 @@ export default function BanksClient({ initialBanks, availableGames }: BanksClien
                     <div key={bank.id} className={`glass p-6 rounded-2xl relative overflow-hidden group border ${bank.isActive ? 'border-green-500/30' : 'border-red-500/30'}`}>
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden ${bank.type === 'BANK' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden relative ${bank.type === 'BANK' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
                                     {bank.image ? (
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        <img src={bank.image} alt={bank.name} className="w-full h-full object-cover" />
+                                        <Image src={bank.image} alt={bank.name} width={48} height={48} className="w-full h-full object-cover" unoptimized />
                                     ) : (
                                         bank.type === 'BANK' ? <Wallet size={24} /> : <CreditCard size={24} />
                                     )}

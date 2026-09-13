@@ -41,3 +41,8 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# cache & local backups
+.npm-cache
+backups/
+lighthouse-*.json

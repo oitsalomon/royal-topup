@@ -1,8 +1,15 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Loader2, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react'
-// Removed Navbar import as it's global now
+import {
+    Search,
+    Loader2,
+    CheckCircle2,
+    XCircle,
+    Clock,
+    AlertCircle,
+    MessageCircle
+} from 'lucide-react'
 
 interface Transaction {
     id: number
@@ -11,14 +18,13 @@ interface Transaction {
     amount_chip: number
     amount_money: number
     nickname: string
-    game: { name: string }
-    paymentMethod: { name: string }
+    user_game_id?: string
+    game?: { name: string }
+    paymentMethod?: { name: string }
     createdAt: string
 }
 
-import Link from 'next/link'
-
-export default function CheckTransaction() {
+export default function CheckTransactionPage() {
     const [search, setSearch] = useState('')
     const [loading, setLoading] = useState(false)
     const [result, setResult] = useState<Transaction | null>(null)
@@ -26,146 +32,211 @@ export default function CheckTransaction() {
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (!search.trim()) return
+
         setLoading(true)
         setError('')
         setResult(null)
 
         try {
-            const res = await fetch(`/api/transactions?search=${encodeURIComponent(search)}&limit=50`)
+            const res = await fetch(`/api/transactions/track?search=${encodeURIComponent(search.trim())}`)
             const data = await res.json()
 
-            if (data && Array.isArray(data.data)) {
-                const transactions = data.data
-                if (transactions.length > 0) {
-                    setResult(transactions[0])
-                } else {
-                    setError('Transaksi tidak ditemukan.')
-                }
+            if (res.ok && data?.data) {
+                setResult(data.data)
             } else {
-                setError('Format data tidak valid.')
+                setError(data?.error || 'Tidak ditemukan transaksi dengan nomor WhatsApp atau kode tersebut.')
             }
-        } catch (err) {
-            console.error(err)
-            setError('Terjadi kesalahan saat mencari data.')
+        } catch {
+            setError('Gagal memeriksa transaksi. Periksa koneksi internet Anda.')
         } finally {
             setLoading(false)
         }
     }
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'APPROVED_2': return 'text-cyan-400'
-            case 'DECLINED': return 'text-red-500'
-            default: return 'text-purple-400'
+    const formatRupiah = (num: number) => {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            maximumFractionDigits: 0
+        }).format(num)
+    }
+
+    const formatDate = (dateStr: string) => {
+        try {
+            const d = new Date(dateStr)
+            return d.toLocaleDateString('id-ID', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            })
+        } catch {
+            return dateStr
         }
     }
 
-    const getStatusIcon = (status: string) => {
+    const renderStatusBadge = (status: string) => {
         switch (status) {
-            case 'APPROVED_2': return <CheckCircle className="w-16 h-16 text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]" />
-            case 'DECLINED': return <XCircle className="w-16 h-16 text-red-500 drop-shadow-[0_0_15px_rgba(239,68,68,0.5)]" />
-            default: return <Clock className="w-16 h-16 text-purple-400 animate-pulse drop-shadow-[0_0_15px_rgba(168,85,247,0.5)]" />
-        }
-    }
-
-    const getStatusText = (status: string) => {
-        switch (status) {
-            case 'APPROVED_2': return 'Misi Berhasil'
-            case 'DECLINED': return 'Misi Gagal'
-            default: return 'Sedang Diproses'
+            case 'APPROVED':
+            case 'APPROVED_2':
+            case 'SUCCESS':
+            case 'COMPLETED':
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#3fa46a] text-white text-xs font-poppins font-semibold">
+                        <CheckCircle2 size={14} />
+                        <span>Transaksi Berhasil</span>
+                    </span>
+                )
+            case 'DECLINED':
+            case 'FAILED':
+            case 'CANCELLED':
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#3a3a3f] text-[#f3ecd8] text-xs font-poppins font-semibold border border-red-500/40">
+                        <XCircle size={14} className="text-red-400" />
+                        <span>Transaksi Dibatalkan</span>
+                    </span>
+                )
+            default:
+                return (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#17171a] text-[#e8c883] text-xs font-poppins font-semibold border border-[#8a6d38]">
+                        <Clock size={14} className="text-[#c5a369]" />
+                        <span>Sedang Diproses</span>
+                    </span>
+                )
         }
     }
 
     return (
-        <div className="pt-24 pb-20 px-4">
-            <div className="max-w-xl mx-auto">
-                <div className="text-center mb-12">
-                    <h1 className="v4-font-syne text-4xl font-extrabold text-white mb-4 uppercase tracking-tight">
-                        Cek <span className="v4-text-gradient">Transaksi</span>
-                    </h1>
-                    <p className="text-gray-500 text-sm font-medium">Masukkan Nomor WhatsApp atau ID Transaksi Anda</p>
-                </div>
+        <main className="max-w-2xl mx-auto px-4 py-8 sm:py-12 space-y-6 sm:space-y-8 font-inter text-[#f3ecd8] antialiased">
+            {/* Header Section */}
+            <section className="text-center space-y-1.5 max-w-xl mx-auto">
+                <span className="text-[11px] font-poppins font-bold uppercase tracking-wider text-[#c5a369] bg-[#17171a] px-2.5 py-1 rounded border border-[#8a6d38]/40 inline-block mb-1">
+                    Pelacakan Realtime
+                </span>
+                <h1 className="text-2xl sm:text-3xl font-poppins font-bold text-[#f3ecd8] leading-tight">
+                    Cek Status Transaksi
+                </h1>
+                <p className="text-xs sm:text-sm font-inter text-[#a89f8a] leading-relaxed">
+                    Lacak status top-up atau pesanan koin chip Anda secara instan menggunakan Nomor WhatsApp atau Kode Transaksi.
+                </p>
+            </section>
 
-                <div className="v4-glass p-8 rounded-[32px] mb-8 shadow-2xl relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    <form onSubmit={handleSearch} className="relative z-10">
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="Contoh: 081234567890"
-                                className="w-full bg-black/40 border border-white/5 rounded-2xl px-6 py-5 text-white placeholder-gray-600 focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/30 outline-none transition-all pr-16 v4-font-mono font-medium"
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                required
-                            />
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="absolute right-2 top-2 bottom-2 aspect-square v4-btn-main rounded-xl flex items-center justify-center transition-all disabled:opacity-50"
-                            >
-                                {loading ? <Loader2 className="animate-spin" size={20} /> : <Search size={20} />}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                {error && (
-                    <div className="bg-red-500/5 border border-red-500/10 rounded-2xl p-4 flex items-center gap-3 text-red-400 animate-in fade-in slide-in-from-top-2 mb-8">
-                        <AlertCircle size={20} />
-                        <span className="text-sm font-medium">{error}</span>
+            {/* Search Card */}
+            <section className="bg-[#17171a] border border-[#8a6d38]/40 rounded-lg p-4 sm:p-5 shadow-sm space-y-3">
+                <form onSubmit={handleSearch} className="space-y-3">
+                    <div>
+                        <label className="block text-xs font-inter font-medium text-[#f3ecd8] mb-1">
+                            Nomor WhatsApp atau ID Transaksi <span className="text-red-400">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            placeholder="Contoh: 081234567890 atau CL-TOPUP-1234"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            required
+                            className="w-full bg-[#0d0d0f] border border-[#8a6d38]/40 focus:border-[#c5a369] rounded-md px-3.5 py-2.5 text-base sm:text-sm font-inter text-[#f3ecd8] font-mono outline-none transition-colors placeholder-[#7a766c]"
+                        />
                     </div>
-                )}
 
-                {result && (
-                    <div className="v4-glass rounded-[32px] p-8 animate-in fade-in slide-in-from-bottom-4 shadow-2xl relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-purple-500/10 to-transparent blur-3xl"></div>
-                        
-                        <div className="flex flex-col items-center text-center mb-10 relative z-10">
-                            <div className="mb-6 p-5 bg-white/5 rounded-3xl border border-white/5 shadow-inner">
-                                {getStatusIcon(result.status)}
-                            </div>
-                            <h2 className={`v4-font-syne text-3xl font-black uppercase tracking-tight ${getStatusColor(result.status)}`}>
-                                {getStatusText(result.status)}
-                            </h2>
-                            <div className="mt-3 px-4 py-1.5 rounded-full bg-white/5 border border-white/5 text-[10px] font-bold text-gray-500 tracking-widest uppercase">
-                                TRX ID: {result.trx_id || `#${result.id}`}
-                            </div>
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full py-2.5 rounded-md bg-[#3fa46a] hover:bg-[#358a59] disabled:opacity-50 text-white font-poppins font-semibold text-xs sm:text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
+                    >
+                        {loading ? (
+                            <>
+                                <Loader2 size={16} className="animate-spin" />
+                                <span>Mencari Data...</span>
+                            </>
+                        ) : (
+                            <>
+                                <Search size={15} />
+                                <span>Lacak Pesanan</span>
+                            </>
+                        )}
+                    </button>
+                </form>
+            </section>
+
+            {/* Error Message */}
+            {error && (
+                <div className="bg-[#17171a] border border-red-500/40 rounded-lg p-3.5 flex items-start gap-2.5 text-xs text-red-300">
+                    <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
+                    <p className="leading-relaxed">{error}</p>
+                </div>
+            )}
+
+            {/* Search Result Card */}
+            {result && (
+                <section className="bg-[#17171a] border border-[#8a6d38]/40 rounded-lg p-4 sm:p-5 shadow-sm space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#8a6d38]/20">
+                        <div>
+                            <p className="text-[11px] font-inter text-[#a89f8a]">ID Transaksi</p>
+                            <p className="text-sm font-poppins font-bold font-mono text-[#f3ecd8]">
+                                {result.trx_id || `TRX-${result.id}`}
+                            </p>
+                        </div>
+                        <div>{renderStatusBadge(result.status)}</div>
+                    </div>
+
+                    <div className="space-y-2 text-xs font-inter divide-y divide-[#8a6d38]/15">
+                        <div className="pt-2 flex justify-between">
+                            <span className="text-[#a89f8a]">Game:</span>
+                            <span className="text-[#f3ecd8] font-medium">{result.game?.name || 'Royal Dream'}</span>
                         </div>
 
-                        <div className="space-y-2 relative z-10">
-                            {[
-                                { label: 'Game', val: result.game?.name },
-                                { label: 'Nickname', val: result.nickname },
-                                { label: 'Nominal', val: result.amount_chip >= 1 
-                                    ? `${(Math.floor(result.amount_chip * 100) / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} B` 
-                                    : `${(result.amount_chip * 1000).toLocaleString()} M` },
-                                { label: 'Total Bayar', val: `Rp ${result.amount_money.toLocaleString()}` },
-                                { label: 'Pembayaran', val: result.paymentMethod?.name },
-                                { label: 'Waktu', val: new Date(result.createdAt).toLocaleString(), small: true }
-                            ].map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center py-4 border-b border-white/5 last:border-0 group/item">
-                                    <span className="text-gray-500 text-xs font-bold uppercase tracking-wider">{item.label}</span>
-                                    <span className={`text-white font-bold ${item.small ? 'text-sm' : 'text-base'}`}>{item.val}</span>
-                                </div>
-                            ))}
+                        <div className="pt-2 flex justify-between">
+                            <span className="text-[#a89f8a]">Nominal Koin:</span>
+                            <span className="text-[#e8c883] font-bold font-mono">
+                                {result.amount_chip >= 1 ? `${result.amount_chip}B` : `${result.amount_chip * 1000}M`} Chip
+                            </span>
                         </div>
 
-                        {result.status === 'DECLINED' && (
-                            <div className="mt-10 relative z-10">
-                                <Link
-                                    href="/"
-                                    className="block w-full text-center py-5 bg-gradient-to-r from-red-600 to-pink-600 rounded-2xl font-black text-white hover:shadow-2xl hover:shadow-red-500/20 transition-all transform hover:-translate-y-1 text-sm tracking-widest"
-                                >
-                                    AJUKAN ULANG SEKARANG
-                                </Link>
-                                <p className="text-center text-[10px] text-gray-500 mt-4 font-bold uppercase tracking-tighter">
-                                    Silakan perbaiki data atau upload bukti yang valid.
-                                </p>
+                        {result.user_game_id && (
+                            <div className="pt-2 flex justify-between">
+                                <span className="text-[#a89f8a]">User ID Game:</span>
+                                <span className="text-[#f3ecd8] font-mono">{result.user_game_id}</span>
                             </div>
                         )}
+
+                        <div className="pt-2 flex justify-between">
+                            <span className="text-[#a89f8a]">Nickname:</span>
+                            <span className="text-[#f3ecd8]">{result.nickname || '-'}</span>
+                        </div>
+
+                        <div className="pt-2 flex justify-between">
+                            <span className="text-[#a89f8a]">Total Pembayaran:</span>
+                            <span className="text-[#f3ecd8] font-bold font-mono">
+                                {formatRupiah(result.amount_money)}
+                            </span>
+                        </div>
+
+                        <div className="pt-2 flex justify-between">
+                            <span className="text-[#a89f8a]">Metode Pembayaran:</span>
+                            <span className="text-[#f3ecd8]">{result.paymentMethod?.name || 'QRIS'}</span>
+                        </div>
+
+                        <div className="pt-2 flex justify-between">
+                            <span className="text-[#a89f8a]">Waktu Transaksi:</span>
+                            <span className="text-[#a89f8a] font-mono">{formatDate(result.createdAt)}</span>
+                        </div>
                     </div>
-                )}
-            </div>
-        </div>
+
+                    <div className="pt-2">
+                        <a
+                            href="https://wa.me/6281234567890"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="w-full py-2 rounded-md bg-[#3a3a3f] hover:bg-[#48484e] text-[#f3ecd8] font-poppins font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 text-center"
+                        >
+                            <MessageCircle size={14} className="text-[#c5a369]" />
+                            <span>Konfirmasi ke Admin CS</span>
+                        </a>
+                    </div>
+                </section>
+            )}
+        </main>
     )
 }

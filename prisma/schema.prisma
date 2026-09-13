@@ -244,9 +244,13 @@ model Transaction {
   @@index([createdAt])
   @@index([user_wa])
   @@index([user_id])
+  @@index([user_game_id])
   @@index([processed_by_id])
   @@index([type, status, createdAt])
   @@index([status, createdAt])
+  @@index([createdAt, status])
+  @@index([createdAt, type])
+  @@index([type, createdAt])
 }
 
 model SystemConfig {

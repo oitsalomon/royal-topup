@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { sendTopupNotif } from '@/lib/telegram'
-
-const getUserId = (req: Request) => {
-    const id = req.headers.get('X-User-Id')
-    return id ? Number(id) : null
-}
+import { getAdminSessionFromRequest } from '@/lib/auth'
+import { sanitizeText } from '@/lib/validations'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +12,8 @@ export async function GET(
 ) {
     try {
         const { id } = await params
+        const adminSession = await getAdminSessionFromRequest(request)
+
         const transaction = await prisma.transaction.findUnique({
             where: { id: Number(id) },
             include: {
@@ -25,12 +24,28 @@ export async function GET(
         })
 
         if (!transaction) {
-            return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
+            return NextResponse.json({ error: 'Transaksi tidak ditemukan' }, { status: 404 })
+        }
+
+        // Jika bukan admin, hanya kembalikan informasi terbatas (cegah IDOR)
+        if (!adminSession) {
+            return NextResponse.json({
+                id: transaction.id,
+                trx_id: transaction.trx_id,
+                status: transaction.status,
+                type: transaction.type,
+                amount_chip: transaction.amount_chip,
+                amount_money: transaction.amount_money,
+                nickname: transaction.nickname,
+                createdAt: transaction.createdAt,
+                game: transaction.game,
+                paymentMethod: transaction.paymentMethod ? { name: transaction.paymentMethod.name } : null
+            })
         }
 
         return NextResponse.json(transaction)
     } catch (error) {
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+        return NextResponse.json({ error: 'Terjadi kesalahan sistem' }, { status: 500 })
     }
 }
 
@@ -41,21 +56,30 @@ export async function PATCH(
     try {
         const { id: rawId } = await params
         const id = Number(rawId)
-        const body = await request.json()
-        const { target_payment_details, user_game_id, admin_id } = body
+        const body = await request.json().catch(() => ({}))
+        const { target_payment_details, user_game_id, proof_image } = body
 
-        let userId = getUserId(request)
-        if (!userId && admin_id) userId = Number(admin_id)
-        if (!userId) userId = 1
+        const adminSession = await getAdminSessionFromRequest(request)
+
+        // Hanya Admin/Staff yang boleh mengubah target_payment_details atau user_game_id
+        const isEditingDetails = target_payment_details !== undefined || user_game_id !== undefined
+        if (isEditingDetails && !adminSession) {
+            return NextResponse.json({
+                error: 'Unauthorized: Hanya admin yang berwenang mengubah detail rekening atau ID game transaksi.'
+            }, { status: 401 })
+        }
+
+        const updateData: any = {}
+        if (target_payment_details !== undefined) updateData.target_payment_details = sanitizeText(target_payment_details)
+        if (user_game_id !== undefined) updateData.user_game_id = sanitizeText(user_game_id)
+        if (proof_image !== undefined) {
+            updateData.proof_image = proof_image
+            updateData.status = 'PENDING'
+        }
 
         const updated = await prisma.transaction.update({
             where: { id },
-            data: {
-                target_payment_details: target_payment_details !== undefined ? target_payment_details : undefined,
-                user_game_id: user_game_id !== undefined ? user_game_id : undefined,
-                proof_image: body.proof_image !== undefined ? body.proof_image : undefined,
-                status: body.proof_image ? 'PENDING' : undefined
-            },
+            data: updateData,
             include: {
                 paymentMethod: true,
                 withdrawMethod: true,
@@ -64,20 +88,21 @@ export async function PATCH(
             }
         })
 
-        // Log Activity
-        await prisma.activityLog.create({
-            data: {
-                user_id: userId,
-                action: 'UPDATE_TX',
-                details: `Updated Transaction #${id}. Target: ${target_payment_details?.substring(0, 50) || 'N/A'}, GameID: ${user_game_id || 'N/A'}`,
-                ip_address: '127.0.0.1'
-            }
-        })
+        // Log Aktivitas jika dilakukan oleh admin
+        if (adminSession) {
+            await prisma.activityLog.create({
+                data: {
+                    user_id: adminSession.id,
+                    action: 'UPDATE_TX',
+                    details: `Admin ${adminSession.username} updated Transaction #${id}`,
+                    ip_address: '127.0.0.1'
+                }
+            }).catch(() => {})
+        }
 
-        // TRIGGER TELEGRAM NOTIFICATION ON PROOF UPLOAD (IMPORTANT FIX)
-        if (body.proof_image && updated.type === 'TOPUP') {
-            const isGuest = !updated.user_id;
-            
+        // TRIGGER TELEGRAM NOTIFICATION ON PROOF UPLOAD
+        if (proof_image && updated.type === 'TOPUP') {
+            const isGuest = !updated.user_id
             sendTopupNotif({
                 id: updated.id,
                 trxId: updated.trx_id || String(updated.id),
@@ -88,7 +113,7 @@ export async function PATCH(
                 totalPrice: updated.amount_money,
                 paymentMethod: updated.paymentMethod?.name || 'Manual',
                 createdAt: updated.createdAt,
-                isGuest: isGuest,
+                isGuest,
                 proofImage: updated.proof_image
             }).catch(e => console.error('Telegram TOPUP notif (PATCH) failed:', e))
         }
@@ -97,6 +122,6 @@ export async function PATCH(
 
     } catch (error) {
         console.error('Update TX Error:', error)
-        return NextResponse.json({ error: 'Failed to update transaction' }, { status: 500 })
+        return NextResponse.json({ error: 'Gagal memperbarui transaksi.' }, { status: 500 })
     }
 }

@@ -84,7 +84,9 @@ export default function PaymentModal({ isOpen, onClose, transaction, onUploadPro
 
     const uniqueCode = transaction.amount_money % 1000
     const paymentMethod = transaction.paymentMethod || {}
-    const isQRIS = paymentMethod.name?.toLowerCase().includes('qris') || paymentMethod.image
+    const customQrisImage = transaction.package_qris_image || transaction.package?.qris_image || transaction.qris_image
+    const isQRIS = paymentMethod.name?.toLowerCase().includes('qris') || paymentMethod.image || customQrisImage
+    const activeQrisImage = customQrisImage || paymentMethod.image || '/placeholder-qris.png'
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-6 sm:p-4 bg-[#050912]/95 backdrop-blur-2xl animate-in fade-in duration-500">
@@ -143,16 +145,27 @@ export default function PaymentModal({ isOpen, onClose, transaction, onUploadPro
                         <div className="bg-black/40 p-10 rounded-[32px] border border-white/5 flex flex-col items-center shadow-inner backdrop-blur-md">
                             {isQRIS ? (
                                 <>
-                                    <div className="bg-white p-5 rounded-[32px] mb-8 w-full max-w-[280px] shadow-[0_0_40px_rgba(255,255,255,0.1)] group-hover:scale-[1.02] transition-transform duration-700">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img
-                                            src={paymentMethod.image || '/placeholder-qris.png'}
+                                    {customQrisImage ? (
+                                        <div className="mb-4 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-[10px] font-bold tracking-wider uppercase">
+                                            QRIS Statis Nominal Terkunci
+                                        </div>
+                                    ) : (
+                                        <div className="mb-4 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/25 text-blue-300 text-[10px] font-bold tracking-wider uppercase">
+                                            QRIS Toko Otomatis
+                                        </div>
+                                    )}
+                                    <div className="bg-white p-5 rounded-[32px] mb-8 w-full max-w-[280px] aspect-square shadow-[0_0_40px_rgba(255,255,255,0.1)] group-hover:scale-[1.02] transition-transform duration-700 relative flex items-center justify-center">
+                                        <Image
+                                            src={activeQrisImage}
                                             alt="QRIS"
-                                            className="w-full h-auto object-contain"
+                                            width={240}
+                                            height={240}
+                                            className="w-full h-auto object-contain max-h-[240px]"
+                                            unoptimized
                                         />
                                     </div>
-                                    <h4 className="v4-font-syne text-xl font-black text-white uppercase tracking-tight">{paymentMethod.name}</h4>
-                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mt-1">A/N {paymentMethod.account_name}</p>
+                                    <h4 className="v4-font-syne text-xl font-black text-white uppercase tracking-tight">{paymentMethod.name || 'QRIS Pembayaran'}</h4>
+                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mt-1">A/N {paymentMethod.account_name || 'ROYAL CLOVER'}</p>
                                 </>
                             ) : (
                                 <div className="text-center w-full">

@@ -1,22 +1,34 @@
 import type { Metadata } from "next";
-import { Outfit, Cormorant_Garamond, Montserrat, Syne, Inter, JetBrains_Mono } from "next/font/google";
+import dynamic from "next/dynamic";
+import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import "./global-v4.css";
 import Navbar from "@/components/Navbar";
-import FloatingChat from "@/components/FloatingChat";
-import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 import { AuthProvider } from "@/contexts/AuthProvider";
 import { ConfigProvider } from "@/contexts/ConfigContext";
 import { ToastProvider } from "@/components/Toast";
+import SiteMarquee from "@/components/common/SiteMarquee";
+import SiteHeader from "@/components/common/SiteHeader";
+import SiteFooter from "@/components/common/SiteFooter";
+import Script from "next/script";
+import PWAInstallPrompt from "@/components/PWAInstallPrompt";
 
-import { GoogleAnalytics } from '@next/third-parties/google'
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["600"],
+  variable: "--font-poppins",
+  display: "swap",
+  preload: true,
+  adjustFontFallback: true
+});
 
-const outfit = Outfit({ subsets: ["latin"], variable: '--font-outfit' });
-const cormorant = Cormorant_Garamond({ subsets: ["latin"], variable: '--font-cormorant', weight: ['400', '500', '600', '700'] });
-const montserrat = Montserrat({ subsets: ["latin"], variable: '--font-montserrat', weight: ['400', '500', '600', '700'] });
-const syne = Syne({ subsets: ["latin"], variable: '--font-syne', weight: ['400', '600', '700', '800'] });
-const inter = Inter({ subsets: ["latin"], variable: '--font-inter', weight: ['300', '400', '500', '600'] });
-const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: '--font-jetbrains-mono', weight: ['400', '500', '700'] });
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-inter",
+  display: "swap"
+});
+
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ? new URL(process.env.NEXT_PUBLIC_BASE_URL) : new URL('https://royalclover.store');
 
@@ -76,6 +88,17 @@ export const metadata: Metadata = {
   verification: {
     google: '-VXRE5XaLvfQrxqpRVc9R5IsjOsiTdHJOqybriUMUIQ',
   },
+  icons: {
+    icon: [
+      { url: '/icon.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    apple: [
+      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({
@@ -125,7 +148,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#a855f7" />
+        <meta name="theme-color" content="#0d0d0f" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -138,27 +161,36 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${outfit.variable} ${cormorant.variable} ${montserrat.variable} ${syne.variable} ${inter.variable} ${jetbrainsMono.variable} font-montserrat v4-theme bg-[#07080f] text-white min-h-screen antialiased selection:bg-purple-500/30`} suppressHydrationWarning>
-        <div className="v4-ambient">
-          <div className="v4-ambient-1"></div>
-          <div className="v4-ambient-2"></div>
-          <div className="v4-ambient-3"></div>
-        </div>
+      <body className={`${poppins.variable} ${inter.variable} font-inter bg-[#0d0d0f] text-[#f3ecd8] min-h-screen antialiased selection:bg-[#c5a369]/30`} suppressHydrationWarning>
         <AuthProvider>
           <ConfigProvider>
             <ToastProvider>
-              <Navbar />
-              <div className="relative z-10 flex flex-col min-h-screen pt-14 md:pt-16 animate-in fade-in duration-200">
+              <div className="relative z-10 flex flex-col min-h-screen animate-in fade-in duration-200">
+                <SiteMarquee />
+                <SiteHeader />
                 <main className="flex-grow">
                   {children}
                 </main>
+                <SiteFooter />
               </div>
-              <FloatingChat />
               <PWAInstallPrompt />
             </ToastProvider>
           </ConfigProvider>
         </AuthProvider>
-        <GoogleAnalytics gaId="G-G0RSY9PYDP" />
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-G0RSY9PYDP"
+          strategy="lazyOnload"
+        />
+        <Script id="google-analytics" strategy="lazyOnload">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-G0RSY9PYDP', {
+              page_path: window.location.pathname,
+            });
+          `}
+        </Script>
       </body>
     </html>
   );

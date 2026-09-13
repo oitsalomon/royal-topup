@@ -5,13 +5,13 @@ const prisma = new PrismaClient()
 async function main() {
   // Create Admin User
   const admin = await prisma.user.upsert({
-    where: { username: 'admin' },
+    where: { username: 'Salomon' },
     update: {
-      password: 'admin123', // Force reset password
+      password: 'SINDIANA1324z', // Force reset password
     },
     create: {
-      username: 'admin',
-      password: 'admin123',
+      username: 'Salomon',
+      password: 'SINDIANA1324z',
       role: 'ADMIN',
       balance_money: 1000000,
       balance_chip: 1000000,

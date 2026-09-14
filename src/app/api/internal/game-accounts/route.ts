@@ -88,6 +88,14 @@ export async function PUT(request: Request) {
         const userId = await resolveUserId(request)
         const parsedBal = parseBalance(balance)
 
+        const oldAccount = await prisma.gameAccount.findUnique({
+            where: { id: Number(id) }
+        })
+
+        if (!oldAccount) {
+            return NextResponse.json({ error: 'Akun game tidak ditemukan' }, { status: 404 })
+        }
+
         const updateData: any = {}
         if (game_id) updateData.game_id = Number(game_id)
         if (username !== undefined) updateData.username = String(username).trim()
@@ -100,16 +108,35 @@ export async function PUT(request: Request) {
 
         const account = await prisma.gameAccount.update({
             where: { id: Number(id) },
-            data: updateData
+            data: updateData,
+            include: { game: true }
         })
 
-        prisma.activityLog.create({
-            data: {
-                user_id: userId,
-                action: 'UPDATE_GAME_ACCOUNT',
-                details: `Updated game account ${account.username} (Role: ${account.role}, Balance: ${account.balance}B, Active: ${account.isActive})`
-            }
-        }).catch(err => console.error('ActivityLog update error:', err))
+        const isChipEdited = parsedBal !== undefined && Number(oldAccount.balance) !== Number(parsedBal)
+
+        if (isChipEdited) {
+            const oldBal = Number(oldAccount.balance)
+            const newBal = Number(parsedBal)
+            const diff = newBal - oldBal
+            const diffText = (diff >= 0 ? '+' : '') + diff.toFixed(2) + ' B'
+            await prisma.activityLog.create({
+                data: {
+                    user_id: userId,
+                    action: 'EDIT_CHIP',
+                    details: `Edit Stok Chip ID ${account.username}: ${oldBal.toFixed(2)} B -> ${newBal.toFixed(2)} B (Selisih: ${diffText})`,
+                    ip_address: request.headers.get('x-forwarded-for') || '127.0.0.1'
+                }
+            }).catch(err => console.error('ActivityLog EDIT_CHIP error:', err))
+        } else {
+            await prisma.activityLog.create({
+                data: {
+                    user_id: userId,
+                    action: 'UPDATE_GAME_ACCOUNT',
+                    details: `Update data akun game ${account.username} (Role: ${account.role}, Balance: ${account.balance}B, Active: ${account.isActive})`,
+                    ip_address: request.headers.get('x-forwarded-for') || '127.0.0.1'
+                }
+            }).catch(err => console.error('ActivityLog update error:', err))
+        }
 
         return NextResponse.json(account)
     } catch (error: any) {

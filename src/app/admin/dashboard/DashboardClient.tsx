@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import {
     Landmark, Coins, ArrowDownToLine, ArrowUpFromLine, User,
     Send, Plus, SlidersHorizontal, ArrowLeftRight, CheckCircle2, Shield, Copy,
-    ShieldAlert, AlertTriangle, ChevronDown, ChevronUp, ExternalLink, QrCode
+    ShieldAlert, AlertTriangle, ChevronDown, ChevronUp, ExternalLink, QrCode,
+    Edit3, Check, X
 } from 'lucide-react'
 import {
     PageHead, SectionHead, Panel, StatBig, Segment, Badge,
@@ -23,6 +24,71 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
     const [sendingTg, setSendingTg] = useState<boolean>(false)
     const [tgSentStatus, setTgSentStatus] = useState<string | null>(null)
     const [showPackageDetail, setShowPackageDetail] = useState<boolean>(false)
+
+    // Game Accounts & Direct Chip Edit State
+    const [gameAccounts, setGameAccounts] = useState<any[]>(initialData?.gameAccounts || [])
+    const [editingAccountId, setEditingAccountId] = useState<number | null>(null)
+    const [editingBalance, setEditingBalance] = useState<string>('')
+    const [savingChip, setSavingChip] = useState<boolean>(false)
+
+    useEffect(() => {
+        if (initialData?.gameAccounts) {
+            setGameAccounts(initialData.gameAccounts)
+        }
+    }, [initialData])
+
+    const startEditChip = (acc: any) => {
+        setEditingAccountId(acc.id)
+        setEditingBalance(String(Number(acc.balance || 0)))
+    }
+
+    const cancelEditChip = () => {
+        setEditingAccountId(null)
+        setEditingBalance('')
+    }
+
+    const handleSaveChip = async (accId: number) => {
+        const val = parseFloat(editingBalance.replace(',', '.'))
+        if (isNaN(val) || val < 0) {
+            alert('Nominal chip tidak valid (minimal 0)')
+            return
+        }
+
+        setSavingChip(true)
+        try {
+            let authHeaders: any = { 'Content-Type': 'application/json' }
+            try {
+                const userStr = localStorage.getItem('user')
+                if (userStr) {
+                    const u = JSON.parse(userStr)
+                    if (u.id) authHeaders['X-User-Id'] = String(u.id)
+                }
+            } catch {}
+
+            const res = await fetch('/api/internal/game-accounts', {
+                method: 'PUT',
+                headers: authHeaders,
+                body: JSON.stringify({
+                    id: accId,
+                    balance: val
+                })
+            })
+
+            if (res.ok) {
+                const updated = await res.json()
+                setGameAccounts(prev => prev.map(g => g.id === accId ? { ...g, balance: updated.balance } : g))
+                setEditingAccountId(null)
+            } else {
+                const err = await res.json().catch(() => ({}))
+                alert(err.error || 'Gagal menyimpan perubahan chip')
+            }
+        } catch (e) {
+            console.error(e)
+            alert('Terjadi kesalahan koneksi server')
+        } finally {
+            setSavingChip(false)
+        }
+    }
 
     const paymentHealth = initialData?.paymentHealth || {
         status: 'WARNING',
@@ -73,11 +139,17 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
 
     const chipStock = useMemo(() => {
         const stock: Record<string, number> = {}
-        chipAwal.forEach((x: any) => {
-            stock[x.id] = x.chipAwal
-        })
+        if (gameAccounts && gameAccounts.length > 0) {
+            gameAccounts.forEach((g: any) => {
+                stock[g.username || `ID_${g.id}`] = Number(g.balance || 0)
+            })
+        } else {
+            chipAwal.forEach((x: any) => {
+                stock[x.id] = x.chipAwal
+            })
+        }
         return stock
-    }, [chipAwal])
+    }, [gameAccounts, chipAwal])
 
     const totalBank = Object.values(balances).reduce((a, b) => a + b, 0)
     const totalChip = Object.values(chipStock).reduce((a, b) => a + b, 0)
@@ -503,26 +575,123 @@ ${Object.entries(chipStock).map(([id, v]) => `  • <b>${id}:</b> ${num(v)} chip
                     <div className="space-y-4 min-w-0">
                         <Panel title="Stok Chip ID Game" subtitle="Live tracking akun tampungan & pengirim">
                             <div className="space-y-3">
-                                {Object.entries(chipStock).map(([id, val]) => (
-                                    <div
-                                        key={id}
-                                        className="flex items-center justify-between gap-3 p-3.5 bg-[#0a0b0d] border border-[#26282f] rounded-xl"
-                                    >
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className="w-9 h-9 rounded-xl bg-[#f5b301]/10 border border-[#f5b301]/30 flex items-center justify-center text-[#f5b301] shrink-0">
-                                                <Coins size={18} className="shrink-0" />
+                                {gameAccounts && gameAccounts.length > 0 ? (
+                                    gameAccounts.map((acc: any) => {
+                                        const isEditing = editingAccountId === acc.id
+                                        return (
+                                            <div
+                                                key={acc.id}
+                                                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-[#0a0b0d] border rounded-xl transition-all ${
+                                                    isEditing ? 'border-[#f5b301] shadow-lg shadow-[#f5b301]/10 bg-[#131417]' : 'border-[#26282f]'
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="w-9 h-9 rounded-xl bg-[#f5b301]/10 border border-[#f5b301]/30 flex items-center justify-center text-[#f5b301] shrink-0">
+                                                        <Coins size={18} className="shrink-0" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="text-sm font-extrabold text-white truncate">{acc.username}</div>
+                                                            {acc.game?.name && (
+                                                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400 font-medium">
+                                                                    {acc.game.name}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-[10px] text-[#7e8593] truncate">
+                                                            {acc.role === 'ALL' ? 'ID Utama Pengiriman & Tampungan' : `Role: ${acc.role || 'Operasional'}`}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+                                                    {isEditing ? (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="relative">
+                                                                <input
+                                                                    type="number"
+                                                                    step="any"
+                                                                    value={editingBalance}
+                                                                    onChange={(e) => setEditingBalance(e.target.value)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') handleSaveChip(acc.id)
+                                                                        if (e.key === 'Escape') cancelEditChip()
+                                                                    }}
+                                                                    className="w-24 sm:w-28 bg-black border border-[#f5b301] rounded-lg px-2.5 py-1 text-xs text-white font-mono font-bold outline-none"
+                                                                    autoFocus
+                                                                    placeholder="cth: 500"
+                                                                />
+                                                                <span className="absolute right-2 top-1 text-[11px] text-[#f5b301] font-bold pointer-events-none">
+                                                                    B
+                                                                </span>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleSaveChip(acc.id)}
+                                                                disabled={savingChip}
+                                                                className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                                                title="Simpan nominal chip baru"
+                                                            >
+                                                                <Check size={13} />
+                                                                <span>{savingChip ? '...' : 'Simpan'}</span>
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={cancelEditChip}
+                                                                disabled={savingChip}
+                                                                className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10 text-xs transition-colors cursor-pointer"
+                                                                title="Batal edit"
+                                                            >
+                                                                <X size={14} />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-2.5">
+                                                            <div className="text-right">
+                                                                <div className="text-lg font-black text-[#f5b301] leading-none">
+                                                                    {num(acc.balance)} B
+                                                                </div>
+                                                                <div className="text-[10px] text-emerald-400 font-semibold mt-0.5">
+                                                                    Ready Stock
+                                                                </div>
+                                                            </div>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => startEditChip(acc)}
+                                                                className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-[#f5b301]/10 text-gray-400 hover:text-[#f5b301] border border-white/10 hover:border-[#f5b301]/30 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                                                                title="Edit nominal chip ID ini"
+                                                            >
+                                                                <Edit3 size={13} />
+                                                                <span>Edit</span>
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="min-w-0">
-                                                <div className="text-sm font-extrabold text-white truncate">{id}</div>
-                                                <div className="text-[10px] text-[#7e8593] truncate">ID Utama Pengiriman</div>
+                                        )
+                                    })
+                                ) : (
+                                    Object.entries(chipStock).map(([id, val]) => (
+                                        <div
+                                            key={id}
+                                            className="flex items-center justify-between gap-3 p-3.5 bg-[#0a0b0d] border border-[#26282f] rounded-xl"
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="w-9 h-9 rounded-xl bg-[#f5b301]/10 border border-[#f5b301]/30 flex items-center justify-center text-[#f5b301] shrink-0">
+                                                    <Coins size={18} className="shrink-0" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <div className="text-sm font-extrabold text-white truncate">{id}</div>
+                                                    <div className="text-[10px] text-[#7e8593] truncate">ID Utama Pengiriman</div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <div className="text-lg font-black text-[#f5b301]">{num(val)} B</div>
+                                                <div className="text-[10px] text-emerald-400 font-semibold">Ready Stock</div>
                                             </div>
                                         </div>
-                                        <div className="text-right shrink-0">
-                                            <div className="text-lg font-black text-[#f5b301]">{num(val)} B</div>
-                                            <div className="text-[10px] text-emerald-400 font-semibold">Ready Stock</div>
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))
+                                )}
                             </div>
                         </Panel>
 

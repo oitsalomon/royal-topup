@@ -106,6 +106,7 @@ export default function LogsClient({ initialLogs, initialPagination, staffList }
                     onChange={e => updateParams({ action: e.target.value, page: 1 })}
                 >
                     <option value="all">Semua Aksi</option>
+                    <option value="EDIT_CHIP">Edit Chip</option>
                     <option value="LOGIN">Login</option>
                     <option value="LOGOUT">Logout</option>
                     <option value="APPROVE_TX">Approve Transaksi</option>
@@ -167,10 +168,11 @@ export default function LogsClient({ initialLogs, initialPagination, staffList }
                                     </td>
                                     <td className="p-4">
                                         <span className={`px-2 py-1 rounded text-xs font-bold 
-                      ${log.action === 'APPROVE_TX' ? 'bg-green-500/10 text-green-400' :
-                                                log.action === 'ADJUSTMENT' ? 'bg-yellow-500/10 text-yellow-400' :
-                                                    log.action.includes('UPDATE') ? 'bg-purple-500/10 text-purple-400' :
-                                                        log.action === 'LOGIN' ? 'bg-blue-500/10 text-blue-400' : 'bg-gray-500/10 text-gray-400'}`}>
+                      ${log.action === 'EDIT_CHIP' || log.action.includes('EDIT') ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                        log.action === 'APPROVE_TX' ? 'bg-green-500/10 text-green-400' :
+                        log.action === 'ADJUSTMENT' ? 'bg-yellow-500/10 text-yellow-400' :
+                        log.action.includes('UPDATE') ? 'bg-purple-500/10 text-purple-400' :
+                        log.action === 'LOGIN' ? 'bg-blue-500/10 text-blue-400' : 'bg-gray-500/10 text-gray-400'}`}>
                                             {log.action}
                                         </span>
                                     </td>

@@ -36,6 +36,7 @@ export async function getDashboardStats() {
                     id: true,
                     username: true,
                     balance: true,
+                    role: true,
                     game: {
                         select: { id: true, name: true, code: true }
                     }

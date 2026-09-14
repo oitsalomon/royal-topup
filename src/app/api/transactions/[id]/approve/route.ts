@@ -141,15 +141,36 @@ export async function POST(
                 if (transaction.type === 'TOPUP') {
                     if (stage === 1) {
                         // Money Received: Bank Balance + (User sent to this bank)
-                        await tx.paymentMethod.update({
-                            where: { id: transaction.payment_method_id },
-                            data: { balance: { increment: transaction.amount_money } }
-                        })
+                        let targetBankId = bank_id ? Number(bank_id) : transaction.payment_method_id
+                        if (!targetBankId) {
+                            const fallbackBank = await tx.paymentMethod.findFirst({
+                                where: { isActive: true },
+                                orderBy: { id: 'asc' }
+                            })
+                            if (fallbackBank) targetBankId = fallbackBank.id
+                        }
+                        if (targetBankId) {
+                            await tx.paymentMethod.update({
+                                where: { id: targetBankId },
+                                data: { balance: { increment: transaction.amount_money } }
+                            })
+                        }
                     } else if (stage === 2) {
                         // Chip Sent: Game Account Balance -
-                        if (game_account_id) {
+                        let targetAccId = game_account_id ? Number(game_account_id) : null
+                        if (!targetAccId) {
+                            const autoAcc = await tx.gameAccount.findFirst({
+                                where: { game_id: transaction.game_id, isActive: true },
+                                orderBy: { balance: 'desc' }
+                            }) || await tx.gameAccount.findFirst({
+                                where: { isActive: true },
+                                orderBy: { balance: 'desc' }
+                            })
+                            if (autoAcc) targetAccId = autoAcc.id
+                        }
+                        if (targetAccId) {
                             await tx.gameAccount.update({
-                                where: { id: Number(game_account_id) },
+                                where: { id: targetAccId },
                                 data: { balance: { decrement: transaction.amount_chip } }
                             })
                         }
@@ -173,17 +194,39 @@ export async function POST(
                 } else if (transaction.type === 'WITHDRAW') {
                     if (stage === 1) {
                         // Chip Received: Game Account Balance +
-                        if (game_account_id) {
+                        let targetAccId = game_account_id ? Number(game_account_id) : null
+                        if (!targetAccId) {
+                            const autoAcc = await tx.gameAccount.findFirst({
+                                where: { game_id: transaction.game_id, isActive: true },
+                                orderBy: { balance: 'asc' }
+                            }) || await tx.gameAccount.findFirst({
+                                where: { isActive: true },
+                                orderBy: { balance: 'asc' }
+                            })
+                            if (autoAcc) targetAccId = autoAcc.id
+                        }
+                        if (targetAccId) {
                             await tx.gameAccount.update({
-                                where: { id: Number(game_account_id) },
+                                where: { id: targetAccId },
                                 data: { balance: { increment: transaction.amount_chip } }
                             })
                         }
                     } else if (stage === 2) {
                         // Money Sent: Bank Balance -
-                        if (bank_id) {
+                        let targetBankId = bank_id ? Number(bank_id) : (transaction.payment_method_id || transaction.withdraw_method_id)
+                        if (!targetBankId) {
+                            const autoBank = await tx.paymentMethod.findFirst({
+                                where: { isActive: true, balance: { gte: transaction.amount_money } },
+                                orderBy: { balance: 'desc' }
+                            }) || await tx.paymentMethod.findFirst({
+                                where: { isActive: true },
+                                orderBy: { balance: 'desc' }
+                            })
+                            if (autoBank) targetBankId = autoBank.id
+                        }
+                        if (targetBankId) {
                             await tx.paymentMethod.update({
-                                where: { id: Number(bank_id) },
+                                where: { id: targetBankId },
                                 data: { balance: { decrement: transaction.amount_money } }
                             })
                         }
@@ -191,9 +234,10 @@ export async function POST(
                 } else if (transaction.type === 'REFERRAL_WD') {
                     if (stage === 2) {
                         // Money Sent: Bank Balance -
-                        if (bank_id) {
+                        let targetBankId = bank_id ? Number(bank_id) : (transaction.payment_method_id || transaction.withdraw_method_id)
+                        if (targetBankId) {
                             await tx.paymentMethod.update({
-                                where: { id: Number(bank_id) },
+                                where: { id: targetBankId },
                                 data: { balance: { decrement: transaction.amount_money } }
                             })
                         }

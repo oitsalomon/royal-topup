@@ -309,17 +309,20 @@ export default function TransactionsClient({
     const handleApproval = async (id: number, stage: number, action: 'APPROVE' | 'DECLINE', type: 'TOPUP' | 'WITHDRAW') => {
         if (processingId) return
 
+        const effectiveAccountId = selectedAccountId || localGameAccounts[0]?.id
+        const effectiveBankId = selectedBankId || localBanks[0]?.id
+
         if (action === 'APPROVE') {
-            if (type === 'TOPUP' && stage === 2 && !selectedAccountId) {
-                alert('Pilih Akun Game (Panel ID) pengirim chip!')
+            if (type === 'TOPUP' && stage === 2 && !effectiveAccountId) {
+                alert('Belum ada akun game pengirim chip yang aktif di sistem.')
                 return
             }
-            if (type === 'WITHDRAW' && stage === 1 && !selectedAccountId) {
-                alert('Pilih Akun Game (Panel ID) penerima chip!')
+            if (type === 'WITHDRAW' && stage === 1 && !effectiveAccountId) {
+                alert('Belum ada akun game penerima chip yang aktif di sistem.')
                 return
             }
-            if (type === 'WITHDRAW' && stage === 2 && !selectedBankId) {
-                alert('Pilih Bank (Panel Bank) pengirim uang!')
+            if (type === 'WITHDRAW' && stage === 2 && !effectiveBankId) {
+                alert('Belum ada rekening bank operasional yang aktif di sistem.')
                 return
             }
         }
@@ -357,8 +360,8 @@ export default function TransactionsClient({
                     stage,
                     action,
                     admin_id: currentAdminId,
-                    game_account_id: selectedAccountId ? Number(selectedAccountId) : undefined,
-                    bank_id: selectedBankId ? Number(selectedBankId) : undefined
+                    game_account_id: effectiveAccountId ? Number(effectiveAccountId) : undefined,
+                    bank_id: effectiveBankId ? Number(effectiveBankId) : undefined
                 })
             })
 

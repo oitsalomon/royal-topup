@@ -18,10 +18,11 @@ export const LOOKUP_TABLE_BELOW_65K: [number, number][] = [
 
 export const trunc2 = (x: number): number => Math.trunc(x * 100 + 1e-9) / 100;
 export const rp = (n: number | string): string => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
-export const num = (n: number | string): string =>
-  typeof n === 'number'
-    ? Number(n.toFixed(2)).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-    : (n || '0');
+export const num = (n: number | string): string => {
+  const val = typeof n === 'number' ? n : parseFloat(String(n || 0))
+  if (isNaN(val)) return '0'
+  return Number(val.toFixed(2)).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+};
 
 export const WD_BONUS = 2500;
 

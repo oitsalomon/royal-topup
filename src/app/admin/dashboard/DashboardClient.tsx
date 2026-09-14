@@ -29,6 +29,7 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
     const [gameAccounts, setGameAccounts] = useState<any[]>(initialData?.gameAccounts || [])
     const [editingAccountId, setEditingAccountId] = useState<number | null>(null)
     const [editingBalance, setEditingBalance] = useState<string>('')
+    const [editChipUnit, setEditChipUnit] = useState<'B' | 'M'>('B')
     const [savingChip, setSavingChip] = useState<boolean>(false)
 
     useEffect(() => {
@@ -39,12 +40,32 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
 
     const startEditChip = (acc: any) => {
         setEditingAccountId(acc.id)
-        setEditingBalance(String(Number(acc.balance || 0)))
+        setEditChipUnit('B')
+        const rawVal = Number(acc.balance || 0)
+        const cleanB = Math.round(rawVal * 100) / 100
+        setEditingBalance(String(cleanB))
     }
 
     const cancelEditChip = () => {
         setEditingAccountId(null)
         setEditingBalance('')
+    }
+
+    const handleToggleEditUnit = (newUnit: 'B' | 'M') => {
+        if (newUnit === editChipUnit) return
+        const currentNum = parseFloat(editingBalance.replace(',', '.'))
+        if (!isNaN(currentNum) && currentNum >= 0) {
+            if (newUnit === 'M') {
+                // Konversi dari B ke M (1 B = 1000 M)
+                const inM = Math.round(currentNum * 1000)
+                setEditingBalance(String(inM))
+            } else {
+                // Konversi dari M ke B (1000 M = 1 B)
+                const inB = Math.round((currentNum / 1000) * 100) / 100
+                setEditingBalance(String(inB))
+            }
+        }
+        setEditChipUnit(newUnit)
     }
 
     const handleSaveChip = async (accId: number) => {
@@ -53,6 +74,12 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
             alert('Nominal chip tidak valid (minimal 0)')
             return
         }
+
+        // Database menyimpan dalam satuan B (Miliar).
+        // Jika input dalam satuan M (Juta), konversi ke B: val / 1000
+        const finalValB = editChipUnit === 'M'
+            ? Math.round((val / 1000) * 1000) / 1000
+            : Math.round(val * 100) / 100
 
         setSavingChip(true)
         try {
@@ -70,7 +97,7 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
                 headers: authHeaders,
                 body: JSON.stringify({
                     id: accId,
-                    balance: val
+                    balance: finalValB
                 })
             })
 
@@ -606,44 +633,81 @@ ${Object.entries(chipStock).map(([id, v]) => `  • <b>${id}:</b> ${num(v)} chip
 
                                                 <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
                                                     {isEditing ? (
-                                                        <div className="flex items-center gap-1.5">
-                                                            <div className="relative">
-                                                                <input
-                                                                    type="number"
-                                                                    step="any"
-                                                                    value={editingBalance}
-                                                                    onChange={(e) => setEditingBalance(e.target.value)}
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') handleSaveChip(acc.id)
-                                                                        if (e.key === 'Escape') cancelEditChip()
-                                                                    }}
-                                                                    className="w-24 sm:w-28 bg-black border border-[#f5b301] rounded-lg px-2.5 py-1 text-xs text-white font-mono font-bold outline-none"
-                                                                    autoFocus
-                                                                    placeholder="cth: 500"
-                                                                />
-                                                                <span className="absolute right-2 top-1 text-[11px] text-[#f5b301] font-bold pointer-events-none">
-                                                                    B
-                                                                </span>
+                                                        <div className="flex flex-col items-end gap-1.5">
+                                                            <div className="flex items-center gap-1 bg-[#16181d] p-0.5 rounded-lg border border-white/10 text-[11px]">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleToggleEditUnit('B')}
+                                                                    className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
+                                                                        editChipUnit === 'B'
+                                                                            ? 'bg-[#f5b301] text-black shadow'
+                                                                            : 'text-gray-400 hover:text-white'
+                                                                    }`}
+                                                                >
+                                                                    B (Miliar)
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleToggleEditUnit('M')}
+                                                                    className={`px-2 py-0.5 rounded font-bold transition-all cursor-pointer ${
+                                                                        editChipUnit === 'M'
+                                                                            ? 'bg-[#f5b301] text-black shadow'
+                                                                            : 'text-gray-400 hover:text-white'
+                                                                    }`}
+                                                                >
+                                                                    M (Juta)
+                                                                </button>
                                                             </div>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleSaveChip(acc.id)}
-                                                                disabled={savingChip}
-                                                                className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                                                                title="Simpan nominal chip baru"
-                                                            >
-                                                                <Check size={13} />
-                                                                <span>{savingChip ? '...' : 'Simpan'}</span>
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                onClick={cancelEditChip}
-                                                                disabled={savingChip}
-                                                                className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10 text-xs transition-colors cursor-pointer"
-                                                                title="Batal edit"
-                                                            >
-                                                                <X size={14} />
-                                                            </button>
+
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="relative">
+                                                                    <input
+                                                                        type="number"
+                                                                        step={editChipUnit === 'M' ? '1' : '0.01'}
+                                                                        value={editingBalance}
+                                                                        onChange={(e) => setEditingBalance(e.target.value)}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter') handleSaveChip(acc.id)
+                                                                            if (e.key === 'Escape') cancelEditChip()
+                                                                        }}
+                                                                        className="w-28 sm:w-32 bg-black border border-[#f5b301] rounded-lg px-2.5 py-1 text-xs text-white font-mono font-bold outline-none"
+                                                                        autoFocus
+                                                                        placeholder={editChipUnit === 'B' ? 'cth: 438.26' : 'cth: 438260'}
+                                                                    />
+                                                                    <span className="absolute right-2 top-1 text-[11px] text-[#f5b301] font-bold pointer-events-none">
+                                                                        {editChipUnit}
+                                                                    </span>
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleSaveChip(acc.id)}
+                                                                    disabled={savingChip}
+                                                                    className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                                                                    title="Simpan nominal chip baru"
+                                                                >
+                                                                    <Check size={13} />
+                                                                    <span>{savingChip ? '...' : 'Simpan'}</span>
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={cancelEditChip}
+                                                                    disabled={savingChip}
+                                                                    className="p-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/10 text-xs transition-colors cursor-pointer"
+                                                                    title="Batal edit"
+                                                                >
+                                                                    <X size={14} />
+                                                                </button>
+                                                            </div>
+
+                                                            {editingBalance && !isNaN(parseFloat(editingBalance)) && (
+                                                                <div className="text-[10px] text-gray-400">
+                                                                    {editChipUnit === 'B' ? (
+                                                                        <span>Setara: <b className="text-white">{(parseFloat(editingBalance) * 1000).toLocaleString('id-ID')} M</b></span>
+                                                                    ) : (
+                                                                        <span>Setara: <b className="text-white">{(parseFloat(editingBalance) / 1000).toLocaleString('id-ID')} B</b></span>
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     ) : (
                                                         <div className="flex items-center gap-2.5">
@@ -651,8 +715,8 @@ ${Object.entries(chipStock).map(([id, v]) => `  • <b>${id}:</b> ${num(v)} chip
                                                                 <div className="text-lg font-black text-[#f5b301] leading-none">
                                                                     {num(acc.balance)} B
                                                                 </div>
-                                                                <div className="text-[10px] text-emerald-400 font-semibold mt-0.5">
-                                                                    Ready Stock
+                                                                <div className="text-[10px] text-gray-400 font-medium mt-0.5">
+                                                                    {(Math.round(Number(acc.balance || 0) * 1000)).toLocaleString('id-ID')} M
                                                                 </div>
                                                             </div>
                                                             <button

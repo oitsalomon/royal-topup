@@ -53,17 +53,44 @@ export async function POST(request: Request) {
                 }
             })
 
-            // 2. Adjust Balance
-            if (finalBankId) {
-                if (type === 'TOPUP') {
+            // 2. Adjust Bank & Game Account (Chip) Balance
+            let targetGameAcc = await tx.gameAccount.findFirst({
+                where: { game_id: finalGameId, isActive: true },
+                orderBy: { balance: 'desc' }
+            })
+            if (!targetGameAcc) {
+                targetGameAcc = await tx.gameAccount.findFirst({
+                    where: { isActive: true },
+                    orderBy: { balance: 'desc' }
+                })
+            }
+
+            if (type === 'TOPUP') {
+                // Top Up: Saldo Bank Toko Bertambah, Stok Chip Toko Berkurang
+                if (finalBankId) {
                     await tx.paymentMethod.update({
                         where: { id: finalBankId },
                         data: { balance: { increment: finalMoney } }
                     })
-                } else {
+                }
+                if (targetGameAcc) {
+                    await tx.gameAccount.update({
+                        where: { id: targetGameAcc.id },
+                        data: { balance: { decrement: finalChipB } }
+                    })
+                }
+            } else {
+                // Withdraw: Saldo Bank Toko Berkurang, Stok Chip Toko Bertambah
+                if (finalBankId) {
                     await tx.paymentMethod.update({
                         where: { id: finalBankId },
                         data: { balance: { decrement: finalMoney } }
+                    })
+                }
+                if (targetGameAcc) {
+                    await tx.gameAccount.update({
+                        where: { id: targetGameAcc.id },
+                        data: { balance: { increment: finalChipB } }
                     })
                 }
             }

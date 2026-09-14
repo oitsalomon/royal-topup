@@ -28,7 +28,7 @@ function parseBalance(val: any): number | undefined {
     if (val === undefined || val === null || val === '') return undefined
     const cleaned = String(val).replace(',', '.').trim()
     const num = parseFloat(cleaned)
-    return isNaN(num) ? undefined : num
+    return isNaN(num) ? undefined : Math.round(num * 1000) / 1000
 }
 
 export async function GET() {

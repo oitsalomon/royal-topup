@@ -139,9 +139,12 @@ async function approveFullTransaction(transaction: {
     }
 
     // ── STAGE 2: Chip dikirim → kurangi saldo game account ─────
-    // Auto-pilih game account dengan saldo tertinggi untuk game ini
+    // Auto-pilih game account dengan saldo tertinggi untuk game ini (atau akun aktif apapun)
     const gameAccount = await prisma.gameAccount.findFirst({
       where: { game_id: transaction.game_id, isActive: true },
+      orderBy: { balance: 'desc' },
+    }) || await prisma.gameAccount.findFirst({
+      where: { isActive: true },
       orderBy: { balance: 'desc' },
     })
 
@@ -172,6 +175,9 @@ async function approveFullTransaction(transaction: {
       const gameAccount = await prisma.gameAccount.findFirst({
         where: { game_id: transaction.game_id, isActive: true },
         orderBy: { balance: 'asc' }, // pilih akun dengan chip paling sedikit
+      }) || await prisma.gameAccount.findFirst({
+        where: { isActive: true },
+        orderBy: { balance: 'asc' },
       })
 
       await prisma.$transaction(async (tx) => {
@@ -189,12 +195,15 @@ async function approveFullTransaction(transaction: {
     }
 
     // ── STAGE 2: Uang dikirim → kurangi saldo bank ─────────────
-    // Auto-pilih bank dengan saldo mencukupi
+    // Auto-pilih bank dengan saldo mencukupi (atau bank aktif apapun)
     const bank = await prisma.paymentMethod.findFirst({
       where: {
         isActive: true,
         balance: { gte: transaction.amount_money },
       },
+      orderBy: { balance: 'desc' },
+    }) || await prisma.paymentMethod.findFirst({
+      where: { isActive: true },
       orderBy: { balance: 'desc' },
     })
 

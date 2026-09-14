@@ -274,6 +274,78 @@ export function TextInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
     return <input {...props} style={{ ...inputStyle, ...(props.style || {}) }} />
 }
 
+export function formatRupiahInput(val: string | number | undefined | null): string {
+    if (val === undefined || val === null || val === '') return ''
+    const clean = String(val).replace(/\D/g, '')
+    if (!clean) return ''
+    const num = parseInt(clean, 10)
+    if (isNaN(num)) return ''
+    return num.toLocaleString('id-ID')
+}
+
+export function parseRupiahInput(val: string | number | undefined | null): string {
+    if (val === undefined || val === null || val === '') return ''
+    return String(val).replace(/\D/g, '')
+}
+
+export interface RupiahInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value'> {
+    value: string | number | undefined | null
+    onValueChange?: (rawValue: string, formattedValue: string) => void
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void
+    prefix?: string
+}
+
+export function RupiahInput({
+    value,
+    onValueChange,
+    onChange,
+    prefix = 'Rp',
+    placeholder = '0',
+    className = '',
+    style = {},
+    ...props
+}: RupiahInputProps) {
+    const displayVal = formatRupiahInput(value)
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const rawDigits = e.target.value.replace(/\D/g, '')
+        const formatted = formatRupiahInput(rawDigits)
+        if (onValueChange) {
+            onValueChange(rawDigits, formatted)
+        }
+        if (onChange) {
+            e.target.value = rawDigits
+            onChange(e)
+        }
+    }
+
+    return (
+        <div className={`relative w-full flex items-center ${className}`}>
+            {prefix && (
+                <span className="absolute left-3 text-[#7e8593] font-bold text-xs select-none pointer-events-none z-10">
+                    {prefix}
+                </span>
+            )}
+            <input
+                type="text"
+                inputMode="numeric"
+                value={displayVal}
+                onChange={handleChange}
+                placeholder={placeholder}
+                {...props}
+                style={{
+                    ...inputStyle,
+                    paddingLeft: prefix ? '34px' : '12px',
+                    fontVariantNumeric: 'tabular-nums',
+                    fontFamily: 'monospace',
+                    fontWeight: 700,
+                    ...style
+                }}
+            />
+        </div>
+    )
+}
+
 export function SelectInput({
     options,
     ...props

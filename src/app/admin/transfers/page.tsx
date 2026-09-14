@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { TrendingUp, Search, ArrowRight } from 'lucide-react'
+import { formatRupiahInput } from '@/components/admin/RoyalCloverUI'
 
 export default function TransferHistory() {
     const [transfers, setTransfers] = useState<any[]>([])
@@ -187,11 +188,12 @@ export default function TransferHistory() {
                             {type === 'MONEY' ? (
                                 <div className="relative">
                                     <input
-                                        type="number"
+                                        type="text"
+                                        inputMode="numeric"
                                         placeholder="0"
-                                        className="w-full bg-black/40 border border-white/10 rounded-xl pl-4 pr-12 py-3 text-white"
-                                        value={amount}
-                                        onChange={e => setAmount(e.target.value)}
+                                        className="w-full bg-black/40 border border-white/10 rounded-xl pl-4 pr-12 py-3 text-white font-mono font-bold"
+                                        value={formatRupiahInput(amount)}
+                                        onChange={e => setAmount(e.target.value.replace(/\D/g, ''))}
                                         required
                                     />
                                     <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-gray-500">Rp</span>

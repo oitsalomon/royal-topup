@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { Plus, Landmark, Trash2, Download, Database, CheckCircle2, AlertTriangle } from 'lucide-react'
 import {
     PageHead, Panel, StatBig, Badge, PrimaryBtn,
-    SelectInput, TextInput
+    SelectInput, TextInput, RupiahInput
 } from '@/components/admin/RoyalCloverUI'
 import { rp, DEFAULT_OPS_BANKS } from '@/lib/clover-engine'
 import { getJakartaDateString, getJakartaTimeString } from '@/lib/timezone'
@@ -346,11 +346,10 @@ export default function BiayaPage() {
                         </div>
                         <div>
                             <label className="text-xs text-[#7e8593] font-semibold mb-1.5 block">Nominal Biaya (Rp) *</label>
-                            <TextInput
-                                type="number"
-                                placeholder="cth: 6500"
+                            <RupiahInput
+                                placeholder="cth: 6.500"
                                 value={f.biaya}
-                                onChange={(e) => setF({ ...f, biaya: e.target.value })}
+                                onValueChange={(rawDigits) => setF({ ...f, biaya: rawDigits })}
                             />
                         </div>
                         <div>

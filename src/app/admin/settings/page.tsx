@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Header from '@/components/admin/Header'
 import { Save, Loader2, Smartphone, MessageCircle, CreditCard, Flame, Plus, Trash2, LayoutGrid } from 'lucide-react'
+import { formatRupiahInput } from '@/components/admin/RoyalCloverUI'
 
 export default function SettingsPage() {
     const [config, setConfig] = useState<any>(null)
@@ -207,10 +208,14 @@ export default function SettingsPage() {
                             <div>
                                 <label className="block text-sm font-medium text-gray-400 mb-2">Harga Promo per 1B (Rp)</label>
                                 <input
-                                    type="number"
-                                    value={config.flash_sale?.promo_price || 63000}
-                                    onChange={(e) => updateConfig('flash_sale', 'promo_price', Number(e.target.value))}
-                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-amber-500 focus:outline-none transition-colors"
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={formatRupiahInput(config.flash_sale?.promo_price || 63000)}
+                                    onChange={(e) => {
+                                        const raw = e.target.value.replace(/\D/g, '')
+                                        updateConfig('flash_sale', 'promo_price', raw ? Number(raw) : 0)
+                                    }}
+                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-mono font-bold focus:border-amber-500 focus:outline-none transition-colors"
                                 />
                             </div>
                             <div>
@@ -290,10 +295,14 @@ export default function SettingsPage() {
                                 Biaya Admin Guest Bongkaran (Rp)
                             </label>
                             <input
-                                type="number"
-                                value={config.guest_withdraw_fee ?? 2500}
-                                onChange={(e) => setConfig((prev: any) => ({ ...prev, guest_withdraw_fee: Number(e.target.value) }))}
-                                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white focus:border-cyan-500 focus:outline-none transition-colors"
+                                type="text"
+                                inputMode="numeric"
+                                value={formatRupiahInput(config.guest_withdraw_fee ?? 2500)}
+                                onChange={(e) => {
+                                    const raw = e.target.value.replace(/\D/g, '')
+                                    setConfig((prev: any) => ({ ...prev, guest_withdraw_fee: raw ? Number(raw) : 0 }))
+                                }}
+                                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-mono font-bold focus:border-cyan-500 focus:outline-none transition-colors"
                             />
                             <p className="text-xs text-gray-500 mt-1">
                                 Biaya potongan pencairan untuk tamu / non-member (saat ini Rp {Number(config.guest_withdraw_fee ?? 2500).toLocaleString('id-ID')}). Member yang sudah login otomatis mendapatkan Bebas Biaya (Rp 0).

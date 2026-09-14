@@ -6,7 +6,7 @@ import {
     Calculator, Sparkles, AlertCircle
 } from 'lucide-react'
 import {
-    PageHead, Panel, Badge, PrimaryBtn, SelectInput, TextInput,
+    PageHead, Panel, Badge, PrimaryBtn, SelectInput, TextInput, RupiahInput,
     BG, PANEL, PANEL2, BORDER, MUTED, TEXT, TEXT2, TEXT3
 } from '@/components/admin/RoyalCloverUI'
 import {
@@ -304,11 +304,10 @@ export default function ManualTransactionPage() {
                                 <label className="text-xs text-[#7e8593] font-semibold mb-1.5 block">
                                     {type === 'TOPUP' ? 'Nominal Bayar (Rp) *' : 'Nominal Bersih yang Diterima (Rp) *'}
                                 </label>
-                                <TextInput
-                                    type="number"
-                                    placeholder="cth: 195000"
+                                <RupiahInput
+                                    placeholder="cth: 195.000"
                                     value={formData.amount_money}
-                                    onChange={e => handleMoneyChange(e.target.value)}
+                                    onValueChange={(rawDigits) => handleMoneyChange(rawDigits)}
                                     required
                                 />
                                 {formData.amount_money && (

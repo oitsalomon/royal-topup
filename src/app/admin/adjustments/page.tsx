@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Coins, ArrowUpRight, ArrowDownLeft, Search, Plus } from 'lucide-react'
+import { formatRupiahInput } from '@/components/admin/RoyalCloverUI'
 
 export default function AdjustmentHistory() {
     const [adjustments, setAdjustments] = useState<any[]>([])
@@ -234,11 +235,12 @@ export default function AdjustmentHistory() {
                             <label className="text-sm text-gray-400 mb-1 block">Nominal Uang (M)</label>
                             <div className="relative">
                                 <input
-                                    type="number"
+                                    type="text"
+                                    inputMode="numeric"
                                     placeholder="0"
-                                    className="w-full bg-black/40 border border-white/10 rounded-xl pl-4 pr-12 py-3 text-white"
-                                    value={formData.amount_money}
-                                    onChange={e => setFormData({ ...formData, amount_money: e.target.value })}
+                                    className="w-full bg-black/40 border border-white/10 rounded-xl pl-4 pr-12 py-3 text-white font-mono font-bold"
+                                    value={formatRupiahInput(formData.amount_money)}
+                                    onChange={e => setFormData({ ...formData, amount_money: e.target.value.replace(/\D/g, '') })}
                                     disabled={formData.targetType === 'GAME_ACCOUNT'}
                                 />
                                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">Rp</span>

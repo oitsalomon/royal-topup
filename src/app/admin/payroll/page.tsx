@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ShieldCheck, Plus, User, Wallet, CheckCircle2, Clock, Lock } from 'lucide-react'
 import {
     PageHead, Panel, StatBig, Badge, PrimaryBtn,
-    SelectInput, TextInput, BG, PANEL, PANEL2, BORDER, MUTED, TEXT, TEXT2, TEXT3
+    SelectInput, TextInput, RupiahInput, BG, PANEL, PANEL2, BORDER, MUTED, TEXT, TEXT2, TEXT3
 } from '@/components/admin/RoyalCloverUI'
 import { rp } from '@/lib/clover-engine'
 
@@ -223,11 +223,10 @@ export default function PayrollPage() {
                         </div>
                         <div>
                             <label className="text-xs text-[#7e8593] font-semibold mb-1.5 block">Jumlah Kasbon (Rp) *</label>
-                            <TextInput
-                                type="number"
-                                placeholder="cth: 500000"
+                            <RupiahInput
+                                placeholder="cth: 500.000"
                                 value={f.jumlah}
-                                onChange={(e) => setF({ ...f, jumlah: e.target.value })}
+                                onValueChange={(rawDigits) => setF({ ...f, jumlah: rawDigits })}
                             />
                         </div>
                         <div>

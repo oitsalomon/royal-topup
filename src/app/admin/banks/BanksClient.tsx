@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Plus, Wallet, CreditCard, QrCode, AlertTriangle, Info } from 'lucide-react'
+import { formatRupiahInput } from '@/components/admin/RoyalCloverUI'
 
 // Types must match what's returned from the server + prisma types
 interface Bank {
@@ -252,9 +253,12 @@ export default function BanksClient({ initialBanks, availableGames }: BanksClien
                             value={formData.account_name} onChange={e => setFormData({ ...formData, account_name: e.target.value })} required
                         />
                         <input
-                            type="number" placeholder="Saldo Awal (Internal)"
-                            className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
-                            value={formData.balance} onChange={e => setFormData({ ...formData, balance: e.target.value })}
+                            type="text"
+                            inputMode="numeric"
+                            placeholder="Saldo Awal (Internal, cth: 10.000.000)"
+                            className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white font-mono font-bold"
+                            value={formatRupiahInput(formData.balance)}
+                            onChange={e => setFormData({ ...formData, balance: e.target.value.replace(/\D/g, '') })}
                         />
 
                         {/* Store Selection */}

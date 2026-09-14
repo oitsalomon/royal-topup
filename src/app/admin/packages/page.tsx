@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { Plus, Package, Edit, Trash2, Upload, Check, Image as ImageIcon, Pin, QrCode, X, AlertTriangle } from 'lucide-react'
+import { formatRupiahInput } from '@/components/admin/RoyalCloverUI'
 
 interface PackageItem {
     id: number
@@ -268,11 +269,12 @@ export default function AdminPackages() {
                         <div>
                             <label className="block text-xs font-medium text-slate-300 mb-1">Harga Jual (Rp)</label>
                             <input
-                                type="number"
-                                placeholder="Contoh: 65010"
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="Contoh: 65.010"
                                 className="w-full bg-[#0a0e17] border border-slate-700 focus:border-cyan-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono outline-none"
-                                value={formData.price}
-                                onChange={e => setFormData({ ...formData, price: e.target.value })}
+                                value={formatRupiahInput(formData.price)}
+                                onChange={e => setFormData({ ...formData, price: e.target.value.replace(/\D/g, '') })}
                                 required
                             />
                         </div>
@@ -280,11 +282,12 @@ export default function AdminPackages() {
                         <div>
                             <label className="block text-xs font-medium text-slate-300 mb-1">Harga Normal / Coret (Rp)</label>
                             <input
-                                type="number"
-                                placeholder="Contoh: 70000"
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="Contoh: 70.000"
                                 className="w-full bg-[#0a0e17] border border-slate-700 focus:border-cyan-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono outline-none"
-                                value={formData.originalPrice}
-                                onChange={e => setFormData({ ...formData, originalPrice: e.target.value })}
+                                value={formatRupiahInput(formData.originalPrice)}
+                                onChange={e => setFormData({ ...formData, originalPrice: e.target.value.replace(/\D/g, '') })}
                             />
                         </div>
 

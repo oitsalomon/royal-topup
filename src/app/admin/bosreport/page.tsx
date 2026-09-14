@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { ShieldCheck, Landmark, Coins, TrendingUp, DollarSign, Wallet, Lock } from 'lucide-react'
 import {
-    PageHead, Panel, StatBig, TextInput,
+    PageHead, Panel, StatBig, TextInput, formatRupiahInput,
     BG, PANEL, PANEL2, BORDER, MUTED, TEXT, TEXT2, TEXT3
 } from '@/components/admin/RoyalCloverUI'
 import { rp, num, DEFAULT_OPS_BANKS, DEFAULT_OPS_IDS } from '@/lib/clover-engine'
@@ -152,9 +152,13 @@ export default function BosReportPage() {
                     <div className="p-3 bg-[#0a0b0d] border border-[#26282f] rounded-xl">
                         <label className="text-[11px] font-bold text-[#f5b301] block mb-1">Harga Modal Chip (Rp)</label>
                         <TextInput
-                            type="number"
-                            value={hargaModal}
-                            onChange={(e) => setHargaModal(Number(e.target.value) || 0)}
+                            type="text"
+                            inputMode="numeric"
+                            value={formatRupiahInput(hargaModal)}
+                            onChange={(e) => {
+                                const raw = e.target.value.replace(/\D/g, '')
+                                setHargaModal(raw ? Number(raw) : 0)
+                            }}
                         />
                         <div className="text-[10px] text-[#7e8593] mt-1.5">Acuan beli/modal per 1B</div>
                     </div>
@@ -166,10 +170,12 @@ export default function BosReportPage() {
                                 {b.label}
                             </label>
                             <TextInput
-                                type="number"
-                                value={b.saldo}
+                                type="text"
+                                inputMode="numeric"
+                                value={formatRupiahInput(b.saldo)}
                                 onChange={(e) => {
-                                    const val = Number(e.target.value) || 0
+                                    const raw = e.target.value.replace(/\D/g, '')
+                                    const val = raw ? Number(raw) : 0
                                     setBanks(banks.map((x) => (x.id === b.id ? { ...x, saldo: val } : x)))
                                 }}
                             />

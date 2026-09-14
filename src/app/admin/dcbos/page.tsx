@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { Plus, Crown, Coins, Landmark, Trash2, Database, Download, CheckCircle2 } from 'lucide-react'
 import {
     PageHead, Panel, StatBig, Badge, PrimaryBtn,
-    SelectInput, TextInput
+    SelectInput, TextInput, RupiahInput
 } from '@/components/admin/RoyalCloverUI'
 import { rp, num, DEFAULT_OPS_BANKS } from '@/lib/clover-engine'
 import { getJakartaDateString, getJakartaTimeString } from '@/lib/timezone'
@@ -315,13 +315,21 @@ export default function DcBosPage() {
                                 <label className="text-xs text-[#7e8593] font-semibold mb-1.5 block">
                                     Nominal {mode === 'uang' ? '(Rp)' : '(B)'} *
                                 </label>
-                                <TextInput
-                                    type="number"
-                                    step="any"
-                                    placeholder={mode === 'uang' ? 'cth: 3000000' : 'cth: 50'}
-                                    value={f.nominal}
-                                    onChange={(e) => setF({ ...f, nominal: e.target.value })}
-                                />
+                                {mode === 'uang' ? (
+                                    <RupiahInput
+                                        placeholder="cth: 3.000.000"
+                                        value={f.nominal}
+                                        onValueChange={(rawDigits) => setF({ ...f, nominal: rawDigits })}
+                                    />
+                                ) : (
+                                    <TextInput
+                                        type="number"
+                                        step="any"
+                                        placeholder="cth: 50"
+                                        value={f.nominal}
+                                        onChange={(e) => setF({ ...f, nominal: e.target.value })}
+                                    />
+                                )}
                             </div>
                             <div>
                                 <label className="text-xs text-[#7e8593] font-semibold mb-1.5 block">Keterangan</label>

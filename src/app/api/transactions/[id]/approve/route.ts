@@ -104,12 +104,16 @@ export async function POST(
             const forwardedFor = request.headers.get('x-forwarded-for')
             const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : (request.headers.get('x-real-ip') || '127.0.0.1')
 
+            const chipDisplay = transaction.amount_chip < 1
+                ? `${Math.round(transaction.amount_chip * 1000)}M`
+                : `${Number(transaction.amount_chip.toFixed(2))}B`
+
             // Log Activity for both APPROVE and DECLINE
             await tx.activityLog.create({
                 data: {
                     user_id: userId,
                     action: action === 'APPROVE' ? 'APPROVE_TX' : 'DECLINE_TX',
-                    details: `Transaction #${id} (TRX: ${transaction.trx_id || '-'}) ${transaction.type} Stage ${stage} ${action === 'APPROVE' ? 'Approved' : 'Declined'} | Rp ${transaction.amount_money.toLocaleString('id-ID')} | Chip: ${transaction.amount_chip}M by ${adminSession.username}`,
+                    details: `Transaction #${id} (TRX: ${transaction.trx_id || '-'}) ${transaction.type} Stage ${stage} ${action === 'APPROVE' ? 'Approved' : 'Declined'} | Rp ${transaction.amount_money.toLocaleString('id-ID')} | Chip: ${chipDisplay} by ${adminSession.username}`,
                     ip_address: clientIp
                 }
             })

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { isAdminRole } from '@/lib/auth-constants'
 
 export default function AdminLogin() {
     const router = useRouter()
@@ -24,9 +25,8 @@ export default function AdminLogin() {
             if (res.ok) {
                 const data = await res.json()
                 
-                // 1. Role Check (IMPORTANT SECURITY FIX)
-                const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'STAFF']
-                if (!allowedRoles.includes(data.role)) {
+                // 1. Role Check
+                if (!isAdminRole(data.role)) {
                     setError('Unauthorized: Akun ini bukan Staff/Admin.')
                     setIsSubmitting(false)
                     return

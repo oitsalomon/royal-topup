@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { signSessionToken, ADMIN_COOKIE_NAME } from '@/lib/auth'
+import { signSessionToken, ADMIN_COOKIE_NAME, isAdminRole } from '@/lib/auth'
 import { checkLoginRateLimit, recordFailedLogin, resetLoginAttempts } from '@/lib/rate-limiter'
 import { loginSchema, sanitizeText } from '@/lib/validations'
 
@@ -100,8 +100,8 @@ export async function POST(request: Request) {
 
         const response = NextResponse.json(userResponse)
 
-        // 8. Jika Admin/Staff, terbitkan cryptographic httpOnly cookie
-        const isAdmin = ['ADMIN', 'SUPER_ADMIN', 'STAFF'].includes(user.role)
+        // 8. Jika Admin/Staff/CS/Viewer, terbitkan cryptographic httpOnly cookie
+        const isAdmin = isAdminRole(user.role)
         if (isAdmin) {
             const token = await signSessionToken({
                 id: user.id,

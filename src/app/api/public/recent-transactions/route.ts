@@ -38,12 +38,17 @@ export async function GET() {
             }
 
             // Convert amount_chip to label
-            // In DB, chip is stored in M. 1000 = 1B.
+            // In DB, amount_chip is stored in B (e.g. 0.2 = 200M, 1 = 1B, 5 = 5B).
             let formattedAmount = ''
             if (t.type === 'TOPUP') {
-                formattedAmount = t.amount_chip >= 1000 
-                    ? `${t.amount_chip / 1000}B` 
-                    : `${t.amount_chip}M`
+                if (t.amount_chip < 1) {
+                    formattedAmount = `${Math.round(t.amount_chip * 1000)}M`
+                } else if (t.amount_chip >= 1000) {
+                    // Fallback in case raw M was stored
+                    formattedAmount = `${(t.amount_chip / 1000).toLocaleString('id-ID')}B`
+                } else {
+                    formattedAmount = `${Number(t.amount_chip.toFixed(2)).toLocaleString('id-ID')}B`
+                }
             } else {
                 // For BONGKAR, we display the money transferred
                 formattedAmount = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(t.amount_money)

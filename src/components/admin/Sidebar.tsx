@@ -101,10 +101,16 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         setCollapsed(prev => ({ ...prev, [title]: !prev[title] }))
     }
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         if (confirm('Apakah anda yakin ingin logout?')) {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' })
+            } catch (err) {
+                console.error('Logout error:', err)
+            }
             localStorage.removeItem('user')
-            router.push('/admin/login')
+            localStorage.removeItem('royal_member')
+            window.location.href = '/admin/login'
         }
     }
 

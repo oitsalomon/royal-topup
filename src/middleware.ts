@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifySessionToken, ADMIN_COOKIE_NAME } from '@/lib/auth'
+import { verifySessionToken, ADMIN_COOKIE_NAME, isAdminRole } from '@/lib/auth'
 
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl
@@ -10,7 +10,7 @@ export async function middleware(request: NextRequest) {
         // Jika sudah punya session valid, arahkan ke dashboard
         const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value
         const session = await verifySessionToken(token)
-        if (session && ['ADMIN', 'SUPER_ADMIN', 'STAFF'].includes(session.role)) {
+        if (session && isAdminRole(session.role)) {
             return NextResponse.redirect(new URL('/admin/dashboard', request.url))
         }
         return NextResponse.next()
@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
         const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value
         const session = await verifySessionToken(token)
 
-        const isAuthorized = session && ['ADMIN', 'SUPER_ADMIN', 'STAFF'].includes(session.role)
+        const isAuthorized = session && isAdminRole(session.role)
 
         if (!isAuthorized) {
             if (isAdminApi) {

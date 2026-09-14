@@ -86,10 +86,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('royal_member', JSON.stringify(userData))
     }
 
-    const logout = () => {
+    const logout = async () => {
+        try {
+            await fetch('/api/auth/logout', { method: 'POST' })
+        } catch {}
         setUser(null)
         localStorage.removeItem('royal_member')
-        router.push('/login')
+        localStorage.removeItem('user')
+        window.location.href = '/login'
     }
 
     return (

@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
+import { isAdminRole } from '@/lib/auth-constants'
 
 // Dynamic imports — komponen berat hanya di-load setelah auth berhasil
 // Ini mencegah Sidebar, Notifiers, dll ter-bundle di halaman login
@@ -49,8 +50,7 @@ export default function AdminLayout({
             if (storedUser) {
                 try {
                     const user = JSON.parse(storedUser)
-                    const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'STAFF']
-                    if (allowedRoles.includes(user.role)) {
+                    if (isAdminRole(user.role)) {
                         if (isMounted) setIsLoading(false)
                         return
                     }
@@ -77,10 +77,20 @@ export default function AdminLayout({
             }
         }
 
-        checkAuth()
+        // Safeguard agar tidak loading selamanya jika fetch lambat/stuck
+        const timer = setTimeout(() => {
+            if (isMounted) {
+                setIsLoading(false)
+            }
+        }, 3000)
+
+        checkAuth().finally(() => {
+            clearTimeout(timer)
+        })
 
         return () => {
             isMounted = false
+            clearTimeout(timer)
         }
     }, [pathname, isLoginPage, router])
 

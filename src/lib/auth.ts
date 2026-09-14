@@ -1,7 +1,8 @@
 import { SignJWT, jwtVerify } from 'jose'
 import { NextRequest } from 'next/server'
 
-export const ADMIN_COOKIE_NAME = 'admin_session'
+export { ADMIN_COOKIE_NAME, ADMIN_ROLES, isAdminRole, type AdminRole } from './auth-constants'
+import { ADMIN_COOKIE_NAME, ADMIN_ROLES, isAdminRole } from './auth-constants'
 
 export interface SessionPayload {
     id: number
@@ -93,8 +94,7 @@ export async function getAdminSessionFromRequest(request: Request | NextRequest)
     const session = await verifySessionToken(token)
     if (!session) return null
 
-    const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'STAFF']
-    if (!allowedRoles.includes(session.role)) {
+    if (!isAdminRole(session.role)) {
         return null
     }
 

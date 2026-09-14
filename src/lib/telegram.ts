@@ -14,11 +14,15 @@ function formatRupiah(amount: number): string {
   }).format(amount);
 }
 
-// Format chip (m / B)
+// Format chip (M / B)
 function formatChip(amount: number): string {
+  if (amount <= 0) return '0';
+  // Jika dalam angka raw chip (e.g. 1_000_000_000 atau 200_000_000)
   if (amount >= 1_000_000_000) return `${amount / 1_000_000_000}B`;
-  if (amount >= 1_000_000) return `${amount / 1_000_000}m`;
-  return `${amount}`;
+  if (amount >= 1_000_000) return `${amount / 1_000_000}M`;
+  // Jika dalam satuan B (e.g. 0.2 = 200M, 1 = 1B, 5 = 5B)
+  if (amount < 1) return `${Math.round(amount * 1000)}M`;
+  return `${Number(amount.toFixed(2))}B`;
 }
 
 // Kirim notif order BARU (TOPUP)

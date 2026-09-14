@@ -33,6 +33,7 @@ export default function ManualTransactionPage() {
     const [banks, setBanks] = useState<Bank[]>([])
     const [loading, setLoading] = useState(false)
     const [success, setSuccess] = useState(false)
+    const [chipUnit, setChipUnit] = useState<'B' | 'M'>('B')
 
     // Rate override option for TOPUP
     const [specialRate, setSpecialRate] = useState<string>('')
@@ -67,13 +68,31 @@ export default function ManualTransactionPage() {
         init()
     }, [])
 
+    const handleToggleUnit = (newUnit: 'B' | 'M') => {
+        if (newUnit === chipUnit) return
+        setChipUnit(newUnit)
+        if (formData.amount_chip && Number(formData.amount_chip) > 0) {
+            const val = Number(formData.amount_chip)
+            if (newUnit === 'M') {
+                setFormData(prev => ({ ...prev, amount_chip: String(Math.round(val * 1000 * 100) / 100) }))
+            } else {
+                setFormData(prev => ({ ...prev, amount_chip: String(val / 1000) }))
+            }
+        }
+    }
+
     // Automatic calculation when money changes (TOPUP)
     const handleMoneyChange = (rawMoney: string) => {
         setFormData(prev => {
             const next = { ...prev, amount_money: rawMoney }
             if (type === 'TOPUP' && rawMoney && Number(rawMoney) > 0) {
                 const calc = hitungChipTop(rawMoney, specialRate)
-                next.amount_chip = calc.chip ? String(calc.chip) : ''
+                if (calc.chip) {
+                    const chipValue = chipUnit === 'B' ? calc.chip : calc.chip * 1000
+                    next.amount_chip = String(chipValue)
+                } else {
+                    next.amount_chip = ''
+                }
             }
             return next
         })
@@ -85,7 +104,8 @@ export default function ManualTransactionPage() {
             const next = { ...prev, amount_chip: rawChip }
             if (type === 'WITHDRAW' && rawChip && Number(rawChip) > 0) {
                 const selBank = banks.find(b => b.id === Number(prev.payment_method_id))?.name || 'BCA TAMBI'
-                const calc = hitungNominalWd(Number(rawChip), selBank, '')
+                const chipInB = chipUnit === 'M' ? Number(rawChip) / 1000 : Number(rawChip)
+                const calc = hitungNominalWd(chipInB, selBank, '')
                 next.amount_money = calc.nominal ? String(calc.nominal) : ''
             }
             return next
@@ -96,9 +116,12 @@ export default function ManualTransactionPage() {
     useEffect(() => {
         if (type === 'TOPUP' && formData.amount_money) {
             const calc = hitungChipTop(formData.amount_money, specialRate)
-            setFormData(prev => ({ ...prev, amount_chip: calc.chip ? String(calc.chip) : '' }))
+            if (calc.chip) {
+                const chipValue = chipUnit === 'B' ? calc.chip : calc.chip * 1000
+                setFormData(prev => ({ ...prev, amount_chip: String(chipValue) }))
+            }
         }
-    }, [specialRate])
+    }, [specialRate, chipUnit])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -115,6 +138,7 @@ export default function ManualTransactionPage() {
                 body: JSON.stringify({
                     type,
                     ...formData,
+                    chip_unit: chipUnit,
                     amount_chip: Number(formData.amount_chip),
                     amount_money: Number(formData.amount_money),
                     game_id: Number(formData.game_id),
@@ -134,7 +158,7 @@ export default function ManualTransactionPage() {
                     payment_method_id: '',
                     note: ''
                 })
-                alert('Transaksi Berhasil Disimpan & Sinkron ke Sistem!')
+                alert('Transaksi manual berhasil disimpan ke sistem.')
             } else {
                 const err = await res.json()
                 alert('Gagal: ' + (err.error || 'Terjadi kesalahan'))
@@ -295,20 +319,54 @@ export default function ManualTransactionPage() {
                             </div>
 
                             <div>
-                                <label className="text-xs text-[#7e8593] font-semibold mb-1.5 block">
-                                    {type === 'TOPUP' ? 'Chip yang Dikirim (B) *' : 'Chip yang Ditarik dari Member (B) *'}
-                                </label>
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <label className="text-xs text-[#7e8593] font-semibold">
+                                        {type === 'TOPUP' ? 'Chip yang Dikirim *' : 'Chip yang Ditarik dari Member *'}
+                                    </label>
+                                    <div className="flex items-center bg-[#131417] p-0.5 rounded-lg border border-[#26282f]">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleToggleUnit('B')}
+                                            className={`px-2 py-0.5 text-[11px] font-bold rounded-md transition-all ${
+                                                chipUnit === 'B'
+                                                    ? 'bg-[#f5b301] text-[#1a1500]'
+                                                    : 'text-[#7e8593] hover:text-white'
+                                            }`}
+                                        >
+                                            B (Miliar)
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleToggleUnit('M')}
+                                            className={`px-2 py-0.5 text-[11px] font-bold rounded-md transition-all ${
+                                                chipUnit === 'M'
+                                                    ? 'bg-[#f5b301] text-[#1a1500]'
+                                                    : 'text-[#7e8593] hover:text-white'
+                                            }`}
+                                        >
+                                            M (Juta)
+                                        </button>
+                                    </div>
+                                </div>
                                 <TextInput
                                     type="number"
                                     step="any"
-                                    placeholder="cth: 3"
+                                    placeholder={chipUnit === 'B' ? "cth: 1 atau 1.5" : "cth: 1000 atau 500"}
                                     value={formData.amount_chip}
                                     onChange={e => handleChipChange(e.target.value)}
                                     required
                                 />
                                 {formData.amount_chip && (
-                                    <div className="text-[11px] text-[#f5b301] mt-1 font-mono">
-                                        {num(Number(formData.amount_chip))} B Chip
+                                    <div className="flex items-center justify-between text-[11px] mt-1 font-mono">
+                                        <span className="text-[#f5b301]">
+                                            {num(Number(formData.amount_chip))} {chipUnit} Chip
+                                        </span>
+                                        <span className="text-[#7e8593]">
+                                            {chipUnit === 'B'
+                                                ? `Setara ${(Number(formData.amount_chip) * 1000).toLocaleString('id-ID')} M`
+                                                : `Setara ${(Number(formData.amount_chip) / 1000).toLocaleString('id-ID')} B`
+                                            }
+                                        </span>
                                     </div>
                                 )}
                             </div>

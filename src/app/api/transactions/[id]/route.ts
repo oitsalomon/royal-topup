@@ -57,21 +57,27 @@ export async function PATCH(
         const { id: rawId } = await params
         const id = Number(rawId)
         const body = await request.json().catch(() => ({}))
-        const { target_payment_details, user_game_id, proof_image } = body
+        const { target_payment_details, user_game_id, proof_image, amount_chip } = body
 
         const adminSession = await getAdminSessionFromRequest(request)
 
-        // Hanya Admin/Staff yang boleh mengubah target_payment_details atau user_game_id
-        const isEditingDetails = target_payment_details !== undefined || user_game_id !== undefined
+        // Hanya Admin/Staff yang boleh mengubah target_payment_details, user_game_id, atau amount_chip
+        const isEditingDetails = target_payment_details !== undefined || user_game_id !== undefined || amount_chip !== undefined
         if (isEditingDetails && !adminSession) {
             return NextResponse.json({
-                error: 'Unauthorized: Hanya admin yang berwenang mengubah detail rekening atau ID game transaksi.'
+                error: 'Unauthorized: Hanya admin yang berwenang mengubah detail rekening, ID game, atau nominal chip transaksi.'
             }, { status: 401 })
         }
 
         const updateData: any = {}
         if (target_payment_details !== undefined) updateData.target_payment_details = sanitizeText(target_payment_details)
         if (user_game_id !== undefined) updateData.user_game_id = sanitizeText(user_game_id)
+        if (amount_chip !== undefined) {
+            const numChip = Number(amount_chip)
+            if (!isNaN(numChip) && numChip > 0) {
+                updateData.amount_chip = numChip
+            }
+        }
         if (proof_image !== undefined) {
             updateData.proof_image = proof_image
             updateData.status = 'PENDING'

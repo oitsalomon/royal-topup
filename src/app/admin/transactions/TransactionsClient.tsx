@@ -42,6 +42,7 @@ interface Transaction {
     withdrawMethod: { name: string } | null
     createdAt: string | Date
     target_payment_details?: string | null
+    sender_name?: string | null
     user?: {
         username: string
         level: string
@@ -106,7 +107,7 @@ export default function TransactionsClient({
     const [selectedAccountId, setSelectedAccountId] = useState<number | ''>('')
     const [selectedBankId, setSelectedBankId] = useState<number | ''>('')
     const [previewImage, setPreviewImage] = useState<string | null>(null)
-    const [editingDetail, setEditingDetail] = useState<{ id: number; field: 'TARGET' | 'GAME_ID'; value: string } | null>(null)
+    const [editingDetail, setEditingDetail] = useState<{ id: number; field: 'TARGET' | 'GAME_ID' | 'CHIP'; value: string } | null>(null)
     const [saving, setSaving] = useState(false)
     const [processingId, setProcessingId] = useState<number | null>(null)
 
@@ -264,7 +265,7 @@ export default function TransactionsClient({
     }
 
     // Editable fields handler
-    const handleStartEdit = (id: number, field: 'TARGET' | 'GAME_ID', currentValue: string) => {
+    const handleStartEdit = (id: number, field: 'TARGET' | 'GAME_ID' | 'CHIP', currentValue: string) => {
         setEditingDetail({ id, field, value: currentValue || '' })
     }
 
@@ -275,6 +276,7 @@ export default function TransactionsClient({
             const body: any = { admin_id: currentAdminId }
             if (editingDetail.field === 'TARGET') body.target_payment_details = editingDetail.value
             if (editingDetail.field === 'GAME_ID') body.user_game_id = editingDetail.value
+            if (editingDetail.field === 'CHIP') body.amount_chip = Number(editingDetail.value)
 
             const res = await fetch(`/api/transactions/${editingDetail.id}`, {
                 method: 'PATCH',
@@ -287,7 +289,8 @@ export default function TransactionsClient({
                     return {
                         ...t,
                         target_payment_details: editingDetail.field === 'TARGET' ? editingDetail.value : t.target_payment_details,
-                        user_game_id: editingDetail.field === 'GAME_ID' ? editingDetail.value : t.user_game_id
+                        user_game_id: editingDetail.field === 'GAME_ID' ? editingDetail.value : t.user_game_id,
+                        amount_chip: editingDetail.field === 'CHIP' ? Number(editingDetail.value) : t.amount_chip
                     }
                 }))
                 setEditingDetail(null)
@@ -715,6 +718,9 @@ export default function TransactionsClient({
                 {!loading && transactions.map((tx) => {
                     const style = getLevelData(tx.user?.level)
                     const isPendingAction = tx.status === 'PENDING' || tx.status === 'APPROVED_1'
+                    const isManual = tx.proof_image === 'MANUAL_ENTRY' ||
+                                     tx.trx_id?.startsWith('MANUAL') ||
+                                     (tx.sender_name?.includes('MANUAL') ?? false)
 
                     return (
                         <div
@@ -732,6 +738,11 @@ export default function TransactionsClient({
                                     }`}>
                                         {tx.type}
                                     </span>
+                                    {isManual && (
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm">
+                                            INPUT MANUAL
+                                        </span>
+                                    )}
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
                                         tx.status === 'PENDING'
                                             ? 'bg-amber-500/15 text-amber-400 border-amber-500/25'
@@ -804,12 +815,40 @@ export default function TransactionsClient({
                                 <div className="md:col-span-3 min-w-0 flex items-center justify-between md:justify-start md:gap-4 border-l border-white/5 pl-2">
                                     <div>
                                         <p className="text-[10px] text-gray-400 uppercase tracking-wider">Chip</p>
-                                        <p className="font-bold text-[#c5a369] text-xs">
-                                            {tx.amount_chip < 1
-                                                ? `${(tx.amount_chip * 1000).toLocaleString('id-ID')} M`
-                                                : `${tx.amount_chip.toLocaleString('id-ID')} B`
-                                            }
-                                        </p>
+                                        {editingDetail?.id === tx.id && editingDetail.field === 'CHIP' ? (
+                                            <div className="flex items-center gap-1 mt-0.5">
+                                                <input
+                                                    type="number"
+                                                    step="any"
+                                                    className="bg-black border border-white/20 rounded px-1.5 py-0.5 text-xs text-white w-20 font-mono"
+                                                    value={editingDetail.value}
+                                                    onChange={e => setEditingDetail({ ...editingDetail, value: e.target.value })}
+                                                    autoFocus
+                                                />
+                                                <span className="text-[10px] text-gray-400">B</span>
+                                                <button onClick={handleSaveEdit} disabled={saving} className="text-emerald-400 hover:text-emerald-300 p-0.5" title="Simpan Chip">
+                                                    <Check size={13} />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-1 group/chip">
+                                                <p className="font-bold text-[#c5a369] text-xs">
+                                                    {tx.amount_chip < 1
+                                                        ? `${(tx.amount_chip * 1000).toLocaleString('id-ID')} M`
+                                                        : `${tx.amount_chip.toLocaleString('id-ID')} B`
+                                                    }
+                                                </p>
+                                                {tx.status === 'PENDING' && (
+                                                    <button
+                                                        onClick={() => handleStartEdit(tx.id, 'CHIP', String(tx.amount_chip))}
+                                                        className="text-gray-500 hover:text-white opacity-0 group-hover/chip:opacity-100 transition-opacity"
+                                                        title="Edit Nominal Chip (B)"
+                                                    >
+                                                        <Pencil size={11} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                     <div>
                                         <p className="text-[10px] text-gray-400 uppercase tracking-wider">Nominal</p>
@@ -825,38 +864,41 @@ export default function TransactionsClient({
                                         {tx.type === 'TOPUP' ? 'Metode' : 'Tujuan WD'}
                                     </p>
                                     <p className="text-xs text-cyan-300 font-medium truncate">
-                                        {tx.type === 'TOPUP' ? (tx.paymentMethod?.name || '-') : (tx.withdrawMethod?.name || '-')}
+                                        {tx.type === 'TOPUP' ? (tx.paymentMethod?.name || '-') : (tx.withdrawMethod?.name || tx.paymentMethod?.name || '-')}
                                     </p>
                                     {tx.type === 'WITHDRAW' && tx.target_payment_details && (
                                         <p className="text-[10px] text-gray-400 font-mono truncate mt-0.5">
                                             {tx.target_payment_details}
                                         </p>
                                     )}
+                                    {isManual && tx.sender_name && tx.sender_name !== 'INPUT MANUAL' && (
+                                        <p className="text-[10px] text-purple-300 font-mono truncate mt-0.5" title={tx.sender_name}>
+                                            {tx.sender_name}
+                                        </p>
+                                    )}
                                 </div>
 
-                                {/* Proof Image (Col 1) - Lucide ImageOff if no img */}
+                                {/* Proof Image (Col 1) */}
                                 <div className="md:col-span-1 flex items-center justify-center">
-                                    {tx.proof_image ? (
-                                        tx.proof_image === 'MANUAL_ENTRY' ? (
-                                            <div className="w-8 h-8 bg-cyan-900/20 rounded flex items-center justify-center text-cyan-400 border border-cyan-500/20" title="Manual Entry">
-                                                <Check size={14} />
-                                            </div>
-                                        ) : (
-                                            <div
-                                                onClick={() => setPreviewImage(tx.proof_image)}
-                                                className="cursor-pointer relative group"
-                                                title="Klik untuk perbesar bukti"
-                                            >
-                                                <Image
-                                                    src={tx.proof_image}
-                                                    alt="Bukti"
-                                                    width={32}
-                                                    height={32}
-                                                    className="w-8 h-8 object-cover rounded border border-white/10 group-hover:scale-110 transition-transform"
-                                                    unoptimized
-                                                />
-                                            </div>
-                                        )
+                                    {isManual ? (
+                                        <div className="px-2 py-1 bg-purple-500/20 rounded border border-purple-500/40 text-purple-300 text-[10px] font-bold text-center tracking-wider" title="Transaksi Input Manual">
+                                            MANUAL
+                                        </div>
+                                    ) : tx.proof_image ? (
+                                        <div
+                                            onClick={() => setPreviewImage(tx.proof_image)}
+                                            className="cursor-pointer relative group"
+                                            title="Klik untuk perbesar bukti"
+                                        >
+                                            <Image
+                                                src={tx.proof_image}
+                                                alt="Bukti"
+                                                width={32}
+                                                height={32}
+                                                className="w-8 h-8 object-cover rounded border border-white/10 group-hover:scale-110 transition-transform"
+                                                unoptimized
+                                            />
+                                        </div>
                                     ) : (
                                         <div className="w-8 h-8 rounded flex items-center justify-center bg-white/5 text-white/20 border border-white/5" title="Tidak ada bukti foto">
                                             <ImageOff size={16} strokeWidth={1.5} />

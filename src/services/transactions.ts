@@ -113,7 +113,7 @@ export async function getTransactions({
                 SELECT 
                   t.id, t.trx_id, t.user_wa, t.nickname, t.user_game_id, 
                   t.amount_chip, t.amount_money, t.type, t.status, t.proof_image, 
-                  t.target_payment_details, t."createdAt",
+                  t.target_payment_details, t.sender_name, t."createdAt",
                   g.name AS game_name,
                   pm.name AS payment_method_name,
                   wm.name AS withdraw_method_name,
@@ -182,6 +182,7 @@ export async function getTransactions({
             status: r.status,
             proof_image: r.proof_image,
             target_payment_details: r.target_payment_details,
+            sender_name: r.sender_name,
             createdAt: r.createdAt,
             game: { name: r.game_name || 'Game' },
             paymentMethod: r.payment_method_name ? { name: r.payment_method_name } : null,

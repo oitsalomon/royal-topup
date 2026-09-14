@@ -37,34 +37,51 @@ export default function AdminLayout({
     const isLoginPage = pathname === '/admin/login'
 
     useEffect(() => {
-        const checkAuth = () => {
+        let isMounted = true
+
+        const checkAuth = async () => {
             if (isLoginPage) {
-                setIsLoading(false)
+                if (isMounted) setIsLoading(false)
                 return
             }
 
             const storedUser = localStorage.getItem('user')
-            if (!storedUser) {
-                router.push('/admin/login')
-                return
+            if (storedUser) {
+                try {
+                    const user = JSON.parse(storedUser)
+                    const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'STAFF']
+                    if (allowedRoles.includes(user.role)) {
+                        if (isMounted) setIsLoading(false)
+                        return
+                    }
+                } catch {}
             }
 
+            // Jika localStorage kosong, coba pulihkan dari cookie sesi via /api/admin/me
             try {
-                const user = JSON.parse(storedUser)
-                const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'STAFF']
-                if (!allowedRoles.includes(user.role)) {
-                    localStorage.removeItem('user')
-                    router.push('/admin/login')
+                const res = await fetch('/api/admin/me')
+                if (res.ok) {
+                    const userData = await res.json()
+                    localStorage.setItem('user', JSON.stringify(userData))
+                    if (isMounted) setIsLoading(false)
                     return
                 }
+            } catch {}
+
+            // Jika sesi benar-benar tidak valid, bersihkan cookie agar tidak loop dengan middleware
+            localStorage.removeItem('user')
+            await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {})
+            if (isMounted) {
                 setIsLoading(false)
-            } catch (e) {
-                localStorage.removeItem('user')
                 router.push('/admin/login')
             }
         }
 
         checkAuth()
+
+        return () => {
+            isMounted = false
+        }
     }, [pathname, isLoginPage, router])
 
     // Login page — render langsung tanpa loading state

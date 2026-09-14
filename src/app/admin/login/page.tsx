@@ -8,9 +8,12 @@ export default function AdminLogin() {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState('')
+    const [isSubmitting, setIsSubmitting] = useState(false)
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
+        setIsSubmitting(true)
+        setError('')
         try {
             const res = await fetch('/api/auth/login', {
                 method: 'POST',
@@ -25,6 +28,7 @@ export default function AdminLogin() {
                 const allowedRoles = ['ADMIN', 'SUPER_ADMIN', 'STAFF']
                 if (!allowedRoles.includes(data.role)) {
                     setError('Unauthorized: Akun ini bukan Staff/Admin.')
+                    setIsSubmitting(false)
                     return
                 }
 
@@ -34,9 +38,11 @@ export default function AdminLogin() {
             } else {
                 const errData = await res.json().catch(() => ({}))
                 setError(errData.error || 'Username atau password salah.')
+                setIsSubmitting(false)
             }
         } catch (err) {
             setError('Terjadi gangguan koneksi jaringan.')
+            setIsSubmitting(false)
         }
     }
 
@@ -67,9 +73,10 @@ export default function AdminLogin() {
                     </div>
                     <button
                         type="submit"
-                        className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 rounded-lg transition-colors"
+                        disabled={isSubmitting}
+                        className="w-full bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white font-bold py-3 rounded-lg transition-colors cursor-pointer"
                     >
-                        Login
+                        {isSubmitting ? 'Memverifikasi...' : 'Login'}
                     </button>
                 </form>
             </div>

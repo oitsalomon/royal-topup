@@ -93,13 +93,15 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
     const [selectedPackage, setSelectedPackage] = useState<PackageItem | null>(null)
     const [packagesList, setPackagesList] = useState<PackageItem[]>(initialPackages && initialPackages.length > 0 ? initialPackages : DEFAULT_PACKAGES)
 
+    const ACTIVE_QRIS_DEFAULT_IMAGE = 'https://res.cloudinary.com/dtxydu1nv/image/upload/v1774805363/royal-topup-proofs/mdtu1t7sxi02unidafea.jpg'
+
     const [qrisMethod, setQrisMethod] = useState<PaymentMethod>({
-        id: 1,
-        name: 'QRIS Realtime',
+        id: 10,
+        name: 'QRIS TOKO SEJAHTERA',
         type: 'QRIS',
-        account_number: 'QRIS-AUTO',
-        account_name: 'ROYAL CLOVER TOPUP',
-        image: '/images/payment/qris.jpg'
+        account_number: 'QRIS',
+        account_name: 'TOKO SEJAHTERA',
+        image: ACTIVE_QRIS_DEFAULT_IMAGE
     })
 
     // QRIS modal states
@@ -112,6 +114,23 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
     // Status modal
     const [showStatusModal, setShowStatusModal] = useState(false)
     const [activeTxId, setActiveTxId] = useState<number>(0)
+
+    // Prefill data if member is logged in
+    useEffect(() => {
+        if (user) {
+            if (user.whatsapp && !userWa) {
+                setUserWa(user.whatsapp)
+            }
+            if ((user as any).account_name && !senderName) {
+                setSenderName((user as any).account_name)
+            }
+            if (user.gameIds && Array.isArray(user.gameIds) && user.gameIds.length > 0 && !userIdGame) {
+                const matched = user.gameIds.find((g: any) => g.game_id === gameId) || user.gameIds[0]
+                if (matched?.game_user_id) setUserIdGame(matched.game_user_id)
+                if (matched?.nickname && !nickname) setNickname(matched.nickname)
+            }
+        }
+    }, [user, gameId])
 
     useEffect(() => {
         fetch('/api/packages')
@@ -145,8 +164,19 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data) && data.length > 0) {
-                    const qris = data.find((m: any) => m.type === 'QRIS') || data[0]
-                    if (qris) setQrisMethod(qris)
+                    const qris = data.find((m: any) => 
+                        m.isActive !== false && (
+                            m.type === 'QRIS' || 
+                            m.name?.toUpperCase().includes('QRIS') || 
+                            (m.image && m.image.includes('cloudinary'))
+                        )
+                    ) || data.find((m: any) => m.isActive !== false && m.image) || data[0]
+                    if (qris) {
+                        setQrisMethod({
+                            ...qris,
+                            image: qris.image || ACTIVE_QRIS_DEFAULT_IMAGE
+                        })
+                    }
                 }
             })
             .catch(() => {})
@@ -198,7 +228,8 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
     }
 
     const handleConfirmPayment = async () => {
-        if (!userIdGame.trim()) {
+        const cleanGameId = userIdGame.trim().replace(/\s+/g, '')
+        if (!cleanGameId) {
             alert('Silakan masukkan User ID Game Anda.')
             return
         }
@@ -209,17 +240,26 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
 
         setIsSubmitting(true)
         try {
+            // Bersihkan nomor WhatsApp dari karakter non-digit
+            let cleanWa = userWa.replace(/[\s\-\.\(\)]/g, '')
+            if (cleanWa.startsWith('+62')) cleanWa = '0' + cleanWa.slice(3)
+            else if (cleanWa.startsWith('62')) cleanWa = '0' + cleanWa.slice(2)
+            else if (cleanWa.startsWith('8')) cleanWa = '0' + cleanWa
+            if (!cleanWa) {
+                cleanWa = user?.whatsapp ? user.whatsapp.replace(/[\s\-\.\(\)]/g, '') : '081200000000'
+            }
+
             const payload = {
-                user_wa: userWa || '081200000000',
-                user_id: user?.id || null,
-                game_id: gameId,
-                user_game_id: userIdGame.trim(),
+                user_wa: cleanWa,
+                user_id: user?.id ? Number(user.id) : null,
+                game_id: Number(gameId) || 1,
+                user_game_id: cleanGameId,
                 nickname: nickname.trim() || 'Pemain',
-                package_id: selectedPackage?.id,
+                package_id: selectedPackage?.id ? Number(selectedPackage.id) : undefined,
                 amount_chip: (selectedPackage?.chip || 0) / 1000,
                 amount_money: selectedPackage?.price || 0,
-                payment_method_id: qrisMethod.id,
-                sender_name: senderName.trim() || user?.username || null,
+                payment_method_id: qrisMethod?.id ? Number(qrisMethod.id) : 10,
+                sender_name: senderName.trim() || (user as any)?.account_name || user?.username || 'Pelanggan',
                 type: 'TOPUP'
             }
 
@@ -236,7 +276,8 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
                 setShowStatusModal(true)
                 localStorage.setItem('royal_topup_pending_tx', JSON.stringify({ id: txData.id, type: 'TOPUP' }))
             } else {
-                alert('Gagal memproses pesanan. Silakan hubungi admin.')
+                const errData = await res.json().catch(() => ({}))
+                alert(errData.error || 'Gagal memproses pesanan. Silakan periksa kembali data Anda.')
             }
         } catch {
             alert('Terjadi kesalahan jaringan. Silakan coba kembali.')
@@ -248,7 +289,7 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
     const hasCustomQris = Boolean(selectedPackage?.qris_image && selectedPackage.qris_image.trim() !== '')
     const activeQrisImage = (hasCustomQris && selectedPackage?.qris_image)
         ? selectedPackage.qris_image
-        : (qrisMethod.image || '/images/payment/qris.jpg')
+        : (qrisMethod?.image && qrisMethod.image.trim() !== '' ? qrisMethod.image : ACTIVE_QRIS_DEFAULT_IMAGE)
 
     return (
         <div className="w-full bg-[#0d0d0f] text-[#f3ecd8] font-inter antialiased">

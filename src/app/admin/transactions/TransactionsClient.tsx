@@ -18,7 +18,9 @@ import {
     Trophy,
     TrendingUp,
     TrendingDown,
-    Search
+    Search,
+    Info,
+    RotateCcw
 } from 'lucide-react'
 import DateTimePickerRange, { DateTimeRangeValue } from '@/components/admin/DateTimePickerRange'
 import { parseJakartaDateTime, getJakartaTodayRange, formatJakartaDisplay } from '@/lib/timezone'
@@ -64,6 +66,7 @@ interface TransactionsClientProps {
         endDateStr: string
         endTimeStr: string
     }
+    isAllTimeFallback?: boolean
     gameAccounts: any[]
     banks: any[]
 }
@@ -73,6 +76,7 @@ export default function TransactionsClient({
     initialPagination,
     initialStats,
     initialDateRange,
+    isAllTimeFallback = false,
     gameAccounts,
     banks
 }: TransactionsClientProps) {
@@ -87,7 +91,7 @@ export default function TransactionsClient({
     // Admin Session ID
     const [currentAdminId, setCurrentAdminId] = useState<number>(1)
 
-    // A1 Date-Time Range State (Default: Today 00:00 - 23:59 WIB)
+    // A1 Date-Time Range State (Default: Today 00:00 - 23:59 WIB, atau Semua Waktu jika fallback)
     const [dateRange, setDateRange] = useState<DateTimeRangeValue>(initialDateRange)
 
     // A3 Filter State
@@ -138,11 +142,13 @@ export default function TransactionsClient({
             params.append('page', targetPage.toString())
             params.append('limit', '20')
 
-            // Date range converted to UTC ISO using IANA Asia/Jakarta parser
-            const startUTC = parseJakartaDateTime(dateRange.startDateStr, dateRange.startTimeStr)
-            const endUTC = new Date(parseJakartaDateTime(dateRange.endDateStr, dateRange.endTimeStr).getTime() + 59999)
-            params.append('startDate', startUTC.toISOString())
-            params.append('endDate', endUTC.toISOString())
+            // Date range converted to UTC ISO using IANA Asia/Jakarta parser (jika dispesifikasikan)
+            if (dateRange.startDateStr && dateRange.endDateStr) {
+                const startUTC = parseJakartaDateTime(dateRange.startDateStr, dateRange.startTimeStr || '00:00')
+                const endUTC = new Date(parseJakartaDateTime(dateRange.endDateStr, dateRange.endTimeStr || '23:59').getTime() + 59999)
+                params.append('startDate', startUTC.toISOString())
+                params.append('endDate', endUTC.toISOString())
+            }
 
             if (filterType !== 'all') params.append('type', filterType)
             if (filterStatus !== 'all') params.append('status', filterStatus)
@@ -215,10 +221,12 @@ export default function TransactionsClient({
                     const params = new URLSearchParams()
                     params.append('page', page.toString())
                     params.append('limit', '20')
-                    const startUTC = parseJakartaDateTime(dateRange.startDateStr, dateRange.startTimeStr)
-                    const endUTC = new Date(parseJakartaDateTime(dateRange.endDateStr, dateRange.endTimeStr).getTime() + 59999)
-                    params.append('startDate', startUTC.toISOString())
-                    params.append('endDate', endUTC.toISOString())
+                    if (dateRange.startDateStr && dateRange.endDateStr) {
+                        const startUTC = parseJakartaDateTime(dateRange.startDateStr, dateRange.startTimeStr || '00:00')
+                        const endUTC = new Date(parseJakartaDateTime(dateRange.endDateStr, dateRange.endTimeStr || '23:59').getTime() + 59999)
+                        params.append('startDate', startUTC.toISOString())
+                        params.append('endDate', endUTC.toISOString())
+                    }
                     if (filterType !== 'all') params.append('type', filterType)
                     if (filterStatus !== 'all') params.append('status', filterStatus)
                     if (filterBank !== 'all') params.append('bank_id', filterBank)
@@ -451,6 +459,25 @@ export default function TransactionsClient({
                     />
                 </div>
             </div>
+
+            {/* Banner Fallback All-Time jika hari ini belum ada transaksi */}
+            {isAllTimeFallback && !dateRange.startDateStr && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs shadow-md">
+                    <div className="flex items-center gap-2.5">
+                        <Info size={16} className="text-amber-400 shrink-0" />
+                        <span>
+                            <strong>Periode Hari Ini Kosong:</strong> Belum ada transaksi baru yang masuk pada hari ini. Menampilkan riwayat transaksi lengkap sebelumnya agar Anda tetap dapat memantau data.
+                        </span>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={handleResetDate}
+                        className="underline text-amber-200 hover:text-white font-semibold text-xs shrink-0 self-end sm:self-auto cursor-pointer transition-colors"
+                    >
+                        Filter Hari Ini Saja
+                    </button>
+                </div>
+            )}
 
             {/* A2: Active Period Stat Bar */}
             <div className="bg-[#17171a] border border-[#c5a369]/25 rounded-2xl p-4 shadow-xl">
@@ -969,10 +996,31 @@ export default function TransactionsClient({
                 })}
 
                 {!loading && transactions.length === 0 && (
-                    <div className="text-center text-gray-500 py-16 bg-[#17171a] rounded-2xl border border-white/5 border-dashed">
-                        <p className="text-sm">
-                            {searchQuery ? 'Tidak ada transaksi yang cocok dengan pencarian.' : 'Tidak ada transaksi pada periode yang dipilih.'}
+                    <div className="text-center py-16 bg-[#17171a] rounded-2xl border border-white/5 border-dashed space-y-3 px-4">
+                        <p className="text-sm font-semibold text-[#f3ecd8]">
+                            {searchQuery ? 'Tidak ada transaksi yang cocok dengan pencarian.' : 'Belum ada transaksi pada periode ini.'}
                         </p>
+                        <p className="text-xs text-[#a89f8a] max-w-md mx-auto leading-relaxed">
+                            {dateRange.startDateStr
+                                ? 'Pilih rentang tanggal lain atau klik tombol di bawah untuk menampilkan seluruh riwayat transaksi tanpa batasan tanggal.'
+                                : 'Saat ini belum ada data transaksi yang tercatat dalam sistem.'}
+                        </p>
+                        {dateRange.startDateStr && (
+                            <div className="pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setDateRange({ startDateStr: '', startTimeStr: '', endDateStr: '', endTimeStr: '' })
+                                        setSearchQuery('')
+                                        setLocalSearchQuery('')
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#c5a369]/20 hover:bg-[#c5a369]/30 text-[#e8c883] border border-[#c5a369]/40 text-xs font-semibold transition-colors shadow-sm cursor-pointer"
+                                >
+                                    <RotateCcw size={13} />
+                                    <span>Tampilkan Semua Waktu (Lihat Riwayat Lengkap)</span>
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

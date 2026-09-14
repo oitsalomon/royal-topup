@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
-import { ShieldCheck, Landmark, Coins, TrendingUp, DollarSign, Wallet } from 'lucide-react'
+import React, { useState, useMemo, useEffect } from 'react'
+import Link from 'next/link'
+import { ShieldCheck, Landmark, Coins, TrendingUp, DollarSign, Wallet, Lock } from 'lucide-react'
 import {
     PageHead, Panel, StatBig, TextInput,
     BG, PANEL, PANEL2, BORDER, MUTED, TEXT, TEXT2, TEXT3
@@ -9,9 +10,27 @@ import {
 import { rp, num, DEFAULT_OPS_BANKS, DEFAULT_OPS_IDS } from '@/lib/clover-engine'
 
 export default function BosReportPage() {
+    const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
     const [hargaModal, setHargaModal] = useState<number>(60000)
     const [banks, setBanks] = useState(DEFAULT_OPS_BANKS)
     const [chipIds, setChipIds] = useState(DEFAULT_OPS_IDS)
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('user')
+            if (stored) {
+                const user = JSON.parse(stored)
+                const isMaster = Boolean(
+                    user.role === 'SUPER_ADMIN' ||
+                    user.username?.toLowerCase() === 'salomon' ||
+                    user.permissions?.includes('MASTER')
+                )
+                setIsAuthorized(isMaster)
+                return
+            }
+        } catch {}
+        setIsAuthorized(false)
+    }, [])
 
     // Financial calculations
     const omzetTop = 18450000
@@ -39,6 +58,36 @@ export default function BosReportPage() {
     const totalAsetNow = totalBankNow + nilaiChipNow
 
     const kasbonBelumLunas = 800000 // Hioza 500k + Rapi 300k
+
+    if (isAuthorized === false) {
+        return (
+            <div className="min-h-[60vh] flex items-center justify-center p-4">
+                <div className="max-w-md w-full bg-[#17171a] border border-rose-500/30 rounded-2xl p-6 text-center space-y-4 shadow-xl">
+                    <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 mx-auto flex items-center justify-center text-rose-400">
+                        <Lock size={22} />
+                    </div>
+                    <div className="space-y-1.5">
+                        <h2 className="text-base font-bold text-[#f3ecd8]">Akses Terbatas (Privat)</h2>
+                        <p className="text-xs text-[#a89f8a] leading-relaxed">
+                            Halaman Laporan Bos hanya dapat diakses oleh akun Master / Owner. Anda tidak memiliki izin untuk melihat laporan keuangan ini.
+                        </p>
+                    </div>
+                    <div>
+                        <Link
+                            href="/admin/dashboard"
+                            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-[#c5a369] text-black font-semibold text-xs hover:bg-[#b08f57] transition-colors"
+                        >
+                            Kembali ke Dashboard
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    if (isAuthorized === null) {
+        return null
+    }
 
     const Row = ({
         label,

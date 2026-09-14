@@ -9,6 +9,8 @@ interface User {
     level: string
     total_exp: number
     role: string
+    whatsapp?: string | null
+    account_name?: string | null
     gameIds?: any[]
 }
 

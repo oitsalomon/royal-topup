@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { ShieldCheck, Plus, User, Wallet, CheckCircle2, Clock } from 'lucide-react'
+import Link from 'next/link'
+import { ShieldCheck, Plus, User, Wallet, CheckCircle2, Clock, Lock } from 'lucide-react'
 import {
     PageHead, Panel, StatBig, Badge, PrimaryBtn,
     SelectInput, TextInput, BG, PANEL, PANEL2, BORDER, MUTED, TEXT, TEXT2, TEXT3
@@ -35,7 +36,25 @@ const SEED_KASBON: KasbonItem[] = [
 ]
 
 export default function PayrollPage() {
+    const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
     const [staff] = useState<StaffItem[]>(SEED_STAFF)
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('user')
+            if (stored) {
+                const user = JSON.parse(stored)
+                const isMaster = Boolean(
+                    user.role === 'SUPER_ADMIN' ||
+                    user.username?.toLowerCase() === 'salomon' ||
+                    user.permissions?.includes('MASTER')
+                )
+                setIsAuthorized(isMaster)
+                return
+            }
+        } catch {}
+        setIsAuthorized(false)
+    }, [])
     const [kasbon, setKasbon] = useState<KasbonItem[]>(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('royal_ops_kasbon')
@@ -93,6 +112,36 @@ export default function PayrollPage() {
             gajiBersih: s.gajiPokok - pinjamanAktif
         }
     })
+
+    if (isAuthorized === false) {
+        return (
+            <div className="min-h-[60vh] flex items-center justify-center p-4">
+                <div className="max-w-md w-full bg-[#17171a] border border-rose-500/30 rounded-2xl p-6 text-center space-y-4 shadow-xl">
+                    <div className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 mx-auto flex items-center justify-center text-rose-400">
+                        <Lock size={22} />
+                    </div>
+                    <div className="space-y-1.5">
+                        <h2 className="text-base font-bold text-[#f3ecd8]">Akses Terbatas (Privat)</h2>
+                        <p className="text-xs text-[#a89f8a] leading-relaxed">
+                            Halaman Gaji & Kasbon hanya dapat diakses oleh akun Master / Owner. Anda tidak memiliki izin untuk melihat informasi ini.
+                        </p>
+                    </div>
+                    <div>
+                        <Link
+                            href="/admin/dashboard"
+                            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-[#c5a369] text-black font-semibold text-xs hover:bg-[#b08f57] transition-colors"
+                        >
+                            Kembali ke Dashboard
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
+    if (isAuthorized === null) {
+        return null
+    }
 
     return (
         <div className="space-y-6">

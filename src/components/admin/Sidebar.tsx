@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
     LayoutDashboard, User, ArrowLeftRight, FileText, SlidersHorizontal,
     Landmark, ArrowDownToLine, Receipt, Crown, ScrollText, Wallet,
@@ -76,6 +76,26 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     const router = useRouter()
     const pathname = usePathname()
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+    const [currentUser, setCurrentUser] = useState<any>(null)
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('user')
+            if (stored) {
+                setCurrentUser(JSON.parse(stored))
+            }
+        } catch {}
+    }, [])
+
+    const isMaster = Boolean(
+        currentUser && (
+            currentUser.role === 'SUPER_ADMIN' ||
+            currentUser.username?.toLowerCase() === 'salomon' ||
+            currentUser.permissions?.includes('MASTER')
+        )
+    )
+
+    const visibleSections = NAV_SECTIONS.filter(sec => !sec.master || isMaster)
 
     const toggleSection = (title: string) => {
         setCollapsed(prev => ({ ...prev, [title]: !prev[title] }))
@@ -87,6 +107,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             router.push('/admin/login')
         }
     }
+
+    const displayName = currentUser?.username || 'Salomon'
+    const roleBadge = isMaster ? 'OWNER' : (currentUser?.role || 'STAFF')
 
     return (
         <>
@@ -131,7 +154,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
                     {/* Navigation Links */}
                     <nav className="flex-1 space-y-3 overflow-y-auto pr-1 custom-scrollbar">
-                        {NAV_SECTIONS.map((sec, idx) => {
+                        {visibleSections.map((sec, idx) => {
                             const isClosed = sec.title ? collapsed[sec.title] : false
 
                             return (
@@ -185,15 +208,19 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         })}
                     </nav>
 
-                    {/* Footer Salomon / Logout */}
+                    {/* Footer User Profile / Logout */}
                     <div className="pt-3 mt-2 border-t border-[#26282f] space-y-2 shrink-0">
                         <div className="px-3 py-2 rounded-lg bg-[#1b1d22] border border-[#26282f] flex items-center justify-between">
                             <div className="flex items-center gap-2 min-w-0">
                                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                                <span className="text-xs font-bold text-[#f3f5f8] truncate">Salomon</span>
+                                <span className="text-xs font-bold text-[#f3f5f8] truncate" title={displayName}>
+                                    {displayName}
+                                </span>
                             </div>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 shrink-0">
-                                OWNER
+                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
+                                isMaster ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400'
+                            }`}>
+                                {roleBadge}
                             </span>
                         </div>
 

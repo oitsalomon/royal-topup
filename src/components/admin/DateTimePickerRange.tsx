@@ -116,6 +116,10 @@ export default function DateTimePickerRange({
     }
 
     const handleApply = () => {
+        if (!tempStart || !tempEnd) {
+            handleResetToday()
+            return
+        }
         let finalStart = tempStart
         let finalEnd = tempEnd
         if (finalStart > finalEnd) {
@@ -146,8 +150,25 @@ export default function DateTimePickerRange({
         setIsOpen(false)
     }
 
+    const handleResetAllTime = () => {
+        setTempStart('')
+        setTempStartTime('')
+        setTempEnd('')
+        setTempEndTime('')
+        onChange({
+            startDateStr: '',
+            startTimeStr: '',
+            endDateStr: '',
+            endTimeStr: ''
+        })
+        setIsOpen(false)
+    }
+
     // Format trigger label
-    const triggerLabel = `${formatJakartaDateOnly(value.startDateStr)}, ${value.startTimeStr || '00:00'} — ${formatJakartaDateOnly(value.endDateStr)}, ${value.endTimeStr || '23:59'}`
+    const isAllTime = !value.startDateStr || !value.endDateStr
+    const triggerLabel = isAllTime
+        ? 'Semua Waktu'
+        : `${formatJakartaDateOnly(value.startDateStr)}, ${value.startTimeStr || '00:00'} — ${formatJakartaDateOnly(value.endDateStr)}, ${value.endTimeStr || '23:59'}`
 
     return (
         <div className={`relative inline-block ${className}`} ref={dropdownRef}>
@@ -286,28 +307,43 @@ export default function DateTimePickerRange({
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
-                        <button
-                            type="button"
-                            onClick={handleResetToday}
-                            className="inline-flex items-center gap-1.5 text-xs text-[#a89f8a] hover:text-[#f3ecd8] px-2.5 py-1.5 rounded-md transition-colors"
-                        >
-                            <RotateCcw size={13} strokeWidth={1.5} />
-                            <span>Hari Ini</span>
-                        </button>
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5 gap-2">
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={handleResetAllTime}
+                                className={`inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-md transition-colors ${
+                                    isAllTime
+                                        ? 'bg-[#c5a369]/20 text-[#e8c883] font-bold border border-[#c5a369]/40'
+                                        : 'text-[#a89f8a] hover:text-[#f3ecd8] hover:bg-white/5'
+                                }`}
+                                title="Lihat seluruh riwayat tanpa filter tanggal"
+                            >
+                                <RotateCcw size={12} strokeWidth={1.5} />
+                                <span>Semua Waktu</span>
+                            </button>
 
-                        <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={handleResetToday}
+                                className="inline-flex items-center gap-1 text-xs text-[#a89f8a] hover:text-[#f3ecd8] hover:bg-white/5 px-2.5 py-1.5 rounded-md transition-colors"
+                            >
+                                <span>Hari Ini</span>
+                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
                             <button
                                 type="button"
                                 onClick={() => setIsOpen(false)}
-                                className="text-xs text-[#a89f8a] hover:text-white px-3 py-1.5 rounded-md transition-colors"
+                                className="text-xs text-[#a89f8a] hover:text-white px-2.5 py-1.5 rounded-md transition-colors"
                             >
                                 Batal
                             </button>
                             <button
                                 type="button"
                                 onClick={handleApply}
-                                className="inline-flex items-center gap-1 px-4 py-1.5 bg-[#c5a369] hover:bg-[#b08f57] text-black font-poppins font-bold text-xs rounded-lg transition-colors shadow-xs"
+                                className="inline-flex items-center gap-1 px-3.5 py-1.5 bg-[#c5a369] hover:bg-[#b08f57] text-black font-poppins font-bold text-xs rounded-lg transition-colors shadow-xs"
                             >
                                 <Check size={14} strokeWidth={1.5} />
                                 <span>Terapkan</span>

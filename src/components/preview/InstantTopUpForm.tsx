@@ -20,7 +20,8 @@ import {
     Flame,
     QrCode,
     Info,
-    CheckCircle2
+    CheckCircle2,
+    AlertTriangle
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
@@ -33,6 +34,7 @@ interface PaymentMethod {
     account_number: string
     account_name: string
     image?: string | null
+    isActive?: boolean
 }
 
 interface PackageItem {
@@ -95,7 +97,7 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
 
     const ACTIVE_QRIS_DEFAULT_IMAGE = 'https://res.cloudinary.com/dtxydu1nv/image/upload/v1774805363/royal-topup-proofs/mdtu1t7sxi02unidafea.jpg'
 
-    const [qrisMethod, setQrisMethod] = useState<PaymentMethod>({
+    const [qrisMethod, setQrisMethod] = useState<PaymentMethod | null>({
         id: 10,
         name: 'QRIS TOKO SEJAHTERA',
         type: 'QRIS',
@@ -165,17 +167,20 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
             .then(data => {
                 if (Array.isArray(data) && data.length > 0) {
                     const qris = data.find((m: any) => 
-                        m.isActive !== false && (
+                        Boolean(m.isActive) && (
                             m.type === 'QRIS' || 
-                            m.name?.toUpperCase().includes('QRIS') || 
-                            (m.image && m.image.includes('cloudinary'))
-                        )
-                    ) || data.find((m: any) => m.isActive !== false && m.image) || data[0]
+                            m.name?.toUpperCase().includes('QRIS')
+                        ) && Boolean(m.image && m.image.trim() !== '')
+                    )
                     if (qris) {
-                        setQrisMethod({
-                            ...qris,
-                            image: qris.image || ACTIVE_QRIS_DEFAULT_IMAGE
-                        })
+                        setQrisMethod(qris)
+                    } else {
+                        const anyActiveWithImage = data.find((m: any) => Boolean(m.isActive) && Boolean(m.image && m.image.trim() !== ''))
+                        if (anyActiveWithImage) {
+                            setQrisMethod(anyActiveWithImage)
+                        } else {
+                            setQrisMethod(null)
+                        }
                     }
                 }
             })
@@ -213,6 +218,27 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
         if (!userIdGame.trim()) {
             const inputEl = document.getElementById('field-user-id')
             inputEl?.focus()
+            return
+        }
+
+        const customQris = Boolean(pkg.qris_image && pkg.qris_image.trim() !== '')
+        const fallbackQris = Boolean(qrisMethod && qrisMethod.isActive !== false && qrisMethod.image && qrisMethod.image.trim() !== '')
+
+        if (!customQris && !fallbackQris) {
+            // Trigger real-time alert to Telegram bot immediately
+            fetch('/api/internal/payment-alert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    reason: 'QRIS khusus kosong dan QRIS toko fallback tidak aktif / tanpa gambar',
+                    packageName: pkg.name,
+                    packageId: pkg.id,
+                    price: pkg.price
+                })
+            }).catch(() => {})
+
+            // Show modal informing that payment is unavailable
+            setShowQrModal(true)
             return
         }
 
@@ -287,9 +313,11 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
     }
 
     const hasCustomQris = Boolean(selectedPackage?.qris_image && selectedPackage.qris_image.trim() !== '')
-    const activeQrisImage = (hasCustomQris && selectedPackage?.qris_image)
-        ? selectedPackage.qris_image
-        : (qrisMethod?.image && qrisMethod.image.trim() !== '' ? qrisMethod.image : ACTIVE_QRIS_DEFAULT_IMAGE)
+    const hasFallbackQris = Boolean(qrisMethod && qrisMethod.isActive !== false && qrisMethod.image && qrisMethod.image.trim() !== '')
+    const isPaymentAvailable = hasCustomQris || hasFallbackQris
+    const activeQrisImage = hasCustomQris
+        ? (selectedPackage?.qris_image || '')
+        : (hasFallbackQris ? (qrisMethod?.image || '') : '')
 
     return (
         <div className="w-full bg-[#0d0d0f] text-[#f3ecd8] font-inter antialiased">
@@ -674,135 +702,195 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
                         </div>
 
                         {/* Modal Body */}
-                        <div className="overflow-y-auto p-3.5 sm:p-4 space-y-3">
-                            
-                            {/* Timer */}
-                            <div className="flex items-center justify-between p-2 rounded-md bg-[#0d0d0f] border border-[#8a6d38]/30 text-xs font-inter">
-                                <span className="text-[#a89f8a] flex items-center gap-1.5 text-[11px]">
-                                    <Clock size={13} className="text-[#c5a369]" />
-                                    <span>Batas Waktu Bayar:</span>
-                                </span>
-                                <span className="font-mono font-bold text-[#e8c883]">
-                                    {formatTime(timeLeft)}
-                                </span>
-                            </div>
-
-                            {/* Status QRIS: Statis Khusus atau Global */}
-                            {hasCustomQris ? (
-                                <div className="flex items-center gap-2 p-2.5 rounded-md bg-emerald-950/40 border border-emerald-500/40 text-xs font-inter text-emerald-300">
-                                    <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-                                    <div>
-                                        <span className="font-bold text-emerald-300">QRIS Statis Khusus (Nominal Pas)</span>
-                                        <p className="text-[10px] text-emerald-400/80">Nominal <strong>{formatRupiah(finalAmountMoney)}</strong> sudah otomatis terisi saat di-scan.</p>
-                                    </div>
+                        {!isPaymentAvailable ? (
+                            <div className="overflow-y-auto p-4 sm:p-5 space-y-4 text-center">
+                                <div className="w-12 h-12 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+                                    <AlertTriangle size={24} />
                                 </div>
-                            ) : (
-                                <div className="flex items-center gap-2 p-2 rounded-md bg-[#0d0d0f] border border-[#8a6d38]/30 text-xs font-inter text-[#f3ecd8]">
-                                    <Info size={14} className="text-[#c5a369] shrink-0" />
-                                    <div>
-                                        <span className="font-semibold text-[#e8c883]">QRIS Toko Resmi</span>
-                                        <p className="text-[10px] text-[#a89f8a]">Transfer pas sesuai nominal <strong className="text-[#f3ecd8]">{formatRupiah(finalAmountMoney)}</strong> di m-banking Anda.</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Gambar QRIS */}
-                            <div className="bg-[#0d0d0f] border border-[#8a6d38]/30 p-3 rounded-lg flex flex-col items-center text-center">
-                                <div className="bg-white p-2 rounded-md shadow-sm max-w-[200px] w-full mb-2 border border-[#8a6d38]/40 aspect-square flex items-center justify-center">
-                                    <Image
-                                        src={activeQrisImage}
-                                        alt={`QRIS ${selectedPackage.name}`}
-                                        width={184}
-                                        height={184}
-                                        className="w-full h-auto object-contain"
-                                        unoptimized
-                                    />
-                                </div>
-
-                                <a
-                                    href={activeQrisImage}
-                                    download={`QRIS_${selectedPackage.name}.jpg`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#17171a] hover:bg-[#202024] text-[#f3ecd8] text-xs font-poppins font-medium border border-[#8a6d38]/50 transition-colors mb-1"
-                                >
-                                    <Download size={13} />
-                                    <span>Simpan Gambar QR</span>
-                                </a>
-
-                                <p className="text-[10px] font-inter text-[#a89f8a]">
-                                    Scan via BCA, Mandiri, BRI, BNI, Dana, GoPay, OVO, ShopeePay
-                                </p>
-                            </div>
-
-                            {/* Jumlah Transfer Tepat */}
-                            <div className="p-3 rounded-lg bg-[#0d0d0f] border border-[#8a6d38]/30 text-center space-y-1">
-                                <p className="text-[11px] font-inter text-[#a89f8a]">
-                                    {hasCustomQris ? 'Nominal Pembayaran Terkunci:' : 'Jumlah Transfer (Harus Pas):'}
-                                </p>
-                                <div
-                                    onClick={handleCopyAmount}
-                                    className="inline-flex items-center gap-2 cursor-pointer bg-[#17171a] hover:bg-[#202024] px-3 py-1.5 rounded-md transition-colors border border-[#8a6d38]/50"
-                                >
-                                    <span className="text-base sm:text-lg font-poppins font-bold font-mono text-[#e8c883]">
-                                        {formatRupiah(finalAmountMoney)}
-                                    </span>
-                                    {copiedAmount ? (
-                                        <Check size={14} className="text-[#3fa46a]" />
-                                    ) : (
-                                        <Copy size={14} className="text-[#c5a369]" />
-                                    )}
-                                </div>
-                                <p className="text-[10px] font-inter text-[#c5a369]">
-                                    {hasCustomQris
-                                        ? `*QRIS ini sudah terkunci nominal pas Rp ${finalAmountMoney.toLocaleString('id-ID')}. Cukup scan & bayar langsung tanpa ketik nominal!`
-                                        : `*Transfer pas sesuai nominal di atas (Rp ${finalAmountMoney.toLocaleString('id-ID')}) agar sistem otomatis memverifikasi pesanan.`
-                                    }
-                                </p>
-                            </div>
-
-                            {/* Nama Rekening Pengirim untuk Non-Member */}
-                            {!user && (
-                                <div className="space-y-1 p-3 rounded-lg bg-[#0d0d0f] border border-[#8a6d38]/30 text-left">
-                                    <label className="block text-xs font-inter font-medium text-[#f3ecd8]">
-                                        Nama Rekening Pengirim <span className="text-red-400">*</span>
-                                    </label>
-                                    <input
-                                        type="text"
-                                        placeholder="Nama sesuai rekening / e-wallet Anda"
-                                        value={senderName}
-                                        onChange={e => setSenderName(e.target.value)}
-                                        className="w-full bg-[#17171a] border border-[#8a6d38]/40 rounded-md px-3 py-1.5 text-base sm:text-xs text-[#f3ecd8] uppercase outline-none focus:border-[#c5a369]"
-                                    />
-                                    <p className="text-[10px] font-inter text-[#7a766c]">
-                                        Dibutuhkan untuk pencocokan mutasi bank otomatis.
+                                <div className="space-y-1.5">
+                                    <h4 className="text-sm sm:text-base font-poppins font-bold text-[#f3ecd8]">
+                                        Metode Pembayaran Sedang Tidak Tersedia
+                                    </h4>
+                                    <p className="text-xs font-inter text-[#a89f8a] leading-relaxed max-w-xs mx-auto">
+                                        Mohon maaf, metode pembayaran QRIS untuk paket <strong className="text-[#f3ecd8]">{selectedPackage.name}</strong> saat ini sedang tidak tersedia atau QR belum diatur oleh admin.
                                     </p>
                                 </div>
-                            )}
-                        </div>
 
-                        {/* Footer Action (Tombol Konfirmasi Solid & Tombol Batal Solid) */}
+                                <div className="p-3 rounded-md bg-[#0d0d0f] border border-[#8a6d38]/30 text-xs font-inter text-left space-y-1.5">
+                                    <p className="font-semibold text-[#e8c883] flex items-center gap-1.5">
+                                        <Info size={14} className="text-[#c5a369]" />
+                                        Solusi Cepat:
+                                    </p>
+                                    <p className="text-[11px] text-[#a89f8a] leading-normal">
+                                        Silakan hubungi Customer Service kami untuk bantuan top up langsung atau transfer manual:
+                                    </p>
+                                </div>
+
+                                <div className="space-y-2 pt-1">
+                                    <a
+                                        href={`https://wa.me/6281234567890?text=${encodeURIComponent(`Halo Admin Royal Clover, saya ingin top up paket ${selectedPackage.name} (ID Game: ${userIdGame || '-'}), tapi metode pembayaran QRIS sedang tidak tersedia. Mohon bantuannya.`)}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-md bg-[#3fa46a] hover:bg-[#358a59] text-white font-poppins font-semibold text-xs sm:text-sm transition-colors shadow-sm"
+                                    >
+                                        <MessageCircle size={16} />
+                                        <span>Hubungi Admin WhatsApp</span>
+                                    </a>
+
+                                    <a
+                                        href="https://t.me/royalclover"
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="w-full inline-flex items-center justify-center gap-2 py-2 rounded-md bg-[#17171a] hover:bg-[#202024] text-[#f3ecd8] font-poppins font-semibold text-xs border border-[#8a6d38]/50 transition-colors"
+                                    >
+                                        <Send size={15} className="text-[#c5a369]" />
+                                        <span>Hubungi Admin Telegram</span>
+                                    </a>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="overflow-y-auto p-3.5 sm:p-4 space-y-3">
+                                
+                                {/* Timer */}
+                                <div className="flex items-center justify-between p-2 rounded-md bg-[#0d0d0f] border border-[#8a6d38]/30 text-xs font-inter">
+                                    <span className="text-[#a89f8a] flex items-center gap-1.5 text-[11px]">
+                                        <Clock size={13} className="text-[#c5a369]" />
+                                        <span>Batas Waktu Bayar:</span>
+                                    </span>
+                                    <span className="font-mono font-bold text-[#e8c883]">
+                                        {formatTime(timeLeft)}
+                                    </span>
+                                </div>
+
+                                {/* Status QRIS: Statis Khusus atau Global */}
+                                {hasCustomQris ? (
+                                    <div className="flex items-center gap-2 p-2.5 rounded-md bg-emerald-950/40 border border-emerald-500/40 text-xs font-inter text-emerald-300">
+                                        <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                                        <div>
+                                            <span className="font-bold text-emerald-300">QRIS Statis Khusus (Nominal Pas)</span>
+                                            <p className="text-[10px] text-emerald-400/80">Nominal <strong>{formatRupiah(finalAmountMoney)}</strong> sudah otomatis terisi saat di-scan.</p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 p-2 rounded-md bg-[#0d0d0f] border border-[#8a6d38]/30 text-xs font-inter text-[#f3ecd8]">
+                                        <Info size={14} className="text-[#c5a369] shrink-0" />
+                                        <div>
+                                            <span className="font-semibold text-[#e8c883]">QRIS Toko Resmi</span>
+                                            <p className="text-[10px] text-[#a89f8a]">Transfer pas sesuai nominal <strong className="text-[#f3ecd8]">{formatRupiah(finalAmountMoney)}</strong> di m-banking Anda.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Gambar QRIS */}
+                                <div className="bg-[#0d0d0f] border border-[#8a6d38]/30 p-3 rounded-lg flex flex-col items-center text-center">
+                                    <div className="bg-white p-2 rounded-md shadow-sm max-w-[200px] w-full mb-2 border border-[#8a6d38]/40 aspect-square flex items-center justify-center">
+                                        <Image
+                                            src={activeQrisImage}
+                                            alt={`QRIS ${selectedPackage.name}`}
+                                            width={184}
+                                            height={184}
+                                            className="w-full h-auto object-contain"
+                                            unoptimized
+                                        />
+                                    </div>
+
+                                    <a
+                                        href={activeQrisImage}
+                                        download={`QRIS_${selectedPackage.name}.jpg`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#17171a] hover:bg-[#202024] text-[#f3ecd8] text-xs font-poppins font-medium border border-[#8a6d38]/50 transition-colors mb-1"
+                                    >
+                                        <Download size={13} />
+                                        <span>Simpan Gambar QR</span>
+                                    </a>
+
+                                    <p className="text-[10px] font-inter text-[#a89f8a]">
+                                        Scan via BCA, Mandiri, BRI, BNI, Dana, GoPay, OVO, ShopeePay
+                                    </p>
+                                </div>
+
+                                {/* Jumlah Transfer Tepat */}
+                                <div className="p-3 rounded-lg bg-[#0d0d0f] border border-[#8a6d38]/30 text-center space-y-1">
+                                    <p className="text-[11px] font-inter text-[#a89f8a]">
+                                        {hasCustomQris ? 'Nominal Pembayaran Terkunci:' : 'Jumlah Transfer (Harus Pas):'}
+                                    </p>
+                                    <div
+                                        onClick={handleCopyAmount}
+                                        className="inline-flex items-center gap-2 cursor-pointer bg-[#17171a] hover:bg-[#202024] px-3 py-1.5 rounded-md transition-colors border border-[#8a6d38]/50"
+                                    >
+                                        <span className="text-base sm:text-lg font-poppins font-bold font-mono text-[#e8c883]">
+                                            {formatRupiah(finalAmountMoney)}
+                                        </span>
+                                        {copiedAmount ? (
+                                            <Check size={14} className="text-[#3fa46a]" />
+                                        ) : (
+                                            <Copy size={14} className="text-[#c5a369]" />
+                                        )}
+                                    </div>
+                                    <p className="text-[10px] font-inter text-[#c5a369]">
+                                        {hasCustomQris
+                                            ? `*QRIS ini sudah terkunci nominal pas Rp ${finalAmountMoney.toLocaleString('id-ID')}. Cukup scan & bayar langsung tanpa ketik nominal!`
+                                            : `*Transfer pas sesuai nominal di atas (Rp ${finalAmountMoney.toLocaleString('id-ID')}) agar sistem otomatis memverifikasi pesanan.`
+                                        }
+                                    </p>
+                                </div>
+
+                                {/* Nama Rekening Pengirim untuk Non-Member */}
+                                {!user && (
+                                    <div className="space-y-1 p-3 rounded-lg bg-[#0d0d0f] border border-[#8a6d38]/30 text-left">
+                                        <label className="block text-xs font-inter font-medium text-[#f3ecd8]">
+                                            Nama Rekening Pengirim <span className="text-red-400">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="Nama sesuai rekening / e-wallet Anda"
+                                            value={senderName}
+                                            onChange={e => setSenderName(e.target.value)}
+                                            className="w-full bg-[#17171a] border border-[#8a6d38]/40 rounded-md px-3 py-1.5 text-base sm:text-xs text-[#f3ecd8] uppercase outline-none focus:border-[#c5a369]"
+                                        />
+                                        <p className="text-[10px] font-inter text-[#7a766c]">
+                                            Dibutuhkan untuk pencocokan mutasi bank otomatis.
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Footer Action */}
                         <div className="p-3 border-t border-[#8a6d38]/30 bg-[#0d0d0f] flex flex-col gap-2">
-                            <button
-                                type="button"
-                                disabled={isSubmitting}
-                                onClick={handleConfirmPayment}
-                                className="w-full py-2.5 rounded-md bg-[#3fa46a] hover:bg-[#358a59] disabled:opacity-50 text-white font-poppins font-semibold text-xs sm:text-sm transition-colors text-center shadow-sm"
-                            >
-                                {isSubmitting ? 'Memproses...' : 'Saya Sudah Transfer'}
-                            </button>
+                            {!isPaymentAvailable ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowQrModal(false)}
+                                    className="w-full py-2.5 rounded-md bg-[#3a3a3f] hover:bg-[#48484e] text-[#f3ecd8] font-poppins font-semibold text-xs sm:text-sm transition-colors text-center"
+                                >
+                                    Tutup
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        type="button"
+                                        disabled={isSubmitting}
+                                        onClick={handleConfirmPayment}
+                                        className="w-full py-2.5 rounded-md bg-[#3fa46a] hover:bg-[#358a59] disabled:opacity-50 text-white font-poppins font-semibold text-xs sm:text-sm transition-colors text-center shadow-sm"
+                                    >
+                                        {isSubmitting ? 'Memproses...' : 'Saya Sudah Transfer'}
+                                    </button>
 
-                            <button
-                                type="button"
-                                onClick={() => setShowQrModal(false)}
-                                className="w-full py-2 rounded-md bg-[#3a3a3f] hover:bg-[#48484e] text-[#f3ecd8] font-poppins font-semibold text-xs transition-colors text-center"
-                            >
-                                Batal
-                            </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowQrModal(false)}
+                                        className="w-full py-2 rounded-md bg-[#3a3a3f] hover:bg-[#48484e] text-[#f3ecd8] font-poppins font-semibold text-xs transition-colors text-center"
+                                    >
+                                        Batal
+                                    </button>
 
-                            <p className="text-center text-[10px] font-inter text-[#7a766c]">
-                                Ada kendala? <a href="https://wa.me/6281234567890" target="_blank" rel="noreferrer" className="text-[#a89f8a] underline hover:text-[#f3ecd8]">Hubungi Admin CS</a>
-                            </p>
+                                    <p className="text-center text-[10px] font-inter text-[#7a766c]">
+                                        Ada kendala? <a href="https://wa.me/6281234567890" target="_blank" rel="noreferrer" className="text-[#a89f8a] underline hover:text-[#f3ecd8]">Hubungi Admin CS</a>
+                                    </p>
+                                </>
+                            )}
                         </div>
 
                     </div>

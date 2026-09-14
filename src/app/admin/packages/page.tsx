@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { Plus, Package, Edit, Trash2, Upload, Check, Image as ImageIcon, Pin, QrCode, X } from 'lucide-react'
+import { Plus, Package, Edit, Trash2, Upload, Check, Image as ImageIcon, Pin, QrCode, X, AlertTriangle } from 'lucide-react'
 
 interface PackageItem {
     id: number
@@ -289,14 +289,21 @@ export default function AdminPackages() {
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-slate-300 mb-1">Badge Promo (Opsional)</label>
-                            <input
-                                type="text"
-                                placeholder="Contoh: Terlaris / Populer / Hemat"
-                                className="w-full bg-[#0a0e17] border border-slate-700 focus:border-cyan-500 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none"
+                            <label className="block text-xs font-medium text-slate-300 mb-1">Badge Promo (Dropdown Baku)</label>
+                            <select
+                                className="w-full bg-[#0a0e17] border border-slate-700 focus:border-cyan-500 rounded-xl px-3.5 py-2.5 text-sm text-white outline-none cursor-pointer"
                                 value={formData.badge}
                                 onChange={e => setFormData({ ...formData, badge: e.target.value })}
-                            />
+                            >
+                                <option value="">(Tanpa Badge Promo)</option>
+                                <option value="Terlaris">Terlaris</option>
+                                <option value="Populer">Populer</option>
+                                <option value="Hemat">Hemat</option>
+                                <option value="Grosir">Grosir</option>
+                                <option value="Sultan">Sultan</option>
+                                <option value="Best Seller">Best Seller</option>
+                                <option value="Promo Kilat">Promo Kilat</option>
+                            </select>
                         </div>
 
                         {/* Upload / Ganti Foto Produk */}
@@ -498,16 +505,16 @@ export default function AdminPackages() {
 
                                 {/* Status QRIS Produk */}
                                 <div className="mt-2.5 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px]">
-                                    <span className="text-slate-500">QRIS Kasir:</span>
+                                    <span className="text-slate-500">Status QR:</span>
                                     {pkg.qris_image ? (
-                                        <span className="text-emerald-400 font-bold flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25">
-                                            <QrCode size={11} className="text-emerald-400 shrink-0" />
-                                            <span>QRIS Statis Pas</span>
+                                        <span className="text-emerald-400 font-bold flex items-center gap-1 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-500/30">
+                                            <Check size={11} className="text-emerald-400 shrink-0" />
+                                            <span>QR Khusus Terpasang</span>
                                         </span>
                                     ) : (
-                                        <span className="text-slate-400 font-medium flex items-center gap-1 bg-slate-800/70 px-2 py-0.5 rounded border border-slate-700">
-                                            <QrCode size={11} className="text-slate-500 shrink-0" />
-                                            <span>QRIS Otomatis</span>
+                                        <span className="text-amber-400 font-medium flex items-center gap-1 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-500/30" title="Paket ini menggunakan foto QRIS toko dari Bank & Chip">
+                                            <AlertTriangle size={11} className="text-amber-400 shrink-0" />
+                                            <span>Fallback QR Toko</span>
                                         </span>
                                     )}
                                 </div>

@@ -171,6 +171,27 @@ export async function sendCustomMessage(
   return data;
 }
 
+// Kirim Alert Masalah Pembayaran (QR Tidak Tersedia / Fallback Mati)
+export async function sendPaymentAlert(details: {
+  reason: string;
+  packageName?: string;
+  packageId?: number | string;
+  price?: number;
+}) {
+  const timeStr = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
+  const text =
+    `🚨 <b>ALERT: METODE PEMBAYARAN QRIS TIDAK TERSEDIA!</b>\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `⚠️ <b>Kendala:</b> ${details.reason}\n` +
+    (details.packageName ? `📦 <b>Paket:</b> ${details.packageName} ${details.packageId ? `(ID: ${details.packageId})` : ''}\n` : '') +
+    (details.price ? `💰 <b>Harga:</b> ${formatRupiah(details.price)}\n` : '') +
+    `⏰ <b>Waktu:</b> ${timeStr} WIB\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `💡 <i>Tindakan: Segera upload foto QR pada Manajemen Paket atau aktifkan minimal satu akun QRIS dengan foto valid di Bank & Chip (/admin/banks)!</i>`;
+
+  return sendCustomMessage(text);
+}
+
 // Base function kirim pesan
 async function sendMessage(
   text: string,

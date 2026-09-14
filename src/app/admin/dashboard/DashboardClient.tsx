@@ -1,9 +1,11 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
+import Link from 'next/link'
 import {
     Landmark, Coins, ArrowDownToLine, ArrowUpFromLine, User,
-    Send, Plus, SlidersHorizontal, ArrowLeftRight, CheckCircle2, Shield, Copy
+    Send, Plus, SlidersHorizontal, ArrowLeftRight, CheckCircle2, Shield, Copy,
+    ShieldAlert, AlertTriangle, ChevronDown, ChevronUp, ExternalLink, QrCode
 } from 'lucide-react'
 import {
     PageHead, SectionHead, Panel, StatBig, Segment, Badge,
@@ -20,6 +22,17 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
     const [copied, setCopied] = useState<boolean>(false)
     const [sendingTg, setSendingTg] = useState<boolean>(false)
     const [tgSentStatus, setTgSentStatus] = useState<string | null>(null)
+    const [showPackageDetail, setShowPackageDetail] = useState<boolean>(false)
+
+    const paymentHealth = initialData?.paymentHealth || {
+        status: 'WARNING',
+        hasActiveQrisFallback: false,
+        activeQrisCount: 0,
+        packagesWithoutCustomQris: [],
+        totalActivePackages: 0,
+        methodsWithMissingImage: [],
+        summaryMessage: 'Status sistem pembayaran belum dimuat.'
+    }
 
     // Data source from server fallback or internal stats
     const banks = useMemo(() => {
@@ -204,6 +217,125 @@ ${Object.entries(chipStock).map(([id, v]) => `  • <b>${id}:</b> ${num(v)} chip
                     </div>
                 }
             />
+
+            {/* Status Sistem Pembayaran (Payment & QR Health Check) */}
+            <div className={`p-4 sm:p-5 rounded-2xl border transition-all ${
+                paymentHealth.status === 'CRITICAL'
+                    ? 'bg-rose-950/20 border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.15)]'
+                    : paymentHealth.status === 'WARNING'
+                    ? 'bg-[#181612] border-amber-500/40 shadow-[0_0_15px_rgba(245,158,11,0.08)]'
+                    : 'bg-emerald-950/15 border-emerald-500/30'
+            }`}>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                            paymentHealth.status === 'CRITICAL'
+                                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                                : paymentHealth.status === 'WARNING'
+                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                                : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        }`}>
+                            {paymentHealth.status === 'CRITICAL' ? (
+                                <ShieldAlert size={22} className="animate-pulse" />
+                            ) : paymentHealth.status === 'WARNING' ? (
+                                <AlertTriangle size={22} />
+                            ) : (
+                                <CheckCircle2 size={22} />
+                            )}
+                        </div>
+
+                        <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                <h3 className="text-sm sm:text-base font-bold text-white tracking-tight">
+                                    Status Sistem Pembayaran (QRIS)
+                                </h3>
+                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                                    paymentHealth.status === 'CRITICAL'
+                                        ? 'bg-rose-500 text-black'
+                                        : paymentHealth.status === 'WARNING'
+                                        ? 'bg-amber-500 text-black'
+                                        : 'bg-emerald-500 text-black'
+                                }`}>
+                                    {paymentHealth.status === 'CRITICAL' ? 'Kritis / Bahaya' : paymentHealth.status === 'WARNING' ? 'Aman Bersyarat' : 'Optimal'}
+                                </span>
+                            </div>
+                            <p className="text-xs text-gray-300 mt-1 leading-relaxed">
+                                {paymentHealth.summaryMessage}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        {paymentHealth.packagesWithoutCustomQris?.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={() => setShowPackageDetail(!showPackageDetail)}
+                                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-gray-300 hover:text-white border border-white/10 flex items-center gap-1.5 transition-colors cursor-pointer"
+                            >
+                                <span>{showPackageDetail ? 'Tutup Daftar' : `Lihat ${paymentHealth.packagesWithoutCustomQris.length} Paket`}</span>
+                                {showPackageDetail ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </button>
+                        )}
+                        <Link
+                            href="/admin/packages"
+                            className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                        >
+                            <span>Kelola Paket</span>
+                            <ExternalLink size={13} />
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Sub-status Indicator Bar */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 mt-3 pt-3 border-t border-white/5 text-xs">
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-black/30 border border-white/5">
+                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${paymentHealth.hasActiveQrisFallback ? 'bg-emerald-400' : 'bg-rose-500 animate-ping'}`} />
+                        <span className="text-gray-400">Fallback QR Toko:</span>
+                        <span className={`font-semibold ${paymentHealth.hasActiveQrisFallback ? 'text-emerald-300' : 'text-rose-400'}`}>
+                            {paymentHealth.hasActiveQrisFallback ? 'Aktif (Siap)' : 'Mati / Tanpa Foto'}
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-black/30 border border-white/5">
+                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${paymentHealth.packagesWithoutCustomQris?.length === 0 ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                        <span className="text-gray-400">QR Khusus Terpasang:</span>
+                        <span className="font-semibold text-white">
+                            {(paymentHealth.totalActivePackages || 0) - (paymentHealth.packagesWithoutCustomQris?.length || 0)} / {paymentHealth.totalActivePackages || 0} Paket
+                        </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 p-2 rounded-lg bg-black/30 border border-white/5">
+                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${paymentHealth.methodsWithMissingImage?.length === 0 ? 'bg-emerald-400' : 'bg-rose-500'}`} />
+                        <span className="text-gray-400">Akun QRIS Tanpa Foto:</span>
+                        <span className={`font-semibold ${paymentHealth.methodsWithMissingImage?.length === 0 ? 'text-emerald-300' : 'text-rose-400'}`}>
+                            {paymentHealth.methodsWithMissingImage?.length || 0} Metode
+                        </span>
+                    </div>
+                </div>
+
+                {/* Collapsible List of Packages Without Custom QR */}
+                {showPackageDetail && paymentHealth.packagesWithoutCustomQris?.length > 0 && (
+                    <div className="mt-3 p-3 rounded-xl bg-black/40 border border-white/5 space-y-2 animate-in fade-in">
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-amber-300 font-semibold">
+                                Paket yang otomatis menggunakan Fallback QR Toko ({paymentHealth.packagesWithoutCustomQris.length} paket):
+                            </span>
+                            <span className="text-[11px] text-gray-400">Upload QR di Manajemen Paket agar nominal terkunci pas</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                            {paymentHealth.packagesWithoutCustomQris.map((pkg: any) => (
+                                <span
+                                    key={pkg.id}
+                                    className="px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/25 text-amber-200 text-[11px] font-mono flex items-center gap-1.5"
+                                >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                    <span>{pkg.name} (Rp {Number(pkg.price).toLocaleString('id-ID')})</span>
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Filter Waktu */}
             <div className="flex items-center gap-4 flex-wrap">

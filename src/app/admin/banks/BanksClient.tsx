@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
-import { Plus, Wallet, CreditCard } from 'lucide-react'
+import { Plus, Wallet, CreditCard, QrCode, AlertTriangle, Info } from 'lucide-react'
 
 // Types must match what's returned from the server + prisma types
 interface Bank {
@@ -215,12 +215,24 @@ export default function BanksClient({ initialBanks, availableGames }: BanksClien
                             value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} required
                         />
                         <select
-                            className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
+                            className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500 outline-none"
                             value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}
                         >
-                            <option value="BANK">Bank Transfer</option>
-                            <option value="EWALLET">E-Wallet / QRIS</option>
+                            <option value="QRIS">QRIS (Scan Barcode Otomatis)</option>
+                            <option value="BANK">BANK (Transfer Bank Rekening)</option>
+                            <option value="EWALLET">EWALLET (E-Wallet Nomor HP)</option>
                         </select>
+                        {formData.type === 'QRIS' && (
+                            <div className="md:col-span-2 p-3.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-200 flex items-start gap-2.5">
+                                <Info size={16} className="text-cyan-400 shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="font-semibold text-cyan-300">Metode QRIS Toko (Fallback Utama)</p>
+                                    <p className="text-cyan-200/80 text-[11px] mt-0.5">
+                                        Wajib unggah <b>Foto QRIS</b> di bawah. Gambar ini akan otomatis digunakan sebagai cadangan (fallback) untuk semua paket yang belum memiliki barcode QR khusus.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                         <select
                             className="bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white"
                             value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })}
@@ -261,7 +273,9 @@ export default function BanksClient({ initialBanks, availableGames }: BanksClien
 
                         {/* Image Upload for QRIS */}
                         <div className="md:col-span-2">
-                            <label className="text-xs text-gray-400 mb-1 block">Foto QRIS (Optional)</label>
+                            <label className="text-xs text-gray-400 mb-1 block">
+                                {formData.type === 'QRIS' ? 'Foto Barcode QRIS (Wajib untuk QR Toko / Fallback)' : 'Foto Logo / Bukti (Opsional)'}
+                            </label>
                             <div className="flex items-center gap-4">
                                 {formData.image && (
                                     <Image src={formData.image} alt="Preview QRIS" width={64} height={64} className="w-16 h-16 object-cover rounded-lg border border-white/10" unoptimized />
@@ -289,17 +303,19 @@ export default function BanksClient({ initialBanks, availableGames }: BanksClien
                     <div key={bank.id} className={`glass p-6 rounded-2xl relative overflow-hidden group border ${bank.isActive ? 'border-green-500/30' : 'border-red-500/30'}`}>
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden relative ${bank.type === 'BANK' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center overflow-hidden relative ${bank.type === 'QRIS' ? 'bg-amber-500/20 text-amber-400' : bank.type === 'BANK' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'}`}>
                                     {bank.image ? (
                                         <Image src={bank.image} alt={bank.name} width={48} height={48} className="w-full h-full object-cover" unoptimized />
                                     ) : (
-                                        bank.type === 'BANK' ? <Wallet size={24} /> : <CreditCard size={24} />
+                                        bank.type === 'QRIS' ? <QrCode size={24} /> : bank.type === 'BANK' ? <Wallet size={24} /> : <CreditCard size={24} />
                                     )}
                                 </div>
                                 <div>
                                     <h3 className="font-bold text-white">{bank.name}</h3>
-                                    <div className="flex gap-2 text-xs">
-                                        <span className="text-gray-400">{bank.type}</span>
+                                    <div className="flex items-center gap-1.5 text-xs mt-0.5">
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${bank.type === 'QRIS' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : bank.type === 'BANK' ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30' : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'}`}>
+                                            {bank.type}
+                                        </span>
                                         <span className="text-cyan-400">• {bank.category === 'BOTH' ? 'All' : bank.category}</span>
                                     </div>
                                 </div>
@@ -311,6 +327,13 @@ export default function BanksClient({ initialBanks, availableGames }: BanksClien
                                 {bank.isActive ? 'AKTIF' : 'TIDAK AKTIF'}
                             </button>
                         </div>
+
+                        {bank.type === 'QRIS' && !bank.image && (
+                            <div className="mb-3 px-2.5 py-1.5 bg-red-950/40 border border-red-500/40 rounded-lg text-red-400 text-xs flex items-center gap-1.5">
+                                <AlertTriangle size={13} className="shrink-0" />
+                                <span>Foto QRIS belum diunggah!</span>
+                            </div>
+                        )}
 
                         <div className="space-y-1 mb-4">
                             <p className="text-2xl font-bold text-white tracking-tight">Rp {bank.balance.toLocaleString()}</p>

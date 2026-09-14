@@ -61,9 +61,18 @@ export default function TransferHistory() {
                 finalAmount = finalAmount / 1000
             }
 
+            let headers: any = { 'Content-Type': 'application/json' }
+            try {
+                const uStr = localStorage.getItem('user')
+                if (uStr) {
+                    const u = JSON.parse(uStr)
+                    if (u?.id) headers['X-User-Id'] = String(u.id)
+                }
+            } catch {}
+
             const res = await fetch('/api/internal/transfers', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({
                     type,
                     source_id: sourceId,

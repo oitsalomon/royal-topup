@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getAdminSessionFromRequest } from '@/lib/auth'
+import { getActiveWorkSessionId, getClientIp } from '@/lib/session-helper'
 
 export const dynamic = 'force-dynamic'
 
@@ -192,11 +193,21 @@ export async function PUT(request: Request) {
         } catch {}
 
         try {
+            const workSessionId = await getActiveWorkSessionId(userId)
+            const clientIp = getClientIp(request)
+            const isQrisUpdated = qris_image !== undefined && String(qris_image).trim().length > 0
+            const actionName = isQrisUpdated ? 'UPDATE_QRIS_PACKAGE' : 'UPDATE_PACKAGE'
+            const detailsText = isQrisUpdated
+                ? `Ubah QRIS Paket ${pkg.name}: Foto QR khusus diperbarui`
+                : `Updated package ${pkg.name}: Rp ${price !== undefined ? price : pkg.price}`
+
             await prisma.activityLog.create({
                 data: {
                     user_id: userId,
-                    action: 'UPDATE_PACKAGE',
-                    details: `Updated package ${pkg.name}: Rp ${price}`
+                    work_session_id: workSessionId,
+                    action: actionName,
+                    details: detailsText,
+                    ip_address: clientIp
                 }
             })
         } catch {}

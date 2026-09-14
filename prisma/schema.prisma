@@ -54,6 +54,8 @@ model User {
   gameIds                 UserGameId[]
   userVouchers            UserVoucher[]
   weeklyStats             WeeklyStats[]
+  workSessions            WorkSession[]
+  operationalExpenses     OperationalExpense[]
 }
 
 model LoyaltyLog {
@@ -172,16 +174,19 @@ model GameAccount {
 }
 
 model ActivityLog {
-  id         Int      @id @default(autoincrement())
-  user_id    Int
-  action     String
-  details    String?
-  ip_address String?
-  createdAt  DateTime @default(now())
-  user       User     @relation(fields: [user_id], references: [id])
+  id              Int          @id @default(autoincrement())
+  user_id         Int
+  work_session_id Int?
+  action          String
+  details         String?
+  ip_address      String?
+  createdAt       DateTime     @default(now())
+  user            User         @relation(fields: [user_id], references: [id])
+  workSession     WorkSession? @relation(fields: [work_session_id], references: [id])
 
   @@index([createdAt])
   @@index([user_id])
+  @@index([work_session_id])
 }
 
 model UserGameId {
@@ -233,11 +238,13 @@ model Transaction {
   user_id                Int?
   sender_name            String?
   referralBonusLogs      ReferralBonusLog[]
+  work_session_id        Int?
   game                   Game               @relation(fields: [game_id], references: [id])
   paymentMethod          PaymentMethod?     @relation(fields: [payment_method_id], references: [id])
   processedBy            User?              @relation("ProcessedBy", fields: [processed_by_id], references: [id])
   user                   User?              @relation(fields: [user_id], references: [id])
   withdrawMethod         WithdrawMethod?    @relation(fields: [withdraw_method_id], references: [id])
+  workSession            WorkSession?       @relation(fields: [work_session_id], references: [id])
 
   @@index([status])
   @@index([type])
@@ -246,6 +253,7 @@ model Transaction {
   @@index([user_id])
   @@index([user_game_id])
   @@index([processed_by_id])
+  @@index([work_session_id])
   @@index([type, status, createdAt])
   @@index([status, createdAt])
   @@index([createdAt, status])
@@ -264,6 +272,7 @@ model Transfer {
   id                   Int            @id @default(autoincrement())
   from_user_id         Int?
   to_user_id           Int?
+  work_session_id      Int?
   amount               Float
   type                 String
   note                 String?
@@ -278,11 +287,17 @@ model Transfer {
   toBank               PaymentMethod? @relation("TransferToBank", fields: [to_bank_id], references: [id])
   toGameAccount        GameAccount?   @relation("TransferToGame", fields: [to_game_account_id], references: [id])
   receiver             User?          @relation("Receiver", fields: [to_user_id], references: [id])
+  workSession          WorkSession?   @relation(fields: [work_session_id], references: [id])
+
+  @@index([work_session_id])
+  @@index([from_user_id])
+  @@index([createdAt])
 }
 
 model Adjustment {
   id              Int            @id @default(autoincrement())
   user_id         Int
+  work_session_id Int?
   amount          Float
   type            String
   reason          String
@@ -292,16 +307,70 @@ model Adjustment {
   bank            PaymentMethod? @relation(fields: [bank_id], references: [id])
   gameAccount     GameAccount?   @relation(fields: [game_account_id], references: [id])
   user            User           @relation(fields: [user_id], references: [id])
+  workSession     WorkSession?   @relation(fields: [work_session_id], references: [id])
+
+  @@index([work_session_id])
+  @@index([user_id])
+  @@index([createdAt])
 }
 
 model DcBos {
-  id        Int      @id @default(autoincrement())
-  user_id   Int
-  amount    Float
-  type      String
-  note      String?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [user_id], references: [id])
+  id              Int          @id @default(autoincrement())
+  user_id         Int
+  work_session_id Int?
+  amount          Float
+  type            String
+  bank_name       String?
+  note            String?
+  createdAt       DateTime     @default(now())
+  user            User         @relation(fields: [user_id], references: [id])
+  workSession     WorkSession? @relation(fields: [work_session_id], references: [id])
+
+  @@index([user_id])
+  @@index([work_session_id])
+  @@index([createdAt])
+}
+
+model OperationalExpense {
+  id              Int          @id @default(autoincrement())
+  user_id         Int
+  work_session_id Int?
+  amount          Float
+  category        String
+  description     String
+  bank_name       String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now()) @updatedAt
+  user            User         @relation(fields: [user_id], references: [id])
+  workSession     WorkSession? @relation(fields: [work_session_id], references: [id])
+
+  @@index([user_id])
+  @@index([work_session_id])
+  @@index([createdAt])
+}
+
+model WorkSession {
+  id                  Int                  @id @default(autoincrement())
+  user_id             Int
+  started_at          DateTime             @default(now())
+  ended_at            DateTime?
+  status              String               @default("ACTIVE") // ACTIVE | CLOSED | EXPIRED
+  ip_address          String?
+  notes               String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @default(now()) @updatedAt
+  user                User                 @relation(fields: [user_id], references: [id])
+  activityLogs        ActivityLog[]
+  transactions        Transaction[]
+  transfers           Transfer[]
+  adjustments         Adjustment[]
+  dcBos               DcBos[]
+  operationalExpenses OperationalExpense[]
+
+  @@index([user_id])
+  @@index([started_at])
+  @@index([status])
+  @@index([user_id, status])
 }
 
 model Package {

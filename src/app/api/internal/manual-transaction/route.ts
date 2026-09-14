@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getAdminSessionFromRequest } from '@/lib/auth'
+import { resolveAdminUser, getClientIp } from '@/lib/session-helper'
 
 export async function POST(request: Request) {
     try {
         const body = await request.json()
-        const adminSession = await getAdminSessionFromRequest(request)
-        const userId = adminSession ? Number(adminSession.id) : Number(request.headers.get('X-User-Id') || '1')
+        const admin = await resolveAdminUser(request)
+        const clientIp = getClientIp(request)
 
         const {
             type, // TOPUP | WITHDRAW
@@ -25,10 +25,16 @@ export async function POST(request: Request) {
         const rawChip = Number(amount_chip) || 0
         const finalChipB = chip_unit === 'M' ? rawChip / 1000 : rawChip
         const finalMoney = Number(amount_money) || 0
-        const finalGameId = Number(game_id)
+        const finalGameId = Number(game_id) || 1
         const finalBankId = payment_method_id ? Number(payment_method_id) : null
 
         const customTrxId = `MANUAL-${type === 'TOPUP' ? 'TP' : 'WD'}-${Date.now().toString().slice(-6)}`
+
+        let bankInfo = ''
+        if (finalBankId) {
+            const b = await prisma.paymentMethod.findUnique({ where: { id: finalBankId }, select: { name: true, account_number: true } })
+            if (b) bankInfo = ` (${b.name} ${b.account_number})`
+        }
 
         // Start Transaction
         const transaction = await prisma.$transaction(async (tx) => {
@@ -44,9 +50,10 @@ export async function POST(request: Request) {
                     amount_money: finalMoney,
                     payment_method_id: finalBankId,
                     withdraw_method_id: type === 'WITHDRAW' ? finalBankId : null,
+                    work_session_id: admin.work_session_id,
                     type,
                     status: 'APPROVED_2', // Completed
-                    processed_by_id: userId,
+                    processed_by_id: admin.id,
                     proof_image: 'MANUAL_ENTRY', // Flag manual
                     sender_name: note ? `INPUT MANUAL: ${note}` : 'INPUT MANUAL',
                     target_payment_details: type === 'WITHDRAW' ? (note ? `Manual WD (${note})` : 'Input Manual') : null
@@ -98,10 +105,11 @@ export async function POST(request: Request) {
             // 3. Log Activity
             await tx.activityLog.create({
                 data: {
-                    user_id: userId,
+                    user_id: admin.id,
+                    work_session_id: admin.work_session_id,
                     action: 'MANUAL_TX',
-                    details: `Manual ${type} #${t.id} (${customTrxId}) - ${nickname} - ${finalChipB}B - Rp ${finalMoney}`,
-                    ip_address: '127.0.0.1'
+                    details: `Manual ${type} #${t.id} (${customTrxId}) - ${nickname} (ID: ${user_game_id || '-'}) - ${finalChipB}B - Rp ${finalMoney.toLocaleString('id-ID')}${bankInfo}${note ? ' - Ket: ' + note : ''}`,
+                    ip_address: clientIp
                 }
             })
 

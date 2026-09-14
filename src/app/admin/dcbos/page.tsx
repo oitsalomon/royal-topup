@@ -1,206 +1,339 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { Plus, Crown, Coins, Landmark, Trash2 } from 'lucide-react'
+import React, { useState, useEffect, useMemo } from 'react'
+import { Plus, Crown, Coins, Landmark, Trash2, Database, Download, CheckCircle2 } from 'lucide-react'
 import {
     PageHead, Panel, StatBig, Badge, PrimaryBtn,
-    SelectInput, TextInput, BG, PANEL, PANEL2, BORDER, MUTED, TEXT, TEXT2, TEXT3
+    SelectInput, TextInput
 } from '@/components/admin/RoyalCloverUI'
 import { rp, num, DEFAULT_OPS_BANKS } from '@/lib/clover-engine'
+import { getJakartaDateString, getJakartaTimeString } from '@/lib/timezone'
 
-interface DcBosItem {
-    id: number | string
-    tgl: string
-    jam: string
-    jenis: 'uang' | 'chip'
-    rek?: string
-    idAkun?: string
-    masuk: number
-    keluar: number
-    ket: string
-    cs: string
+interface DcBosRow {
+    id: number
+    amount: number
+    type: string // 'uang' | 'chip'
+    bank_name: string | null
+    note: string | null
+    createdAt: string
+    user?: {
+        id: number
+        username: string
+    }
 }
 
-const SEED_DCBOS: DcBosItem[] = [
-    { id: 1, tgl: '2026-06-02', jam: '21:00', jenis: 'uang', rek: 'BCA VERGA GUNAWAN', masuk: 0, keluar: 3000000, ket: 'Setoran bos harian', cs: 'Veer' },
-    { id: 2, tgl: '2026-06-01', jam: '22:15', jenis: 'chip', idAkun: 'CLOVER', masuk: 50, keluar: 0, ket: 'Bos suntik chip modal', cs: 'Veer' },
-]
-
 export default function DcBosPage() {
-    const [rows, setRows] = useState<DcBosItem[]>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('royal_ops_dcbos')
-            if (saved) {
-                try { return JSON.parse(saved) } catch (_) {}
-            }
-        }
-        return SEED_DCBOS
-    })
-
+    const [rows, setRows] = useState<DcBosRow[]>([])
+    const [banks, setBanks] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
     const [open, setOpen] = useState(false)
     const [mode, setMode] = useState<'uang' | 'chip'>('uang')
+    const [submitting, setSubmitting] = useState(false)
+
+    // Local storage rescue
+    const [localData, setLocalData] = useState<any[]>([])
+    const [importingLocal, setImportingLocal] = useState(false)
+    const [importSuccessMsg, setImportSuccessMsg] = useState<string | null>(null)
+
     const [f, setF] = useState({
-        rek: DEFAULT_OPS_BANKS[0].label,
-        idAkun: 'CLOVER',
-        masuk: '',
-        keluar: '',
+        rek: DEFAULT_OPS_BANKS[0]?.label || 'BCA',
+        nominal: '',
         ket: ''
     })
 
+    const fetchRows = async () => {
+        try {
+            const res = await fetch('/api/dcbos')
+            if (res.ok) {
+                const data = await res.json()
+                setRows(data)
+            }
+        } catch (e) {
+            console.error('Failed to fetch DC Bos:', e)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const fetchBanks = async () => {
+        try {
+            const res = await fetch('/api/internal/banks')
+            if (res.ok) {
+                const data = await res.json()
+                if (Array.isArray(data) && data.length > 0) {
+                    setBanks(data.map((b: any) => ({
+                        id: b.id,
+                        label: `${b.name} - ${b.account_number} (${b.account_name})`
+                    })))
+                    if (data[0]) {
+                        setF(prev => ({ ...prev, rek: `${data[0].name} (${data[0].account_name})` }))
+                    }
+                }
+            }
+        } catch {}
+    }
+
     useEffect(() => {
+        fetchRows()
+        fetchBanks()
+
         if (typeof window !== 'undefined') {
-            localStorage.setItem('royal_ops_dcbos', JSON.stringify(rows))
+            try {
+                const saved = localStorage.getItem('royal_ops_dcbos')
+                if (saved) {
+                    const parsed = JSON.parse(saved)
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        setLocalData(parsed)
+                    }
+                }
+            } catch {}
         }
-    }, [rows])
+    }, [])
 
-    const handleAdd = () => {
-        const m = Number(f.masuk || 0)
-        const k = Number(f.keluar || 0)
-        if (!m && !k) return
-
-        const now = new Date()
-        const newItem: DcBosItem = {
-            id: Date.now(),
-            tgl: now.toISOString().slice(0, 10),
-            jam: now.toTimeString().slice(0, 5),
-            jenis: mode,
-            rek: mode === 'uang' ? f.rek : undefined,
-            idAkun: mode === 'chip' ? f.idAkun : undefined,
-            masuk: m,
-            keluar: k,
-            ket: f.ket || (k > 0 ? 'Setoran / Tarik Bos' : 'Suntik Modal Bos'),
-            cs: 'Salomon'
+    const handleAdd = async () => {
+        const val = Number(f.nominal)
+        if (!val || val <= 0) {
+            alert('Nominal harus lebih dari 0')
+            return
         }
 
-        setRows([newItem, ...rows])
-        setF({ rek: DEFAULT_OPS_BANKS[0].label, idAkun: 'CLOVER', masuk: '', keluar: '', ket: '' })
-        setOpen(false)
+        setSubmitting(true)
+        try {
+            const res = await fetch('/api/dcbos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    amount: val,
+                    type: mode,
+                    bank_name: mode === 'uang' ? f.rek : 'ID Game Tampungan',
+                    note: f.ket || (mode === 'uang' ? 'Setoran Bos' : 'Suntik Modal Chip')
+                })
+            })
+
+            if (res.ok) {
+                const newRow = await res.json()
+                setRows(prev => [newRow, ...prev])
+                setF(prev => ({ ...prev, nominal: '', ket: '' }))
+                setOpen(false)
+            } else {
+                const err = await res.json().catch(() => ({}))
+                alert(err.error || 'Gagal menyimpan transaksi DC Bos')
+            }
+        } catch (e) {
+            console.error(e)
+            alert('Terjadi kesalahan koneksi saat menyimpan')
+        } finally {
+            setSubmitting(false)
+        }
     }
 
-    const handleDelete = (id: number | string) => {
-        if (confirm('Hapus transaksi DC Bos ini?')) {
-            setRows(rows.filter((r) => r.id !== id))
+    const handleDelete = async (id: number) => {
+        if (!confirm('Yakin ingin menghapus catatan DC Bos ini dari database?')) return
+
+        try {
+            const res = await fetch(`/api/dcbos?id=${id}`, { method: 'DELETE' })
+            if (res.ok) {
+                setRows(prev => prev.filter(r => r.id !== id))
+            } else {
+                alert('Gagal menghapus catatan')
+            }
+        } catch (e) {
+            console.error(e)
+            alert('Terjadi kesalahan saat menghapus')
         }
     }
 
-    const totalSetorUang = rows
-        .filter((r) => r.jenis === 'uang')
-        .reduce((a, r) => a + r.keluar, 0)
+    // Export localStorage
+    const handleExportLocalStorage = () => {
+        if (!localData.length) return
+        const blob = new Blob([JSON.stringify(localData, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `backup-dcbos-local-${new Date().toISOString().slice(0, 10)}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+    }
 
-    const totalMasukUang = rows
-        .filter((r) => r.jenis === 'uang')
-        .reduce((a, r) => a + r.masuk, 0)
+    // Import localStorage to DB
+    const handleImportLocalStorage = async () => {
+        if (!localData.length) return
+        if (!confirm(`Impor ${localData.length} data DC Bos dari browser lokal ke database server?`)) return
 
-    const totalSetorChip = rows
-        .filter((r) => r.jenis === 'chip')
-        .reduce((a, r) => a + r.keluar, 0)
+        setImportingLocal(true)
+        let successCount = 0
+        try {
+            for (const item of localData) {
+                const val = Number(item.keluar || item.masuk || item.amount || 0)
+                if (val > 0) {
+                    await fetch('/api/dcbos', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            amount: val,
+                            type: item.jenis || 'uang',
+                            bank_name: item.rek || null,
+                            note: item.ket || 'Impor dari local storage'
+                        })
+                    })
+                    successCount++
+                }
+            }
+            localStorage.removeItem('royal_ops_dcbos')
+            setLocalData([])
+            setImportSuccessMsg(`Berhasil mengimpor ${successCount} data DC Bos ke database.`)
+            await fetchRows()
+        } catch (e) {
+            console.error('Import error:', e)
+            alert('Sebagian data gagal diimpor')
+        } finally {
+            setImportingLocal(false)
+        }
+    }
 
-    const totalMasukChip = rows
-        .filter((r) => r.jenis === 'chip')
-        .reduce((a, r) => a + r.masuk, 0)
+    const handleClearLocalStorage = () => {
+        if (confirm('Hapus cache data lokal browser? Data di server tetap aman.')) {
+            localStorage.removeItem('royal_ops_dcbos')
+            setLocalData([])
+        }
+    }
+
+    const totalUang = useMemo(() => rows.filter(r => r.type === 'uang').reduce((a, r) => a + r.amount, 0), [rows])
+    const totalChip = useMemo(() => rows.filter(r => r.type === 'chip').reduce((a, r) => a + r.amount, 0), [rows])
+
+    const bankOptions = banks.length > 0 ? banks.map(b => b.label) : DEFAULT_OPS_BANKS.map(b => b.label)
 
     return (
         <div className="space-y-6">
             <PageHead
-                crumbs={['Keuangan', 'DC Bos']}
-                title="DC Bos — Setoran & Distribusi"
-                sub="Pencatatan uang & chip yang disetor ke bos atau disuntikkan sebagai modal"
+                crumbs={['Keuangan', 'DC Bos / Setoran']}
+                title="DC Bos / Setoran"
+                sub="Catatan mutasi penarikan modal atau setoran profit ke rekening bos (tercatat di database)"
                 actions={
                     <PrimaryBtn onClick={() => setOpen(!open)}>
-                        <Plus size={16} /> Catat Mutasi Bos
+                        <Plus size={16} strokeWidth={1.5} /> Catat Setoran Baru
                     </PrimaryBtn>
                 }
             />
 
-            {/* Stat Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <StatBig label="Total Tarik/Setor Bos (Uang)" value={rp(totalSetorUang)} sub="Uang ditarik ke rekening bos" />
-                <StatBig label="Suntik Modal Bos (Uang)" value={rp(totalMasukUang)} sub="Uang modal masuk dari bos" />
-                <StatBig label="Tarik Chip ke Bos" value={`${num(totalSetorChip)} B`} sub="Chip ditarik bos" />
-                <StatBig label="Suntik Chip dari Bos" value={`${num(totalMasukChip)} B`} sub="Chip tambahan dari bos" />
+            {/* LocalStorage Rescue Banner */}
+            {localData.length > 0 && (
+                <div className="p-4 bg-[#16181d] border border-[#f5b301]/40 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-[#f5b301]/10 border border-[#f5b301]/30 flex items-center justify-center text-[#f5b301] shrink-0">
+                            <Database size={18} strokeWidth={1.5} />
+                        </div>
+                        <div>
+                            <div className="text-xs font-bold text-white">
+                                Ditemukan {localData.length} data catatan DC Bos lama di browser lokal ini
+                            </div>
+                            <div className="text-[11px] text-gray-400">
+                                Anda dapat mengimpor data ini ke database PostgreSQL atau mengekspornya sebagai file JSON.
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <button
+                            type="button"
+                            onClick={handleImportLocalStorage}
+                            disabled={importingLocal}
+                            className="px-3 py-1.5 bg-[#f5b301] hover:bg-[#d99e00] text-black font-bold text-xs rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                            <Database size={14} strokeWidth={1.5} />
+                            <span>{importingLocal ? 'Mengimpor...' : 'Impor ke Database'}</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleExportLocalStorage}
+                            className="px-3 py-1.5 bg-white/5 hover:bg-white/10 text-white font-semibold text-xs border border-white/10 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                            <Download size={14} strokeWidth={1.5} />
+                            <span>Ekspor JSON</span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleClearLocalStorage}
+                            className="px-2.5 py-1.5 text-xs text-gray-400 hover:text-red-400 transition-colors"
+                        >
+                            Abaikan
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {importSuccessMsg && (
+                <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-300 font-semibold flex items-center gap-2">
+                    <CheckCircle2 size={15} strokeWidth={1.5} />
+                    <span>{importSuccessMsg}</span>
+                </div>
+            )}
+
+            {/* Metric Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <StatBig label="Total Setoran Uang" value={rp(totalUang)} sub={`${rows.filter(r => r.type === 'uang').length} mutasi uang`} />
+                <StatBig label="Total Setoran Chip" value={`${num(totalChip)} B`} sub={`${rows.filter(r => r.type === 'chip').length} mutasi chip`} />
+                <StatBig label="Total Rekap Setoran" value={`${rows.length} Mutasi`} sub="Tercatat di server" />
             </div>
 
-            {/* Main Panel */}
-            <Panel
-                title="Riwayat Mutasi DC Bos"
-                subtitle="Semua pencatatan setor/tarik bos"
-            >
+            {/* Form */}
+            <Panel title="Riwayat Setoran DC Bos" subtitle="Catatan aliran dana/chip ke owner">
                 {open && (
-                    <div className="p-4 bg-[#0a0b0d] border border-[#26282f] rounded-xl mb-4 space-y-4">
-                        {/* Selector Jenis Uang / Chip */}
-                        <div className="inline-flex gap-2 p-1 bg-[#131417] border border-[#26282f] rounded-lg">
+                    <div className="p-4 bg-[#0a0b0d] border border-[#26282f] rounded-xl mb-4 space-y-3">
+                        <div className="flex items-center gap-2 mb-2">
                             <button
                                 type="button"
                                 onClick={() => setMode('uang')}
-                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                                    mode === 'uang' ? 'bg-[#f5b301] text-[#1a1500]' : 'text-[#7e8593] hover:text-white'
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                    mode === 'uang' ? 'bg-[#f5b301] text-black' : 'bg-white/5 text-gray-400'
                                 }`}
                             >
-                                UANG (RUPIAH)
+                                Setoran Uang (Rp)
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setMode('chip')}
-                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${
-                                    mode === 'chip' ? 'bg-[#f5b301] text-[#1a1500]' : 'text-[#7e8593] hover:text-white'
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                    mode === 'chip' ? 'bg-[#f5b301] text-black' : 'bg-white/5 text-gray-400'
                                 }`}
                             >
-                                CHIP
+                                Setoran Chip (B)
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-                            <div>
-                                <label className="text-xs text-[#7e8593] font-semibold mb-1.5 block">
-                                    {mode === 'uang' ? 'Rekening Bank' : 'ID Akun Chip'}
-                                </label>
-                                {mode === 'uang' ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {mode === 'uang' && (
+                                <div>
+                                    <label className="text-xs text-[#7e8593] font-semibold mb-1.5 block">Rekening Bank Tujuan</label>
                                     <SelectInput
                                         value={f.rek}
                                         onChange={(e) => setF({ ...f, rek: e.target.value })}
-                                        options={DEFAULT_OPS_BANKS.map((b) => b.label)}
+                                        options={bankOptions}
                                     />
-                                ) : (
-                                    <SelectInput
-                                        value={f.idAkun}
-                                        onChange={(e) => setF({ ...f, idAkun: e.target.value })}
-                                        options={['CLOVER']}
-                                    />
-                                )}
-                            </div>
+                                </div>
+                            )}
                             <div>
                                 <label className="text-xs text-[#7e8593] font-semibold mb-1.5 block">
-                                    {mode === 'uang' ? 'Masuk Rp (+)' : 'Chip Masuk (+)'}
+                                    Nominal {mode === 'uang' ? '(Rp)' : '(B)'} *
                                 </label>
                                 <TextInput
                                     type="number"
-                                    placeholder="0"
-                                    value={f.masuk}
-                                    onChange={(e) => setF({ ...f, masuk: e.target.value })}
-                                />
-                            </div>
-                            <div>
-                                <label className="text-xs text-[#7e8593] font-semibold mb-1.5 block">
-                                    {mode === 'uang' ? 'Keluar / Disetor Rp (-)' : 'Chip Keluar (-)'}
-                                </label>
-                                <TextInput
-                                    type="number"
-                                    placeholder="0"
-                                    value={f.keluar}
-                                    onChange={(e) => setF({ ...f, keluar: e.target.value })}
+                                    step="any"
+                                    placeholder={mode === 'uang' ? 'cth: 3000000' : 'cth: 50'}
+                                    value={f.nominal}
+                                    onChange={(e) => setF({ ...f, nominal: e.target.value })}
                                 />
                             </div>
                             <div>
                                 <label className="text-xs text-[#7e8593] font-semibold mb-1.5 block">Keterangan</label>
                                 <TextInput
-                                    placeholder="cth: Setoran harian"
+                                    placeholder="cth: Setoran harian profit bos"
                                     value={f.ket}
                                     onChange={(e) => setF({ ...f, ket: e.target.value })}
                                 />
                             </div>
                         </div>
 
-                        <div className="flex gap-2 justify-end">
+                        <div className="flex justify-end gap-2 pt-2">
                             <button
                                 type="button"
                                 onClick={() => setOpen(false)}
@@ -208,7 +341,9 @@ export default function DcBosPage() {
                             >
                                 Batal
                             </button>
-                            <PrimaryBtn onClick={handleAdd}>Simpan Mutasi Bos</PrimaryBtn>
+                            <PrimaryBtn onClick={handleAdd} disabled={submitting}>
+                                {submitting ? 'Menyimpan...' : 'Simpan Setoran'}
+                            </PrimaryBtn>
                         </div>
                     </div>
                 )}
@@ -217,53 +352,74 @@ export default function DcBosPage() {
                     <table className="w-full text-left text-xs border-collapse">
                         <thead>
                             <tr className="border-b border-[#26282f] text-[#7e8593] font-bold uppercase tracking-wider">
-                                <th className="p-3">Waktu</th>
+                                <th className="p-3">Waktu (WIB)</th>
                                 <th className="p-3">Jenis</th>
-                                <th className="p-3">Target (Rek / ID)</th>
-                                <th className="p-3 text-right">Masuk (+)</th>
-                                <th className="p-3 text-right">Keluar (-)</th>
+                                <th className="p-3">Rekening / Target</th>
+                                <th className="p-3 text-right">Nominal</th>
                                 <th className="p-3">Keterangan</th>
-                                <th className="p-3">Oleh</th>
+                                <th className="p-3">Dicatat Oleh</th>
                                 <th className="p-3 text-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#26282f]/60">
-                            {rows.map((r) => {
-                                const isChip = r.jenis === 'chip'
-                                return (
-                                    <tr key={r.id} className="hover:bg-[#1b1d22]/40 transition-colors">
-                                        <td className="p-3 text-[#d6dae1]">
-                                            <div>{r.tgl}</div>
-                                            <div className="text-[10px] text-[#7e8593]">{r.jam}</div>
-                                        </td>
-                                        <td className="p-3">
-                                            <Badge color={isChip ? '#f5b301' : '#60a5fa'}>
-                                                {isChip ? 'CHIP' : 'UANG'}
-                                            </Badge>
-                                        </td>
-                                        <td className="p-3 font-semibold text-[#f3f5f8]">
-                                            {r.rek || r.idAkun || '—'}
-                                        </td>
-                                        <td className="p-3 text-right font-bold text-emerald-400">
-                                            {r.masuk ? (isChip ? `+${num(r.masuk)} B` : `+${rp(r.masuk)}`) : '—'}
-                                        </td>
-                                        <td className="p-3 text-right font-bold text-red-400">
-                                            {r.keluar ? (isChip ? `−${num(r.keluar)} B` : `−${rp(r.keluar)}`) : '—'}
-                                        </td>
-                                        <td className="p-3 text-[#d6dae1]">{r.ket}</td>
-                                        <td className="p-3 text-[#f5b301] font-semibold">{r.cs}</td>
-                                        <td className="p-3 text-center">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleDelete(r.id)}
-                                                className="p-1.5 text-[#7e8593] hover:text-red-400 transition-colors"
-                                            >
-                                                <Trash2 size={14} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                )
-                            })}
+                            {loading ? (
+                                <tr>
+                                    <td colSpan={7} className="p-6 text-center text-[#7e8593]">
+                                        Memuat data DC Bos dari database...
+                                    </td>
+                                </tr>
+                            ) : rows.length === 0 ? (
+                                <tr>
+                                    <td colSpan={7} className="p-6 text-center text-[#7e8593]">
+                                        Belum ada data setoran DC Bos di database.
+                                    </td>
+                                </tr>
+                            ) : (
+                                rows.map((r) => {
+                                    const d = new Date(r.createdAt)
+                                    const dateStr = getJakartaDateString(d)
+                                    const timeStr = getJakartaTimeString(d)
+                                    const isUang = r.type === 'uang'
+                                    return (
+                                        <tr key={r.id} className="hover:bg-[#1b1d22]/40 transition-colors">
+                                            <td className="p-3 text-[#d6dae1]">
+                                                <div>{dateStr}</div>
+                                                <div className="text-[10px] text-[#7e8593]">{timeStr} WIB</div>
+                                            </td>
+                                            <td className="p-3">
+                                                <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                                                    isUang ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-[#f5b301]/10 text-[#f5b301] border border-[#f5b301]/30'
+                                                }`}>
+                                                    {isUang ? 'UANG' : 'CHIP'}
+                                                </span>
+                                            </td>
+                                            <td className="p-3 font-semibold text-[#f3f5f8]">
+                                                <div className="flex items-center gap-1.5">
+                                                    {isUang ? <Landmark size={13} strokeWidth={1.5} className="text-[#7e8593]" /> : <Coins size={13} strokeWidth={1.5} className="text-[#f5b301]" />}
+                                                    <span className="truncate max-w-[160px]">{r.bank_name || '-'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-3 text-right font-black font-mono text-[#f3f5f8]">
+                                                {isUang ? rp(r.amount) : `${num(r.amount)} B`}
+                                            </td>
+                                            <td className="p-3 text-[#d6dae1]">{r.note || '-'}</td>
+                                            <td className="p-3">
+                                                <Badge color="#f5b301">{r.user?.username || 'Admin'}</Badge>
+                                            </td>
+                                            <td className="p-3 text-center">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDelete(r.id)}
+                                                    className="p-1.5 text-[#7e8593] hover:text-red-400 transition-colors cursor-pointer"
+                                                    title="Hapus catatan"
+                                                >
+                                                    <Trash2 size={14} strokeWidth={1.5} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    )
+                                })
+                            )}
                         </tbody>
                     </table>
                 </div>

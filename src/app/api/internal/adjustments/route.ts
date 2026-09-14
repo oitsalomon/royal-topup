@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { resolveAdminUser, getClientIp } from '@/lib/session-helper'
 
 export async function GET() {
     try {
         const adjustments = await prisma.adjustment.findMany({
             include: {
-                user: true,
+                user: { select: { id: true, username: true } },
                 bank: true,
                 gameAccount: { include: { game: true } }
             },
@@ -19,113 +20,113 @@ export async function GET() {
 
 export async function POST(request: Request) {
     try {
-        const userId = Number(request.headers.get('X-User-Id')) || 1
         const body = await request.json()
         const { type, action, amount, note, target_id } = body
         // type: 'MONEY' | 'CHIP'
         // action: 'ADD' | 'SUBTRACT'
-        // target_id: ID of Bank (for Money) or GameAccount (for Chip). If null, assumes Admin/General.
+        // target_id: ID of Bank (for Money) or GameAccount (for Chip)
 
         const numAmount = Number(amount)
         if (isNaN(numAmount) || numAmount <= 0) {
-            return NextResponse.json({ error: 'Invalid amount' }, { status: 400 })
+            return NextResponse.json({ error: 'Nominal penyesuaian tidak valid' }, { status: 400 })
         }
 
-        // 1. Handle Money Adjustment
-        if (type === 'MONEY') {
-            // If target_id is provided, update specific Bank (PaymentMethod)
-            if (target_id) {
-                const bank = await prisma.paymentMethod.findUnique({ where: { id: Number(target_id) } })
-                if (!bank) return NextResponse.json({ error: 'Bank not found' }, { status: 404 })
+        const admin = await resolveAdminUser(request)
+        const clientIp = getClientIp(request)
 
-                const newBalance = action === 'ADD'
-                    ? bank.balance + numAmount
-                    : bank.balance - numAmount
+        const diff = action === 'ADD' ? numAmount : -numAmount
+        let details = ''
+        let bank_id: number | null = null
+        let game_account_id: number | null = null
 
-                await prisma.paymentMethod.update({
-                    where: { id: Number(target_id) },
-                    data: { balance: newBalance }
-                })
+        await prisma.$transaction(async (tx) => {
+            // 1. Handle Money Adjustment
+            if (type === 'MONEY') {
+                if (target_id) {
+                    bank_id = Number(target_id)
+                    const bank = await tx.paymentMethod.findUnique({ where: { id: bank_id } })
+                    if (!bank) throw new Error('Bank tidak ditemukan')
 
-                await prisma.paymentMethod.update({
-                    where: { id: Number(target_id) },
-                    data: { balance: newBalance }
-                })
-            } else {
-                // Update Admin Balance (User ID 1 for now)
-                const admin = await prisma.user.findUnique({ where: { id: 1 } })
-                if (admin) {
-                    const newBalance = action === 'ADD'
-                        ? admin.balance_money + numAmount
-                        : admin.balance_money - numAmount
+                    const oldBal = Number(bank.balance || 0)
+                    const newBal = Math.max(0, oldBal + diff)
 
-                    await prisma.user.update({
-                        where: { id: 1 },
-                        data: { balance_money: newBalance }
+                    await tx.paymentMethod.update({
+                        where: { id: bank_id },
+                        data: { balance: newBal }
                     })
+
+                    const diffStr = (diff >= 0 ? '+' : '') + `Rp ${diff.toLocaleString('id-ID')}`
+                    details = `Adjustment Saldo Bank ${bank.name} (${bank.account_number}): Rp ${oldBal.toLocaleString('id-ID')} -> Rp ${newBal.toLocaleString('id-ID')} (Selisih: ${diffStr}). Alasan: ${note || '-'}`
+                } else {
+                    const user = await tx.user.findUnique({ where: { id: admin.id } })
+                    const oldBal = Number(user?.balance_money || 0)
+                    const newBal = Math.max(0, oldBal + diff)
+                    await tx.user.update({
+                        where: { id: admin.id },
+                        data: { balance_money: newBal }
+                    })
+                    details = `Adjustment Saldo User ${admin.username}: Rp ${oldBal.toLocaleString('id-ID')} -> Rp ${newBal.toLocaleString('id-ID')} (${diff >= 0 ? '+' : ''}${diff}). Alasan: ${note || '-'}`
                 }
             }
-        }
 
-        // 2. Handle Chip Adjustment
-        else if (type === 'CHIP') {
-            // If target_id is provided, update specific GameAccount
-            if (target_id) {
-                const account = await prisma.gameAccount.findUnique({ where: { id: Number(target_id) } })
-                if (!account) return NextResponse.json({ error: 'Game Account not found' }, { status: 404 })
+            // 2. Handle Chip Adjustment
+            else if (type === 'CHIP') {
+                if (target_id) {
+                    game_account_id = Number(target_id)
+                    const account = await tx.gameAccount.findUnique({ where: { id: game_account_id } })
+                    if (!account) throw new Error('Akun Game tidak ditemukan')
 
-                const newBalance = action === 'ADD'
-                    ? account.balance + numAmount
-                    : account.balance - numAmount
+                    const oldBal = Number(account.balance || 0)
+                    const rawNew = Math.max(0, oldBal + diff)
+                    const newBal = Math.round(rawNew * 1000) / 1000
 
-                await prisma.gameAccount.update({
-                    where: { id: Number(target_id) },
-                    data: { balance: newBalance }
-                })
-            } else {
-                // Update Admin Chip Balance (User ID 1)
-                const admin = await prisma.user.findUnique({ where: { id: 1 } })
-                if (admin) {
-                    const newBalance = action === 'ADD'
-                        ? admin.balance_chip + numAmount
-                        : admin.balance_chip - numAmount
-
-                    await prisma.user.update({
-                        where: { id: 1 },
-                        data: { balance_chip: newBalance }
+                    await tx.gameAccount.update({
+                        where: { id: game_account_id },
+                        data: { balance: newBal }
                     })
+
+                    const diffStr = (diff >= 0 ? '+' : '') + `${diff}B`
+                    details = `Adjustment Stok Chip ID ${account.username}: ${oldBal}B -> ${newBal}B (Selisih: ${diffStr}). Alasan: ${note || '-'}`
+                } else {
+                    const user = await tx.user.findUnique({ where: { id: admin.id } })
+                    const oldBal = Number(user?.balance_chip || 0)
+                    const newBal = Math.max(0, oldBal + diff)
+                    await tx.user.update({
+                        where: { id: admin.id },
+                        data: { balance_chip: newBal }
+                    })
+                    details = `Adjustment Chip User ${admin.username}: ${oldBal}B -> ${newBal}B (${diff >= 0 ? '+' : ''}${diff}B). Alasan: ${note || '-'}`
                 }
             }
-        }
 
-        // If it was a specific target adjustment, we already created the record above? 
-        // Wait, the previous logic relied on a generic log at the end. 
-        // I need to refactor to create the Adjustment record properly in all cases.
+            // 3. Create Adjustment Record
+            await tx.adjustment.create({
+                data: {
+                    user_id: admin.id,
+                    work_session_id: admin.work_session_id,
+                    amount: diff,
+                    type,
+                    reason: note || 'Penyesuaian Manual',
+                    bank_id,
+                    game_account_id
+                }
+            })
 
-        // Let's simplify: 
-        // 1. Perform the balance update.
-        // 2. Create the Adjustment record with the correct links.
-
-        let bank_id = null
-        let game_account_id = null
-
-        if (type === 'MONEY' && target_id) bank_id = Number(target_id)
-        if (type === 'CHIP' && target_id) game_account_id = Number(target_id)
-
-        await prisma.adjustment.create({
-            data: {
-                user_id: userId,
-                amount: action === 'ADD' ? numAmount : -numAmount,
-                type,
-                reason: note || 'Manual Adjustment',
-                bank_id,
-                game_account_id
-            }
+            // 4. Create ActivityLog
+            await tx.activityLog.create({
+                data: {
+                    user_id: admin.id,
+                    work_session_id: admin.work_session_id,
+                    action: 'ADJUSTMENT',
+                    details,
+                    ip_address: clientIp
+                }
+            })
         })
 
-        return NextResponse.json({ success: true })
-    } catch (error) {
-        console.error(error)
-        return NextResponse.json({ error: 'Adjustment failed' }, { status: 500 })
+        return NextResponse.json({ success: true, details })
+    } catch (error: any) {
+        console.error('Adjustment error:', error)
+        return NextResponse.json({ error: error?.message || 'Adjustment gagal diproses' }, { status: 500 })
     }
 }

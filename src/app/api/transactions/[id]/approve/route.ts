@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { updateMemberStats, awardLoyaltyPoints } from '@/services/member'
 import { processReferralBonus, reverseReferralBonus } from '@/services/referral'
 import { getAdminSessionFromRequest } from '@/lib/auth'
+import { getActiveWorkSessionId, getClientIp } from '@/lib/session-helper'
 
 export async function POST(
     request: Request,
@@ -92,17 +93,18 @@ export async function POST(
             }
         }
 
+        const workSessionId = await getActiveWorkSessionId(userId)
+        const clientIp = getClientIp(request)
+
         const updated = await prisma.$transaction(async (tx: any) => {
             const t = await tx.transaction.update({
                 where: { id: Number(id) },
                 data: {
                     status: newStatus,
-                    processed_by_id: userId
+                    processed_by_id: userId,
+                    work_session_id: workSessionId || undefined
                 }
             })
-
-            const forwardedFor = request.headers.get('x-forwarded-for')
-            const clientIp = forwardedFor ? forwardedFor.split(',')[0].trim() : (request.headers.get('x-real-ip') || '127.0.0.1')
 
             const chipDisplay = transaction.amount_chip < 1
                 ? `${Math.round(transaction.amount_chip * 1000)}M`
@@ -112,6 +114,7 @@ export async function POST(
             await tx.activityLog.create({
                 data: {
                     user_id: userId,
+                    work_session_id: workSessionId || null,
                     action: action === 'APPROVE' ? 'APPROVE_TX' : 'DECLINE_TX',
                     details: `Transaction #${id} (TRX: ${transaction.trx_id || '-'}) ${transaction.type} Stage ${stage} ${action === 'APPROVE' ? 'Approved' : 'Declined'} | Rp ${transaction.amount_money.toLocaleString('id-ID')} | Chip: ${chipDisplay} by ${adminSession.username}`,
                     ip_address: clientIp

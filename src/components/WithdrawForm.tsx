@@ -941,27 +941,51 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                             Unggah screenshot riwayat pengiriman koin Anda ke akun admin
                         </p>
 
-                        <div className="border-2 border-dashed border-[#8a6d38]/40 hover:border-[#c5a369] rounded-lg p-6 relative cursor-pointer bg-[#0d0d0f] transition-colors">
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleFileChange}
-                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                            />
-
+                        <div className="border-2 border-dashed border-[#8a6d38]/40 hover:border-[#c5a369] rounded-lg p-5 relative bg-[#0d0d0f] transition-colors">
                             {uploadingProof ? (
-                                <p className="text-xs text-[#a89f8a]">Mengunggah gambar bukti...</p>
+                                <div className="py-6 space-y-2">
+                                    <div className="w-6 h-6 border-2 border-[#c5a369] border-t-transparent rounded-full animate-spin mx-auto" />
+                                    <p className="text-xs text-[#a89f8a]">Mengunggah gambar bukti...</p>
+                                </div>
                             ) : proofImage ? (
-                                <div className="space-y-2">
-                                    <Image src={proofImage} alt="Bukti" width={240} height={160} className="max-h-40 w-auto mx-auto rounded border border-[#8a6d38]/40 object-contain" unoptimized />
-                                    <p className="text-xs text-[#3fa46a] font-semibold">Bukti berhasil diunggah! Klik untuk mengganti.</p>
+                                <div className="space-y-3">
+                                    <div className="relative inline-block">
+                                        <Image src={proofImage} alt="Bukti" width={240} height={160} className="max-h-48 w-auto mx-auto rounded border border-[#8a6d38]/40 object-contain shadow" unoptimized />
+                                    </div>
+                                    <p className="text-xs text-[#3fa46a] font-semibold">Bukti pengiriman koin berhasil terpasang.</p>
+                                    <div className="flex items-center justify-center gap-2 pt-1">
+                                        <label className="cursor-pointer px-3 py-1.5 rounded bg-[#17171a] hover:bg-[#222226] border border-[#8a6d38]/50 text-[#f3ecd8] text-xs font-medium transition-colors">
+                                            Ganti Foto
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleFileChange}
+                                                onClick={(e) => { (e.target as HTMLInputElement).value = '' }}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                        <button
+                                            type="button"
+                                            onClick={() => setProofImage('')}
+                                            className="px-3 py-1.5 rounded bg-red-950/40 hover:bg-red-900/50 border border-red-500/30 text-red-300 text-xs font-medium transition-colors"
+                                        >
+                                            Hapus
+                                        </button>
+                                    </div>
                                 </div>
                             ) : (
-                                <div className="space-y-1.5">
+                                <label className="block cursor-pointer py-4 space-y-2">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                        onClick={(e) => { (e.target as HTMLInputElement).value = '' }}
+                                        className="hidden"
+                                    />
                                     <Upload size={24} className="mx-auto text-[#c5a369]" />
-                                    <p className="text-xs font-medium text-[#f3ecd8]">Klik atau letakkan foto bukti kirim koin di sini</p>
+                                    <p className="text-xs font-medium text-[#f3ecd8]">Klik atau pilih foto bukti kirim koin di sini</p>
                                     <p className="text-[10px] text-[#8a6d38]">Format JPG, PNG hingga 5MB</p>
-                                </div>
+                                </label>
                             )}
                         </div>
                     </div>

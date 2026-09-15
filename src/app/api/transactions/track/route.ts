@@ -32,6 +32,7 @@ export async function GET(request: Request) {
                 amount_money: true,
                 nickname: true,
                 user_game_id: true,
+                proof_image: true,
                 createdAt: true,
                 game: {
                     select: { name: true }

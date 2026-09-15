@@ -89,6 +89,7 @@ export async function sendWithdrawNotif(trx: {
   bankHolder: string;
   createdAt: Date;
   isGuest?: boolean;
+  proofImage?: string | null;
 }) {
   const header = trx.isGuest 
     ? `💸 <b>REQUEST WD — JUAL CHIP (NON-MEMBER)</b>`
@@ -114,6 +115,10 @@ export async function sendWithdrawNotif(trx: {
       { text: '❌ Decline WD', callback_data: `decline_${trx.id}` },
     ],
   ];
+
+  if (trx.proofImage) {
+    return sendPhoto(trx.proofImage, text, inline_keyboard);
+  }
 
   return sendMessage(text, inline_keyboard);
 }

@@ -48,14 +48,11 @@ export async function getTransactions({
                 conditions.push(Prisma.sql`t.status IN ('APPROVED', 'APPROVED_1', 'APPROVED_2', 'SUCCESS')`)
             } else if (status === 'DECLINED') {
                 conditions.push(Prisma.sql`t.status IN ('DECLINED', 'CANCELLED', 'REJECTED')`)
-            } else if (status === 'UNPAID') {
-                const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
-                conditions.push(Prisma.sql`t.status = 'UNPAID' AND t."createdAt" >= ${fiveMinutesAgo}`)
+            } else if (status === 'PENDING') {
+                conditions.push(Prisma.sql`t.status IN ('PENDING', 'UNPAID')`)
             } else {
                 conditions.push(Prisma.sql`t.status = ${status}`)
             }
-        } else {
-            conditions.push(Prisma.sql`t.status != 'UNPAID'`)
         }
 
         if (type && type !== 'all') {
@@ -139,7 +136,7 @@ export async function getTransactions({
                       COALESCE(SUM(CASE WHEN type = 'TOPUP' AND status IN ('APPROVED', 'APPROVED_2', 'SUCCESS') THEN amount_chip ELSE 0 END), 0)::float8 AS "totalTopupChip",
                       COALESCE(SUM(CASE WHEN type = 'WITHDRAW' AND status IN ('APPROVED', 'APPROVED_2', 'SUCCESS') THEN amount_money ELSE 0 END), 0)::bigint AS "totalWdNom",
                       COALESCE(SUM(CASE WHEN type = 'WITHDRAW' AND status IN ('APPROVED', 'APPROVED_2', 'SUCCESS') THEN amount_chip ELSE 0 END), 0)::float8 AS "totalWdChip",
-                      (SELECT COUNT(*) FROM "Transaction" WHERE status = 'PENDING')::int AS "pendingCount"
+                      (SELECT COUNT(*) FROM "Transaction" WHERE status IN ('PENDING', 'UNPAID'))::int AS "pendingCount"
                     FROM "Transaction" t
                     ${periodWhereClause};
                 `,

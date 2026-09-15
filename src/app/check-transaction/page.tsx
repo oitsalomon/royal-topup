@@ -8,7 +8,8 @@ import {
     XCircle,
     Clock,
     AlertCircle,
-    MessageCircle
+    MessageCircle,
+    Upload
 } from 'lucide-react'
 
 interface Transaction {
@@ -19,6 +20,7 @@ interface Transaction {
     amount_money: number
     nickname: string
     user_game_id?: string
+    proof_image?: string | null
     game?: { name: string }
     paymentMethod?: { name: string }
     createdAt: string
@@ -28,6 +30,8 @@ export default function CheckTransactionPage() {
     const [search, setSearch] = useState('')
     const [loading, setLoading] = useState(false)
     const [result, setResult] = useState<Transaction | null>(null)
+    const [uploadingProof, setUploadingProof] = useState(false)
+    const [previewImage, setPreviewImage] = useState<string | null>(null)
     const [error, setError] = useState('')
 
     const handleSearch = async (e: React.FormEvent) => {
@@ -51,6 +55,41 @@ export default function CheckTransactionPage() {
             setError('Gagal memeriksa transaksi. Periksa koneksi internet Anda.')
         } finally {
             setLoading(false)
+        }
+    }
+
+    const handleUploadProof = async (file: File) => {
+        if (!file || !result) return
+        setUploadingProof(true)
+        try {
+            const formData = new FormData()
+            formData.append('file', file)
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+            if (!res.ok) {
+                alert('Gagal mengunggah foto. Pastikan format JPG/PNG di bawah 5MB.')
+                return
+            }
+            const data = await res.json()
+            if (data.url) {
+                const patchRes = await fetch(`/api/transactions/${result.id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ proof_image: data.url })
+                })
+                if (patchRes.ok) {
+                    setResult(prev => prev ? { ...prev, proof_image: data.url } : null)
+                    alert('Foto bukti transaksi berhasil disimpan.')
+                } else {
+                    alert('Gagal memperbarui bukti transaksi.')
+                }
+            }
+        } catch {
+            alert('Terjadi kesalahan jaringan saat upload.')
+        } finally {
+            setUploadingProof(false)
         }
     }
 
@@ -222,6 +261,61 @@ export default function CheckTransactionPage() {
                             <span className="text-[#a89f8a]">Waktu Transaksi:</span>
                             <span className="text-[#a89f8a] font-mono">{formatDate(result.createdAt)}</span>
                         </div>
+
+                        {/* Bukti Pembayaran / Pengiriman */}
+                        <div className="pt-2 flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-[#a89f8a]">Bukti Transaksi:</span>
+                            <div className="flex items-center gap-2">
+                                {result.proof_image ? (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => setPreviewImage(result.proof_image || null)}
+                                            className="text-xs text-[#c5a369] underline font-medium hover:text-[#e8c883]"
+                                        >
+                                            Lihat Bukti Foto
+                                        </button>
+                                        {(result.status === 'PENDING' || result.status === 'UNPAID') && (
+                                            <label className="cursor-pointer px-2.5 py-1 rounded bg-[#0d0d0f] hover:bg-[#222226] border border-[#8a6d38]/50 text-[#f3ecd8] text-[11px] font-medium transition-colors flex items-center gap-1">
+                                                <Upload size={11} />
+                                                <span>{uploadingProof ? 'Mengunggah...' : 'Ganti Foto'}</span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    disabled={uploadingProof}
+                                                    onChange={e => {
+                                                        const f = e.target.files?.[0]
+                                                        if (f) handleUploadProof(f)
+                                                    }}
+                                                    onClick={e => { (e.target as HTMLInputElement).value = '' }}
+                                                    className="hidden"
+                                                />
+                                            </label>
+                                        )}
+                                    </>
+                                ) : (
+                                    (result.status === 'PENDING' || result.status === 'UNPAID') ? (
+                                        <label className="cursor-pointer px-2.5 py-1 rounded bg-cyan-950/40 hover:bg-cyan-900/50 border border-cyan-500/40 text-cyan-300 text-[11px] font-medium transition-colors flex items-center gap-1">
+                                            <Upload size={11} />
+                                            <span>{uploadingProof ? 'Mengunggah...' : 'Upload Bukti Foto'}</span>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                disabled={uploadingProof}
+                                                onChange={e => {
+                                                    const f = e.target.files?.[0]
+                                                    if (f) handleUploadProof(f)
+                                                }}
+                                                onClick={e => { (e.target as HTMLInputElement).value = '' }}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                    ) : (
+                                        <span className="text-[#7a766c] text-[11px] italic">Tidak ada bukti</span>
+                                    )
+                                )}
+                            </div>
+                        </div>
                     </div>
 
                     <div className="pt-2">
@@ -236,6 +330,31 @@ export default function CheckTransactionPage() {
                         </a>
                     </div>
                 </section>
+            )}
+
+            {/* Modal Preview Bukti */}
+            {previewImage && (
+                <div
+                    onClick={() => setPreviewImage(null)}
+                    className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 cursor-pointer"
+                >
+                    <div className="relative max-w-lg w-full bg-[#17171a] border border-[#8a6d38]/50 rounded-xl p-4 space-y-3" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-bold text-[#f3ecd8] uppercase">Foto Bukti Transaksi</h4>
+                            <button
+                                onClick={() => setPreviewImage(null)}
+                                className="text-gray-400 hover:text-white text-xs px-2 py-1 rounded bg-white/5"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                        <img
+                            src={previewImage}
+                            alt="Bukti Preview"
+                            className="w-full max-h-[70vh] object-contain rounded-lg border border-white/10"
+                        />
+                    </div>
+                </div>
             )}
         </main>
     )

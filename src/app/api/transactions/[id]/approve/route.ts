@@ -30,35 +30,26 @@ export async function POST(
             return NextResponse.json({ error: 'Transaction not found' }, { status: 404 })
         }
 
-        // Race Condition Check: Ensure we are acting on the expected status
-        let expectedCurrentStatus = ''
+        // Stage checks: Support 1-Click DIRECT (stage === 'DIRECT' | 3 | 'ALL') and UNPAID status
+        const isDirect = stage === 'DIRECT' || stage === 3 || stage === 'ALL'
+        let isValidStatus = false
 
         if (action === 'APPROVE') {
-            if (transaction.type === 'TOPUP') {
-                if (stage === 1) expectedCurrentStatus = 'PENDING'
-                if (stage === 2) expectedCurrentStatus = 'APPROVED_1'
-            } else if (transaction.type === 'WITHDRAW') {
-                if (stage === 1) expectedCurrentStatus = 'PENDING'
-                if (stage === 2) expectedCurrentStatus = 'APPROVED_1'
-            } else if (transaction.type === 'REFERRAL_WD') {
-                if (stage === 1) expectedCurrentStatus = 'PENDING'
-                if (stage === 2) expectedCurrentStatus = 'APPROVED_1'
+            if (isDirect) {
+                isValidStatus = transaction.status === 'PENDING' || transaction.status === 'UNPAID' || transaction.status === 'APPROVED_1'
+            } else if (stage === 1) {
+                isValidStatus = transaction.status === 'PENDING' || transaction.status === 'UNPAID'
+            } else if (stage === 2) {
+                isValidStatus = transaction.status === 'APPROVED_1'
             }
         } else {
-            // For Decline, we generally expect it to be pending or approved_1
-            // But if it's already declined or completed (approved_2), we should block.
-            if (transaction.status === 'DECLINED' || transaction.status === 'APPROVED_2') {
-                return NextResponse.json({
-                    error: 'Transaction already finalized by another admin',
-                    code: 'CONFLICT'
-                }, { status: 409 })
-            }
+            // For Decline: allow declining any unfinalized transaction
+            isValidStatus = transaction.status !== 'DECLINED' && transaction.status !== 'APPROVED_2'
         }
 
-        // Strict check for APPROVE flow
-        if (action === 'APPROVE' && transaction.status !== expectedCurrentStatus) {
+        if (!isValidStatus) {
             return NextResponse.json({
-                error: 'Status has changed. Please refresh.',
+                error: 'Status transaksi tidak valid untuk tindakan ini atau sudah diproses admin lain. Silakan muat ulang.',
                 code: 'CONFLICT',
                 currentStatus: transaction.status
             }, { status: 409 })
@@ -69,27 +60,10 @@ export async function POST(
         if (action === 'DECLINE') {
             newStatus = 'DECLINED'
         } else if (action === 'APPROVE') {
-            if (transaction.type === 'TOPUP') {
-                // Top Up Flow
-                if (stage === 1 && transaction.status === 'PENDING') {
-                    newStatus = 'APPROVED_1' // Money Received
-                } else if (stage === 2 && transaction.status === 'APPROVED_1') {
-                    newStatus = 'APPROVED_2' // Chip Sent (Completed)
-                }
-            } else if (transaction.type === 'WITHDRAW') {
-                // Withdraw Flow
-                if (stage === 1 && transaction.status === 'PENDING') {
-                    newStatus = 'APPROVED_1' // Chip Received
-                } else if (stage === 2 && transaction.status === 'APPROVED_1') {
-                    newStatus = 'APPROVED_2' // Money Sent (Completed)
-                }
-            } else if (transaction.type === 'REFERRAL_WD') {
-                // Referral WD Flow
-                if (stage === 1 && transaction.status === 'PENDING') {
-                    newStatus = 'APPROVED_1' // Validated
-                } else if (stage === 2 && transaction.status === 'APPROVED_1') {
-                    newStatus = 'APPROVED_2' // Money Sent (Completed)
-                }
+            if (isDirect || stage === 2) {
+                newStatus = 'APPROVED_2' // Completed
+            } else if (stage === 1) {
+                newStatus = 'APPROVED_1' // Halfway approved
             }
         }
 
@@ -142,8 +116,8 @@ export async function POST(
 
             if (action === 'APPROVE') {
                 if (transaction.type === 'TOPUP') {
-                    if (stage === 1) {
-                        // Money Received: Bank Balance + (User sent to this bank)
+                    // Money Received: Bank Balance + (jika stage === 1 atau isDirect)
+                    if (stage === 1 || (isDirect && transaction.status !== 'APPROVED_1')) {
                         let targetBankId = bank_id ? Number(bank_id) : transaction.payment_method_id
                         if (!targetBankId) {
                             const fallbackBank = await tx.paymentMethod.findFirst({
@@ -158,8 +132,9 @@ export async function POST(
                                 data: { balance: { increment: transaction.amount_money } }
                             })
                         }
-                    } else if (stage === 2) {
-                        // Chip Sent: Game Account Balance -
+                    }
+                    // Chip Sent: Game Account Balance - (jika stage === 2 atau isDirect)
+                    if (stage === 2 || isDirect) {
                         let targetAccId = game_account_id ? Number(game_account_id) : null
                         if (!targetAccId) {
                             const autoAcc = await tx.gameAccount.findFirst({
@@ -180,7 +155,6 @@ export async function POST(
 
                         // Update Member Stats (Turnover, EXP)
                         // ONLY if the transaction is linked to a user
-                        // parameter 2: amountChip (for turnover calculation)
                         // @ts-ignore
                         if (transaction.user_id) {
                             // @ts-ignore
@@ -195,8 +169,8 @@ export async function POST(
                         }
                     }
                 } else if (transaction.type === 'WITHDRAW') {
-                    if (stage === 1) {
-                        // Chip Received: Game Account Balance +
+                    // Chip Received: Game Account Balance + (jika stage === 1 atau isDirect)
+                    if (stage === 1 || (isDirect && transaction.status !== 'APPROVED_1')) {
                         let targetAccId = game_account_id ? Number(game_account_id) : null
                         if (!targetAccId) {
                             const autoAcc = await tx.gameAccount.findFirst({
@@ -214,8 +188,9 @@ export async function POST(
                                 data: { balance: { increment: transaction.amount_chip } }
                             })
                         }
-                    } else if (stage === 2) {
-                        // Money Sent: Bank Balance -
+                    }
+                    // Money Sent: Bank Balance - (jika stage === 2 atau isDirect)
+                    if (stage === 2 || isDirect) {
                         let targetBankId = bank_id ? Number(bank_id) : (transaction.payment_method_id || transaction.withdraw_method_id)
                         if (!targetBankId) {
                             const autoBank = await tx.paymentMethod.findFirst({
@@ -235,7 +210,7 @@ export async function POST(
                         }
                     }
                 } else if (transaction.type === 'REFERRAL_WD') {
-                    if (stage === 2) {
+                    if (stage === 2 || isDirect) {
                         // Money Sent: Bank Balance -
                         let targetBankId = bank_id ? Number(bank_id) : (transaction.payment_method_id || transaction.withdraw_method_id)
                         if (targetBankId) {

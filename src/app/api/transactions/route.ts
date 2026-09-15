@@ -167,7 +167,7 @@ export async function POST(request: Request) {
             sender_name,
             type,
             target_payment_details,
-            status: (type === 'WITHDRAW' || userId || validData.proof_image) ? 'PENDING' : 'UNPAID'
+            status: 'PENDING'
         }
 
         if (type === 'TOPUP') {
@@ -219,8 +219,9 @@ export async function POST(request: Request) {
                 bankAccount: transaction.target_payment_details || '-',
                 bankHolder: transaction.nickname || '-',
                 createdAt: transaction.createdAt,
-                isGuest: !transaction.user_id
-            }).catch(e => console.error('Telegram WITHDRAW notif error:', e))
+                isGuest: !(transaction as any).user_id,
+                proofImage: transaction.proof_image
+            }).catch(e => console.error('Telegram WD notif error:', e))
         }
 
         // 6. Update Member Stats (Async)

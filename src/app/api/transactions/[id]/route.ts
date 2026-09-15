@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { sendTopupNotif } from '@/lib/telegram'
+import { sendTopupNotif, sendWithdrawNotif } from '@/lib/telegram'
 import { getAdminSessionFromRequest } from '@/lib/auth'
 import { sanitizeText } from '@/lib/validations'
+import { getActiveWorkSessionId, getClientIp } from '@/lib/session-helper'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,6 +38,7 @@ export async function GET(
                 amount_chip: transaction.amount_chip,
                 amount_money: transaction.amount_money,
                 nickname: transaction.nickname,
+                proof_image: transaction.proof_image,
                 createdAt: transaction.createdAt,
                 game: transaction.game,
                 paymentMethod: transaction.paymentMethod ? { name: transaction.paymentMethod.name } : null
@@ -96,32 +98,52 @@ export async function PATCH(
 
         // Log Aktivitas jika dilakukan oleh admin
         if (adminSession) {
+            const clientIp = getClientIp(request)
+            const workSessionId = await getActiveWorkSessionId(adminSession.id)
             await prisma.activityLog.create({
                 data: {
                     user_id: adminSession.id,
+                    work_session_id: workSessionId || null,
                     action: 'UPDATE_TX',
-                    details: `Admin ${adminSession.username} updated Transaction #${id}`,
-                    ip_address: '127.0.0.1'
+                    details: `Admin ${adminSession.username} updated Transaction #${id}${proof_image ? ' (Bukti Diunggah)' : ''}`,
+                    ip_address: clientIp
                 }
             }).catch(() => {})
         }
 
         // TRIGGER TELEGRAM NOTIFICATION ON PROOF UPLOAD
-        if (proof_image && updated.type === 'TOPUP') {
+        if (proof_image) {
             const isGuest = !updated.user_id
-            sendTopupNotif({
-                id: updated.id,
-                trxId: updated.trx_id || String(updated.id),
-                userName: updated.nickname || updated.user?.username || 'Guest',
-                accountName: updated.sender_name || updated.user?.account_name,
-                gameId: updated.user_game_id || String(updated.game_id),
-                chipAmount: updated.amount_chip,
-                totalPrice: updated.amount_money,
-                paymentMethod: updated.paymentMethod?.name || 'Manual',
-                createdAt: updated.createdAt,
-                isGuest,
-                proofImage: updated.proof_image
-            }).catch(e => console.error('Telegram TOPUP notif (PATCH) failed:', e))
+            if (updated.type === 'TOPUP') {
+                sendTopupNotif({
+                    id: updated.id,
+                    trxId: updated.trx_id || String(updated.id),
+                    userName: updated.nickname || updated.user?.username || 'Guest',
+                    accountName: updated.sender_name || updated.user?.account_name,
+                    gameId: updated.user_game_id || String(updated.game_id),
+                    chipAmount: updated.amount_chip,
+                    totalPrice: updated.amount_money,
+                    paymentMethod: updated.paymentMethod?.name || 'Manual',
+                    createdAt: updated.createdAt,
+                    isGuest,
+                    proofImage: updated.proof_image
+                }).catch(e => console.error('Telegram TOPUP notif (PATCH) failed:', e))
+            } else if (updated.type === 'WITHDRAW') {
+                sendWithdrawNotif({
+                    id: updated.id,
+                    trxId: updated.trx_id || String(updated.id),
+                    userName: updated.nickname || updated.user?.username || 'Guest',
+                    gameId: updated.user_game_id || String(updated.game_id),
+                    chipAmount: updated.amount_chip,
+                    totalPrice: updated.amount_money,
+                    bankName: updated.withdrawMethod?.name || 'Bank',
+                    bankAccount: updated.target_payment_details || '-',
+                    bankHolder: updated.nickname || updated.sender_name || '-',
+                    createdAt: updated.createdAt,
+                    isGuest,
+                    proofImage: updated.proof_image
+                }).catch(e => console.error('Telegram WD notif (PATCH) failed:', e))
+            }
         }
 
         return NextResponse.json(updated)

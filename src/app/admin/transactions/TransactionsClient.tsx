@@ -20,7 +20,8 @@ import {
     TrendingDown,
     Search,
     Info,
-    RotateCcw
+    RotateCcw,
+    Upload
 } from 'lucide-react'
 import DateTimePickerRange, { DateTimeRangeValue } from '@/components/admin/DateTimePickerRange'
 import { parseJakartaDateTime, getJakartaTodayRange, formatJakartaDisplay } from '@/lib/timezone'
@@ -305,14 +306,57 @@ export default function TransactionsClient({
         }
     }
 
-    // C3: Optimistic Approval / Decline Action
-    const handleApproval = async (id: number, stage: number, action: 'APPROVE' | 'DECLINE', type: 'TOPUP' | 'WITHDRAW') => {
+    const [uploadingProofId, setUploadingProofId] = useState<number | null>(null)
+
+    const handleAdminUploadProof = async (txId: number, file: File) => {
+        if (!file) return
+        setUploadingProofId(txId)
+        try {
+            const formData = new FormData()
+            formData.append('file', file)
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: formData
+            })
+            if (!res.ok) {
+                alert('Gagal mengunggah foto bukti.')
+                return
+            }
+            const data = await res.json()
+            if (!data.url) {
+                alert('URL foto tidak ditemukan.')
+                return
+            }
+            const patchRes = await fetch(`/api/transactions/${txId}`, {
+                method: 'PATCH',
+                headers: {
+                    ...getAuthHeaders(),
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ proof_image: data.url })
+            })
+            if (patchRes.ok) {
+                setTransactions(prev => prev.map(t => t.id === txId ? { ...t, proof_image: data.url } : t))
+            } else {
+                alert('Gagal memperbarui bukti transaksi.')
+            }
+        } catch (e) {
+            console.error('Upload proof error:', e)
+            alert('Terjadi kesalahan saat upload bukti.')
+        } finally {
+            setUploadingProofId(null)
+        }
+    }
+
+    // C3: Optimistic Approval / Decline Action (supports 1-Click DIRECT)
+    const handleApproval = async (id: number, stage: number | 'DIRECT', action: 'APPROVE' | 'DECLINE', type: 'TOPUP' | 'WITHDRAW') => {
         if (processingId) return
 
         const effectiveAccountId = selectedAccountId || localGameAccounts[0]?.id
         const effectiveBankId = selectedBankId || localBanks[0]?.id
 
-        if (action === 'APPROVE') {
+        if (action === 'APPROVE' && stage !== 'DIRECT') {
             if (type === 'TOPUP' && stage === 2 && !effectiveAccountId) {
                 alert('Belum ada akun game pengirim chip yang aktif di sistem.')
                 return
@@ -335,6 +379,8 @@ export default function TransactionsClient({
         let nextStatus = 'PENDING'
         if (action === 'DECLINE') {
             nextStatus = 'DECLINED'
+        } else if (stage === 'DIRECT') {
+            nextStatus = 'APPROVED_2'
         } else if (type === 'TOPUP') {
             nextStatus = stage === 1 ? 'APPROVED_1' : 'APPROVED_2'
         } else if (type === 'WITHDRAW') {
@@ -346,7 +392,7 @@ export default function TransactionsClient({
         if (action === 'APPROVE' || action === 'DECLINE') {
             setStats(prev => ({
                 ...prev,
-                pendingCount: Math.max(0, prev.pendingCount - (stage === 1 ? 1 : 0))
+                pendingCount: Math.max(0, prev.pendingCount - (stage === 1 || stage === 'DIRECT' ? 1 : 0))
             }))
         }
 
@@ -720,7 +766,7 @@ export default function TransactionsClient({
 
                 {!loading && transactions.map((tx) => {
                     const style = getLevelData(tx.user?.level)
-                    const isPendingAction = tx.status === 'PENDING' || tx.status === 'APPROVED_1'
+                    const isPendingAction = tx.status === 'PENDING' || tx.status === 'APPROVED_1' || tx.status === 'UNPAID'
                     const isManual = tx.proof_image === 'MANUAL_ENTRY' ||
                                      tx.trx_id?.startsWith('MANUAL') ||
                                      (tx.sender_name?.includes('MANUAL') ?? false)
@@ -747,13 +793,13 @@ export default function TransactionsClient({
                                         </span>
                                     )}
                                     <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
-                                        tx.status === 'PENDING'
+                                        tx.status === 'PENDING' || tx.status === 'UNPAID'
                                             ? 'bg-amber-500/15 text-amber-400 border-amber-500/25'
                                             : tx.status.includes('APPROVED')
                                                 ? 'bg-blue-500/15 text-blue-400 border-blue-500/25'
                                                 : 'bg-rose-500/15 text-rose-400 border-rose-500/25'
                                     }`}>
-                                        {tx.status.replace('_', ' ')}
+                                        {tx.status === 'UNPAID' ? 'BELUM BAYAR' : tx.status.replace('_', ' ')}
                                     </span>
                                     <span className="text-[11px] text-gray-400 flex items-center gap-1 font-mono">
                                         <Clock size={11} className="text-gray-500" />
@@ -796,7 +842,7 @@ export default function TransactionsClient({
                                                 <span className="font-mono text-white bg-white/5 px-1.5 py-0.5 rounded text-xs font-semibold">
                                                     {tx.user_game_id || '-'}
                                                 </span>
-                                                {tx.status === 'PENDING' && (
+                                                {(tx.status === 'PENDING' || tx.status === 'UNPAID') && (
                                                     <button
                                                         onClick={() => handleStartEdit(tx.id, 'GAME_ID', tx.user_game_id || '')}
                                                         className="text-gray-500 hover:text-white opacity-0 group-hover/edit:opacity-100 transition-opacity"
@@ -841,7 +887,7 @@ export default function TransactionsClient({
                                                         : `${tx.amount_chip.toLocaleString('id-ID')} B`
                                                     }
                                                 </p>
-                                                {tx.status === 'PENDING' && (
+                                                {(tx.status === 'PENDING' || tx.status === 'UNPAID') && (
                                                     <button
                                                         onClick={() => handleStartEdit(tx.id, 'CHIP', String(tx.amount_chip))}
                                                         className="text-gray-500 hover:text-white opacity-0 group-hover/chip:opacity-100 transition-opacity"
@@ -882,30 +928,74 @@ export default function TransactionsClient({
                                 </div>
 
                                 {/* Proof Image (Col 1) */}
-                                <div className="md:col-span-1 flex items-center justify-center">
-                                    {isManual ? (
-                                        <div className="px-2 py-1 bg-purple-500/20 rounded border border-purple-500/40 text-purple-300 text-[10px] font-bold text-center tracking-wider" title="Transaksi Input Manual">
-                                            MANUAL
+                                <div className="md:col-span-1 flex items-center justify-center gap-1">
+                                    {uploadingProofId === tx.id ? (
+                                        <div className="w-8 h-8 rounded flex items-center justify-center bg-white/5 border border-white/10" title="Mengunggah bukti...">
+                                            <RefreshCw size={14} className="animate-spin text-cyan-400" />
+                                        </div>
+                                    ) : isManual ? (
+                                        <div className="flex flex-col items-center gap-0.5">
+                                            <span className="px-1.5 py-0.5 bg-purple-500/20 rounded border border-purple-500/40 text-purple-300 text-[9px] font-bold text-center tracking-wider" title="Transaksi Input Manual">
+                                                MANUAL
+                                            </span>
+                                            <label className="cursor-pointer text-[10px] text-gray-500 hover:text-white" title="Upload bukti foto">
+                                                <Upload size={10} />
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={e => {
+                                                        const f = e.target.files?.[0]
+                                                        if (f) handleAdminUploadProof(tx.id, f)
+                                                    }}
+                                                    onClick={e => { (e.target as HTMLInputElement).value = '' }}
+                                                    className="hidden"
+                                                />
+                                            </label>
                                         </div>
                                     ) : tx.proof_image ? (
-                                        <div
-                                            onClick={() => setPreviewImage(tx.proof_image)}
-                                            className="cursor-pointer relative group"
-                                            title="Klik untuk perbesar bukti"
-                                        >
-                                            <Image
-                                                src={tx.proof_image}
-                                                alt="Bukti"
-                                                width={32}
-                                                height={32}
-                                                className="w-8 h-8 object-cover rounded border border-white/10 group-hover:scale-110 transition-transform"
-                                                unoptimized
-                                            />
+                                        <div className="relative group">
+                                            <div
+                                                onClick={() => setPreviewImage(tx.proof_image)}
+                                                className="cursor-pointer"
+                                                title="Klik untuk perbesar bukti"
+                                            >
+                                                <Image
+                                                    src={tx.proof_image}
+                                                    alt="Bukti"
+                                                    width={32}
+                                                    height={32}
+                                                    className="w-8 h-8 object-cover rounded border border-white/10 group-hover:scale-110 transition-transform"
+                                                    unoptimized
+                                                />
+                                            </div>
+                                            <label className="absolute -bottom-1 -right-1 cursor-pointer bg-black/80 hover:bg-black p-0.5 rounded-full border border-white/20 text-gray-300 hover:text-white" title="Ganti foto bukti">
+                                                <Upload size={9} />
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={e => {
+                                                        const f = e.target.files?.[0]
+                                                        if (f) handleAdminUploadProof(tx.id, f)
+                                                    }}
+                                                    onClick={e => { (e.target as HTMLInputElement).value = '' }}
+                                                    className="hidden"
+                                                />
+                                            </label>
                                         </div>
                                     ) : (
-                                        <div className="w-8 h-8 rounded flex items-center justify-center bg-white/5 text-white/20 border border-white/5" title="Tidak ada bukti foto">
-                                            <ImageOff size={16} strokeWidth={1.5} />
-                                        </div>
+                                        <label className="w-8 h-8 rounded flex items-center justify-center bg-white/5 hover:bg-white/15 text-white/30 hover:text-white border border-white/5 hover:border-white/20 cursor-pointer transition-colors" title="Upload foto bukti">
+                                            <Upload size={14} />
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={e => {
+                                                    const f = e.target.files?.[0]
+                                                    if (f) handleAdminUploadProof(tx.id, f)
+                                                }}
+                                                onClick={e => { (e.target as HTMLInputElement).value = '' }}
+                                                className="hidden"
+                                            />
+                                        </label>
                                     )}
                                 </div>
 
@@ -917,20 +1007,31 @@ export default function TransactionsClient({
                                         </span>
                                     ) : isPendingAction ? (
                                         <div className="flex items-center gap-1.5 w-full justify-end">
-                                            {/* Stage 1: TOPUP PENDING */}
-                                            {tx.type === 'TOPUP' && tx.status === 'PENDING' && (
+                                            {/* Stage 1 / Direct: TOPUP PENDING / UNPAID */}
+                                            {tx.type === 'TOPUP' && (tx.status === 'PENDING' || tx.status === 'UNPAID') && (
                                                 <>
                                                     <button
                                                         disabled={processingId === tx.id}
-                                                        onClick={() => handleApproval(tx.id, 1, 'APPROVE', 'TOPUP')}
-                                                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold disabled:opacity-50 transition-colors"
+                                                        onClick={() => handleApproval(tx.id, 'DIRECT', 'APPROVE', 'TOPUP')}
+                                                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold disabled:opacity-50 transition-colors flex items-center gap-1 shadow-sm"
+                                                        title="Setujui dan selesaikan langsung (Centang 1-Klik)"
                                                     >
-                                                        {processingId === tx.id ? '...' : 'Terima'}
+                                                        <Check size={12} />
+                                                        <span>{processingId === tx.id ? '...' : 'Selesai'}</span>
+                                                    </button>
+                                                    <button
+                                                        disabled={processingId === tx.id}
+                                                        onClick={() => handleApproval(tx.id, 1, 'APPROVE', 'TOPUP')}
+                                                        className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-xs font-semibold disabled:opacity-50 transition-colors"
+                                                        title="Tahap 1: Konfirmasi Pembayaran"
+                                                    >
+                                                        Terima
                                                     </button>
                                                     <button
                                                         disabled={processingId === tx.id}
                                                         onClick={() => handleApproval(tx.id, 1, 'DECLINE', 'TOPUP')}
-                                                        className="px-2.5 py-1 bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 rounded text-xs font-semibold disabled:opacity-50 transition-colors"
+                                                        className="px-2 py-1 bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 rounded text-xs font-semibold disabled:opacity-50 transition-colors"
+                                                        title="Tolak Transaksi"
                                                     >
                                                         Tolak
                                                     </button>
@@ -940,6 +1041,15 @@ export default function TransactionsClient({
                                             {/* Stage 2: TOPUP APPROVED_1 */}
                                             {tx.type === 'TOPUP' && tx.status === 'APPROVED_1' && (
                                                 <div className="flex items-center gap-1">
+                                                    <button
+                                                        disabled={processingId === tx.id}
+                                                        onClick={() => handleApproval(tx.id, 'DIRECT', 'APPROVE', 'TOPUP')}
+                                                        className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold disabled:opacity-50 transition-colors flex items-center gap-1"
+                                                        title="Langsung Selesaikan (1-Klik)"
+                                                    >
+                                                        <Check size={12} />
+                                                        <span>Selesai</span>
+                                                    </button>
                                                     <select
                                                         className="bg-black border border-white/20 rounded px-1.5 py-1 text-[11px] text-white outline-none max-w-[110px]"
                                                         value={selectedAccountId}
@@ -969,11 +1079,20 @@ export default function TransactionsClient({
                                                 </div>
                                             )}
 
-                                            {/* Stage 1: WITHDRAW PENDING */}
-                                            {tx.type === 'WITHDRAW' && tx.status === 'PENDING' && (
+                                            {/* Stage 1 / Direct: WITHDRAW PENDING / UNPAID */}
+                                            {tx.type === 'WITHDRAW' && (tx.status === 'PENDING' || tx.status === 'UNPAID') && (
                                                 <div className="flex items-center gap-1">
+                                                    <button
+                                                        disabled={processingId === tx.id}
+                                                        onClick={() => handleApproval(tx.id, 'DIRECT', 'APPROVE', 'WITHDRAW')}
+                                                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold disabled:opacity-50 transition-colors flex items-center gap-1 shadow-sm"
+                                                        title="Selesaikan WD Langsung (Centang 1-Klik)"
+                                                    >
+                                                        <Check size={12} />
+                                                        <span>{processingId === tx.id ? '...' : 'Selesai'}</span>
+                                                    </button>
                                                     <select
-                                                        className="bg-black border border-white/20 rounded px-1.5 py-1 text-[11px] text-white outline-none max-w-[110px]"
+                                                        className="bg-black border border-white/20 rounded px-1.5 py-1 text-[11px] text-white outline-none max-w-[100px]"
                                                         value={selectedAccountId}
                                                         onChange={(e) => setSelectedAccountId(e.target.value ? Number(e.target.value) : '')}
                                                     >
@@ -987,7 +1106,8 @@ export default function TransactionsClient({
                                                     <button
                                                         disabled={processingId === tx.id}
                                                         onClick={() => handleApproval(tx.id, 1, 'APPROVE', 'WITHDRAW')}
-                                                        className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold disabled:opacity-50 transition-colors"
+                                                        className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-xs font-semibold disabled:opacity-50 transition-colors"
+                                                        title="Tahap 1: Terima Chip"
                                                     >
                                                         Terima
                                                     </button>
@@ -995,6 +1115,7 @@ export default function TransactionsClient({
                                                         disabled={processingId === tx.id}
                                                         onClick={() => handleApproval(tx.id, 1, 'DECLINE', 'WITHDRAW')}
                                                         className="px-2 py-1 bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 rounded text-xs disabled:opacity-50"
+                                                        title="Tolak Permintaan WD"
                                                     >
                                                         Tolak
                                                     </button>
@@ -1004,6 +1125,15 @@ export default function TransactionsClient({
                                             {/* Stage 2: WITHDRAW APPROVED_1 */}
                                             {tx.type === 'WITHDRAW' && tx.status === 'APPROVED_1' && (
                                                 <div className="flex items-center gap-1">
+                                                    <button
+                                                        disabled={processingId === tx.id}
+                                                        onClick={() => handleApproval(tx.id, 'DIRECT', 'APPROVE', 'WITHDRAW')}
+                                                        className="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-semibold disabled:opacity-50 transition-colors flex items-center gap-1"
+                                                        title="Langsung Selesaikan (1-Klik)"
+                                                    >
+                                                        <Check size={12} />
+                                                        <span>Selesai</span>
+                                                    </button>
                                                     <select
                                                         className="bg-black border border-white/20 rounded px-1.5 py-1 text-[11px] text-white outline-none max-w-[110px]"
                                                         value={selectedBankId}

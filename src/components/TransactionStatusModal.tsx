@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Check, Clock, Loader2, XCircle, AlertTriangle, Phone } from 'lucide-react'
+import { Check, Clock, Loader2, XCircle, AlertTriangle, Phone, Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface TransactionStatusModalProps {
@@ -15,8 +15,48 @@ interface TransactionStatusModalProps {
 export default function TransactionStatusModal({ isOpen, transactionId, onClose }: TransactionStatusModalProps) {
     const router = useRouter()
     const [status, setStatus] = useState<string>('PENDING')
+    const [proofImage, setProofImage] = useState<string | null>(null)
+    const [isUploadingProof, setIsUploadingProof] = useState(false)
+    const [uploadSuccess, setUploadSuccess] = useState(false)
     const [isLongWait, setIsLongWait] = useState(false)
     const [contactWa, setContactWa] = useState<string>('')
+
+    const handleMemberUploadProof = async (file: File) => {
+        if (!file || !transactionId) return
+        setIsUploadingProof(true)
+        setUploadSuccess(false)
+        try {
+            const formData = new FormData()
+            formData.append('file', file)
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+            if (!res.ok) {
+                alert('Gagal mengunggah gambar bukti. Pastikan format JPG/PNG di bawah 5MB.')
+                return
+            }
+            const data = await res.json()
+            if (data.url) {
+                const patchRes = await fetch(`/api/transactions/${transactionId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ proof_image: data.url })
+                })
+                if (patchRes.ok) {
+                    setProofImage(data.url)
+                    setUploadSuccess(true)
+                    setTimeout(() => setUploadSuccess(false), 4000)
+                } else {
+                    alert('Gagal memperbarui bukti transaksi.')
+                }
+            }
+        } catch {
+            alert('Terjadi kesalahan koneksi saat upload bukti.')
+        } finally {
+            setIsUploadingProof(false)
+        }
+    }
 
     // Fetch Config & Polling Logic
     useEffect(() => {
@@ -44,6 +84,9 @@ export default function TransactionStatusModal({ isOpen, transactionId, onClose 
                 if (res.ok) {
                     const data = await res.json()
                     setStatus(data.status)
+                    if (data.proof_image) {
+                        setProofImage(data.proof_image)
+                    }
                 }
             } catch (error) {
                 console.error('Failed to poll status', error)
@@ -195,6 +238,67 @@ export default function TransactionStatusModal({ isOpen, transactionId, onClose 
                                 <Phone size={14} className="animate-pulse" />
                                 Hubungi Admin
                             </a>
+
+                            {/* Upload / Ganti Bukti Foto Member */}
+                            <div className="pt-4 mt-4 border-t border-white/10 space-y-2">
+                                {proofImage ? (
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                                            Bukti Terlampir
+                                        </p>
+                                        <div className="relative inline-block">
+                                            <img
+                                                src={proofImage}
+                                                alt="Bukti"
+                                                className="max-h-24 w-auto mx-auto rounded-lg border border-white/20 object-contain shadow-lg"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold cursor-pointer transition-colors">
+                                                <Upload size={12} />
+                                                <span>{isUploadingProof ? 'Mengunggah...' : 'Ganti Foto Bukti'}</span>
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    disabled={isUploadingProof}
+                                                    onChange={e => {
+                                                        const f = e.target.files?.[0]
+                                                        if (f) handleMemberUploadProof(f)
+                                                    }}
+                                                    onClick={e => { (e.target as HTMLInputElement).value = '' }}
+                                                    className="hidden"
+                                                />
+                                            </label>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-1.5">
+                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                                            Belum Ada Foto Bukti
+                                        </p>
+                                        <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-semibold cursor-pointer transition-colors">
+                                            <Upload size={12} />
+                                            <span>{isUploadingProof ? 'Mengunggah...' : 'Upload Foto Bukti'}</span>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                disabled={isUploadingProof}
+                                                onChange={e => {
+                                                    const f = e.target.files?.[0]
+                                                    if (f) handleMemberUploadProof(f)
+                                                }}
+                                                onClick={e => { (e.target as HTMLInputElement).value = '' }}
+                                                className="hidden"
+                                            />
+                                        </label>
+                                    </div>
+                                )}
+                                {uploadSuccess && (
+                                    <p className="text-[11px] text-emerald-400 font-semibold">
+                                        Foto bukti berhasil diperbarui.
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>

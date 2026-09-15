@@ -151,7 +151,7 @@ export async function sendStatusUpdate(
 // Kirim pesan kustom (Laporan CS / Broadcast)
 export async function sendCustomMessage(
   text: string,
-  parseMode: 'HTML' | 'Markdown' = 'HTML',
+  parseMode?: 'HTML' | 'Markdown' | null,
   chatId?: string
 ) {
   const targetChatId = chatId || CHAT_ID;
@@ -162,8 +162,12 @@ export async function sendCustomMessage(
   const body: Record<string, unknown> = {
     chat_id: targetChatId,
     text,
-    parse_mode: parseMode,
   };
+  if (parseMode !== null && parseMode !== undefined) {
+    body.parse_mode = parseMode;
+  } else if (parseMode === undefined) {
+    body.parse_mode = 'HTML';
+  }
 
   const res = await fetch(`${BASE_URL}/sendMessage`, {
     method: 'POST',

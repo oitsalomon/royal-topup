@@ -80,7 +80,39 @@ export async function POST(request: Request) {
             }
         }).catch(() => {})
 
-        // 7. Siapkan Response
+        // 7. Work Session CS & Admin Tracking
+        const isAdmin = isAdminRole(user.role)
+        let workSessionData: { id: number; started_at: Date; isResumed: boolean } | null = null
+
+        if (isAdmin) {
+            // Cek apakah CS sudah memiliki sesi ACTIVE yang belum ditutup
+            let activeSession = await prisma.workSession.findFirst({
+                where: { user_id: user.id, status: 'ACTIVE' },
+                orderBy: { started_at: 'desc' }
+            })
+
+            let isResumed = false
+            if (activeSession) {
+                isResumed = true
+            } else {
+                activeSession = await prisma.workSession.create({
+                    data: {
+                        user_id: user.id,
+                        status: 'ACTIVE',
+                        started_at: new Date(),
+                        ip_address: ip
+                    }
+                })
+            }
+
+            workSessionData = {
+                id: activeSession.id,
+                started_at: activeSession.started_at,
+                isResumed
+            }
+        }
+
+        // 8. Siapkan Response
         const userResponse = {
             id: user.id,
             username: user.username,
@@ -94,14 +126,15 @@ export async function POST(request: Request) {
             balance_bonus: user.balance_bonus,
             whatsapp: user.whatsapp,
             permissions: user.permissions,
+            theme_preference: (user as any).theme_preference || 'DARK',
+            workSession: workSessionData,
             gameIds: (user as any).gameIds,
             token: 'authenticated'
         }
 
         const response = NextResponse.json(userResponse)
 
-        // 8. Jika Admin/Staff/CS/Viewer, terbitkan cryptographic httpOnly cookie
-        const isAdmin = isAdminRole(user.role)
+        // 9. Jika Admin/Staff/CS/Viewer, terbitkan cryptographic httpOnly cookie & session cookie
         if (isAdmin) {
             const token = await signSessionToken({
                 id: user.id,
@@ -115,6 +148,23 @@ export async function POST(request: Request) {
                 sameSite: 'lax',
                 path: '/',
                 maxAge: 86400
+            })
+
+            if (workSessionData) {
+                response.cookies.set('cs_work_session_id', String(workSessionData.id), {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    path: '/',
+                    maxAge: 86400
+                })
+            }
+
+            response.cookies.set('rc_admin_theme', (user as any).theme_preference || 'DARK', {
+                path: '/',
+                maxAge: 31536000,
+                sameSite: 'lax',
+                secure: process.env.NODE_ENV === 'production'
             })
         }
 

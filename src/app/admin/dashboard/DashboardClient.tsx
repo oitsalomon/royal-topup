@@ -16,6 +16,7 @@ import {
     rp, num, DEFAULT_OPS_BANKS, DEFAULT_OPS_IDS,
     computeBankBalances, computeChipStock
 } from '@/lib/clover-engine'
+import SessionDetailModal from '@/components/admin/SessionDetailModal'
 
 export default function DashboardClient({ initialData }: { initialData: any }) {
     const [period, setPeriod] = useState<string>('today')
@@ -31,6 +32,32 @@ export default function DashboardClient({ initialData }: { initialData: any }) {
     const [editingBalance, setEditingBalance] = useState<string>('')
     const [editChipUnit, setEditChipUnit] = useState<'B' | 'M'>('B')
     const [savingChip, setSavingChip] = useState<boolean>(false)
+
+    // CS Work Sessions (Shift Tracking) State
+    const [csSessions, setCsSessions] = useState<any[]>([])
+    const [loadingCsSessions, setLoadingCsSessions] = useState<boolean>(true)
+    const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null)
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState<boolean>(false)
+    const [isMaster, setIsMaster] = useState<boolean>(false)
+
+    const fetchCsSessions = async () => {
+        try {
+            const res = await fetch('/api/internal/cs-sessions?limit=8')
+            if (res.ok) {
+                const data = await res.json()
+                if (data.sessions) setCsSessions(data.sessions)
+                if (data.currentUser?.isMaster) setIsMaster(true)
+            }
+        } catch (e) {
+            console.error('Failed to load CS sessions:', e)
+        } finally {
+            setLoadingCsSessions(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchCsSessions()
+    }, [])
 
     useEffect(() => {
         if (initialData?.gameAccounts) {
@@ -541,30 +568,75 @@ ${Object.entries(chipStock).map(([id, v]) => `  • <b>${id}:</b> ${num(v)} chip
                     </Panel>
 
                     {/* Performa CS */}
-                    <Panel title="Performa Shift CS" subtitle="Aktivitas transaksi staff CS">
-                        <div className="space-y-2">
-                            {[
-                                { cs: 'Salomon', role: 'Owner/Master', tx: totalTx > 10 ? Math.floor(totalTx * 0.4) : 8, rp: Math.floor(topRp * 0.5), mistake: 0 },
-                                { cs: 'Hioza', role: 'Staff CS', tx: totalTx > 10 ? Math.floor(totalTx * 0.35) : 6, rp: Math.floor(topRp * 0.3), mistake: 0 },
-                                { cs: 'Rapi', role: 'Staff CS', tx: totalTx > 10 ? Math.floor(totalTx * 0.25) : 4, rp: Math.floor(topRp * 0.2), mistake: 0 }
-                            ].map((c) => (
-                                <div
-                                    key={c.cs}
-                                    className="flex items-center justify-between gap-2 p-2.5 bg-[#0a0b0d] border border-[#26282f] rounded-xl"
-                                >
-                                    <div className="flex items-center gap-3 min-w-0">
-                                        <div className="w-8 h-8 rounded-lg bg-[#f5b301]/10 flex items-center justify-center text-[#f5b301] shrink-0">
-                                            <User size={15} className="shrink-0" />
+                    <Panel
+                        title="Performa Shift CS"
+                        subtitle="Aktivitas sesi kerja & transaksi staff CS (Klik kartu untuk detail)"
+                        action={
+                            <Link
+                                href="/admin/cs-sessions"
+                                className="text-[11px] font-bold text-[#f5b301] hover:underline flex items-center gap-1"
+                            >
+                                <span>Semua Riwayat</span>
+                                <ExternalLink size={12} strokeWidth={1.5} />
+                            </Link>
+                        }
+                    >
+                        {loadingCsSessions ? (
+                            <div className="py-8 text-center text-xs text-[#7e8593]">
+                                Memuat performa shift CS...
+                            </div>
+                        ) : csSessions.length === 0 ? (
+                            <div className="py-8 text-center text-xs text-[#7e8593]">
+                                Belum ada sesi CS tercatat hari ini
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {csSessions.slice(0, 5).map((s) => (
+                                    <div
+                                        key={s.id}
+                                        onClick={() => {
+                                            setSelectedSessionId(s.id)
+                                            setIsDetailModalOpen(true)
+                                        }}
+                                        className="flex items-center justify-between gap-2 p-2.5 bg-[#0a0b0d] hover:bg-[#1b1d22] border border-[#26282f] hover:border-[#f5b301]/40 rounded-xl transition-all cursor-pointer group"
+                                    >
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className="w-8 h-8 rounded-lg bg-[#f5b301]/10 border border-[#f5b301]/20 flex items-center justify-center text-[#f5b301] shrink-0">
+                                                <User size={15} strokeWidth={1.5} className="shrink-0" />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-xs font-bold text-[#f3f5f8] truncate">{s.cs_name}</span>
+                                                    {s.isIdleWarning && (
+                                                        <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse shrink-0">
+                                                            Idle &gt;12j
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="text-[10px] text-[#7e8593] truncate">
+                                                    {s.counts.topup + s.counts.withdraw} trx · {rp(s.totals.money)} · {s.duration.formatted}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="min-w-0">
-                                            <div className="text-xs font-bold text-[#f3f5f8] truncate">{c.cs}</div>
-                                            <div className="text-[10px] text-[#7e8593] truncate">{c.tx} transaksi · {rp(c.rp)}</div>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                            {s.status === 'ACTIVE' ? (
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                                                    Aktif
+                                                </span>
+                                            ) : s.status === 'EXPIRED' ? (
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 border border-amber-500/30 text-amber-400">
+                                                    Expired
+                                                </span>
+                                            ) : (
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-500/15 border border-slate-500/30 text-slate-400">
+                                                    Selesai
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
-                                    <Badge color="#34d399" className="shrink-0">Bersih</Badge>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        )}
                     </Panel>
                 </div>
             </div>
@@ -798,6 +870,15 @@ ${Object.entries(chipStock).map(([id, v]) => `  • <b>${id}:</b> ${num(v)} chip
                     </div>
                 </div>
             </div>
+
+            {/* Modal Detail Sesi Shift CS */}
+            <SessionDetailModal
+                sessionId={selectedSessionId}
+                isOpen={isDetailModalOpen}
+                onClose={() => setIsDetailModalOpen(false)}
+                onSessionUpdated={fetchCsSessions}
+                isMaster={isMaster}
+            />
         </div>
     )
 }

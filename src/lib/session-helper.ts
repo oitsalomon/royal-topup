@@ -92,3 +92,84 @@ export async function resolveAdminUser(request: Request): Promise<{
         work_session_id: null
     }
 }
+
+/**
+ * Otomatis menandai sesi ACTIVE yang tidak ada aktivitas > 12 jam sebagai EXPIRED.
+ * ended_at diset ke timestamp aktivitas terakhir sesi tersebut.
+ */
+export async function expireInactiveWorkSessions(): Promise<number> {
+    try {
+        const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000)
+
+        // Cari sesi ACTIVE yang dimulai lebih dari 12 jam lalu
+        const activeSessions = await prisma.workSession.findMany({
+            where: {
+                status: 'ACTIVE',
+                started_at: { lt: twelveHoursAgo }
+            },
+            include: {
+                activityLogs: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    select: { createdAt: true }
+                },
+                transactions: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    select: { createdAt: true }
+                },
+                transfers: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    select: { createdAt: true }
+                },
+                adjustments: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    select: { createdAt: true }
+                },
+                operationalExpenses: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    select: { createdAt: true }
+                },
+                dcBos: {
+                    orderBy: { createdAt: 'desc' },
+                    take: 1,
+                    select: { createdAt: true }
+                }
+            }
+        })
+
+        let expiredCount = 0
+
+        for (const session of activeSessions) {
+            const timestamps: Date[] = [session.started_at]
+            if (session.activityLogs[0]?.createdAt) timestamps.push(session.activityLogs[0].createdAt)
+            if (session.transactions[0]?.createdAt) timestamps.push(session.transactions[0].createdAt)
+            if (session.transfers[0]?.createdAt) timestamps.push(session.transfers[0].createdAt)
+            if (session.adjustments[0]?.createdAt) timestamps.push(session.adjustments[0].createdAt)
+            if (session.operationalExpenses[0]?.createdAt) timestamps.push(session.operationalExpenses[0].createdAt)
+            if (session.dcBos[0]?.createdAt) timestamps.push(session.dcBos[0].createdAt)
+
+            const latestActivity = new Date(Math.max(...timestamps.map(t => t.getTime())))
+            const timeSinceLastActivity = Date.now() - latestActivity.getTime()
+
+            if (timeSinceLastActivity > 12 * 60 * 60 * 1000) {
+                await prisma.workSession.update({
+                    where: { id: session.id },
+                    data: {
+                        status: 'EXPIRED',
+                        ended_at: latestActivity
+                    }
+                })
+                expiredCount++
+            }
+        }
+
+        return expiredCount
+    } catch (error) {
+        console.error('Error expiring inactive sessions:', error)
+        return 0
+    }
+}

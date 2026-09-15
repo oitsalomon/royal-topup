@@ -13,7 +13,7 @@
   --background: #0d0d0f;
   --foreground: #f3ecd8;
 
-  /* Royal Clover Ops Theme Tokens */
+  /* Royal Clover Ops Theme Tokens (Dark Mode Default) */
   --rc-accent: #f5b301;
   --rc-orange: #f97316;
   --rc-bg: #0a0b0d;
@@ -26,6 +26,23 @@
   --rc-text3: #aab0bc;
   --rc-onaccent: #1a1500;
   --rc-scheme: dark;
+}
+
+/* Royal Clover Ops Theme Tokens (Light Mode) */
+html.light,
+[data-theme="light"] {
+  --rc-accent: #a8842f; /* Versi gold lebih gelap & tegas agar kontras di background putih */
+  --rc-orange: #ea580c;
+  --rc-bg: #faf8f3;     /* Background putih/cream khas Royal Clover */
+  --rc-panel: #ffffff;  /* Panel putih bersih */
+  --rc-panel2: #f4efe6; /* Panel sekunder cream lembut */
+  --rc-border: #e2dacd; /* Border cream abu lembut */
+  --rc-muted: #6b6357;  /* Teks abu kecoklatan dengan kontras jelas */
+  --rc-text: #1a1a1a;   /* Teks utama gelap pekat */
+  --rc-text2: #2e2a24;  /* Teks sekunder */
+  --rc-text3: #4a4338;  /* Teks tersier */
+  --rc-onaccent: #ffffff;
+  --rc-scheme: light;
 }
 
 body {

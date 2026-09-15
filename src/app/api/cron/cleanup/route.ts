@@ -43,8 +43,9 @@ export async function GET(request: Request) {
             }
         })
 
-        // 3. Reset User Monthly Stats (Optional Logic - can be expanded)
-        // For now, we just log that cleanup happened
+        // 3. Expire inactive CS Work Sessions (>12h idle)
+        const { expireInactiveWorkSessions } = await import('@/lib/session-helper')
+        const expiredSessions = await expireInactiveWorkSessions()
 
         console.log(`[CRON] Cleanup Complete. Logs: ${deletedLogs.count}, Tx: ${deletedTx.count}`)
 

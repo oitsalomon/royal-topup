@@ -108,9 +108,16 @@ export default function AdminLayout({
     }
 
     return (
-        <div className="flex h-screen overflow-hidden bg-[#0a0b0d] text-[#f3f5f8]">
+        <div className="flex h-screen overflow-hidden bg-[var(--rc-bg)] text-[var(--rc-text)] transition-colors duration-150">
+            {/* Anti-flash inline theme initializer */}
+            <script
+                dangerouslySetInnerHTML={{
+                    __html: `(function(){try{var m=document.cookie.match(/rc_admin_theme=([^;]+)/);var t=m?m[1].toUpperCase():(localStorage.getItem('theme_preference')||'DARK');var s=window.matchMedia('(prefers-color-scheme: light)').matches;var isL=t==='LIGHT'||(t==='SYSTEM'&&s);if(isL){document.documentElement.classList.add('light');document.documentElement.setAttribute('data-theme','light');}else{document.documentElement.classList.remove('light');document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();`
+                }}
+            />
+
             {/* Simple Background */}
-            <div className="fixed inset-0 bg-[#0a0b0d] pointer-events-none" />
+            <div className="fixed inset-0 bg-[var(--rc-bg)] pointer-events-none transition-colors duration-150" />
 
             <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
             <PendingNotifier />

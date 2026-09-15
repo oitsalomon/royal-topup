@@ -19,7 +19,8 @@ export async function GET(request: Request) {
                 role: true,
                 level: true,
                 whatsapp: true,
-                isActive: true
+                isActive: true,
+                theme_preference: true
             }
         })
 
@@ -33,6 +34,7 @@ export async function GET(request: Request) {
             role: user.role,
             level: user.level,
             whatsapp: user.whatsapp,
+            theme_preference: user.theme_preference || 'DARK',
             token: 'authenticated'
         })
     } catch (error) {

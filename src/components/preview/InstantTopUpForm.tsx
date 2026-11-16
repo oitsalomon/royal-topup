@@ -21,7 +21,8 @@ import {
     QrCode,
     Info,
     CheckCircle2,
-    AlertTriangle
+    AlertTriangle,
+    Upload
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
@@ -112,6 +113,82 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
     const [timeLeft, setTimeLeft] = useState(300)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [copiedAmount, setCopiedAmount] = useState(false)
+    const [proofImage, setProofImage] = useState<string>('')
+    const [uploadingProof, setUploadingProof] = useState<boolean>(false)
+
+    // Helper kompresi gambar sebelum upload untuk mencegah timeout foto resolusi tinggi
+    const compressImage = (file: File, maxWidth = 1200, quality = 0.85): Promise<File | Blob> => {
+        return new Promise((resolve) => {
+            if (!file.type.startsWith('image/')) {
+                resolve(file)
+                return
+            }
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                const img = new window.Image()
+                img.onload = () => {
+                    const canvas = document.createElement('canvas')
+                    let width = img.width
+                    let height = img.height
+
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width)
+                        width = maxWidth
+                    }
+
+                    canvas.width = width
+                    canvas.height = height
+                    const ctx = canvas.getContext('2d')
+                    if (!ctx) {
+                        resolve(file)
+                        return
+                    }
+                    ctx.drawImage(img, 0, 0, width, height)
+                    const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+                    canvas.toBlob(
+                        (blob) => {
+                            if (blob) resolve(blob)
+                            else resolve(file)
+                        },
+                        mimeType,
+                        quality
+                    )
+                }
+                img.onerror = () => resolve(file)
+                img.src = e.target?.result as string
+            }
+            reader.onerror = () => resolve(file)
+            reader.readAsDataURL(file)
+        })
+    }
+
+    const handleProofFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setUploadingProof(true)
+        try {
+            const fileToSend = await compressImage(file, 1200, 0.85)
+            const formData = new FormData()
+            formData.append('file', fileToSend, file.name || 'proof.jpg')
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+            if (res.ok) {
+                const data = await res.json()
+                if (data.url) setProofImage(data.url)
+            } else {
+                const err = await res.json().catch(() => ({}))
+                alert('Gagal mengunggah bukti: ' + (err.error || 'Pastikan file valid di bawah 10MB'))
+            }
+        } catch {
+            alert('Terjadi kesalahan jaringan saat mengunggah bukti transfer.')
+        } finally {
+            setUploadingProof(false)
+        }
+    }
 
     // Status modal
     const [showStatusModal, setShowStatusModal] = useState(false)
@@ -244,6 +321,7 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
 
         setUniqueCode(Math.floor(Math.random() * 199) + 1)
         setTimeLeft(300)
+        setProofImage('')
         setShowQrModal(true)
     }
 
@@ -286,6 +364,7 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
                 amount_money: selectedPackage?.price || 0,
                 payment_method_id: qrisMethod?.id ? Number(qrisMethod.id) : 10,
                 sender_name: senderName.trim() || (user as any)?.account_name || user?.username || 'Pelanggan',
+                proof_image: proofImage || undefined,
                 type: 'TOPUP'
             }
 
@@ -854,6 +933,73 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
                                         </p>
                                     </div>
                                 )}
+
+                                {/* Upload Bukti Pembayaran / Transfer */}
+                                <div className="space-y-2 p-3 rounded-lg bg-[#0d0d0f] border border-[#8a6d38]/30 text-left">
+                                    <div className="flex items-center justify-between">
+                                        <label className="block text-xs font-inter font-medium text-[#f3ecd8]">
+                                            Kirim Bukti Pembayaran / Transfer <span className="text-[#a89f8a] text-[10px]">(Opsional / Dianjurkan)</span>
+                                        </label>
+                                        {proofImage && (
+                                            <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                                                <Check size={12} /> Terunggah
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {uploadingProof ? (
+                                        <div className="py-4 text-center space-y-1 rounded border border-[#8a6d38]/30 bg-[#17171a]">
+                                            <div className="w-5 h-5 border-2 border-[#c5a369] border-t-transparent rounded-full animate-spin mx-auto" />
+                                            <p className="text-[11px] text-[#a89f8a]">Mengunggah foto bukti...</p>
+                                        </div>
+                                    ) : proofImage ? (
+                                        <div className="p-2 rounded border border-emerald-500/30 bg-[#17171a] flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <div className="w-10 h-10 rounded border border-emerald-500/40 overflow-hidden shrink-0 relative bg-black flex items-center justify-center">
+                                                    <Image src={proofImage} alt="Bukti" fill className="object-cover" unoptimized />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs font-semibold text-emerald-300 truncate">Foto Bukti Berhasil Dipasang</p>
+                                                    <p className="text-[10px] text-[#a89f8a]">Admin akan segera memverifikasi pesanan Anda</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                <label className="cursor-pointer px-2 py-1 rounded bg-[#202024] hover:bg-[#28282e] border border-[#8a6d38]/50 text-[#f3ecd8] text-[11px] font-medium transition-colors">
+                                                    Ganti
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={handleProofFileChange}
+                                                        onClick={(e) => { (e.target as HTMLInputElement).value = '' }}
+                                                        className="hidden"
+                                                    />
+                                                </label>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setProofImage('')}
+                                                    className="px-2 py-1 rounded bg-red-950/40 hover:bg-red-900/50 border border-red-500/30 text-red-300 text-[11px] font-medium transition-colors"
+                                                >
+                                                    Hapus
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <label className="block cursor-pointer p-3 rounded border border-dashed border-[#8a6d38]/50 hover:border-[#c5a369] bg-[#17171a] text-center transition-colors">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleProofFileChange}
+                                                onClick={(e) => { (e.target as HTMLInputElement).value = '' }}
+                                                className="hidden"
+                                            />
+                                            <div className="flex items-center justify-center gap-2 text-xs font-medium text-[#f3ecd8]">
+                                                <Upload size={15} className="text-[#c5a369]" />
+                                                <span>Upload Bukti Screenshot Transfer</span>
+                                            </div>
+                                            <p className="text-[10px] text-[#7a766c] mt-0.5">Format JPG/PNG - Klik untuk memilih foto</p>
+                                        </label>
+                                    )}
+                                </div>
                             </div>
                         )}
 
@@ -871,11 +1017,11 @@ export default function InstantTopUpForm({ gameCode, gameName, gameId, initialPa
                                 <>
                                     <button
                                         type="button"
-                                        disabled={isSubmitting}
+                                        disabled={isSubmitting || uploadingProof}
                                         onClick={handleConfirmPayment}
                                         className="w-full py-2.5 rounded-md bg-[#3fa46a] hover:bg-[#358a59] disabled:opacity-50 text-white font-poppins font-semibold text-xs sm:text-sm transition-colors text-center shadow-sm"
                                     >
-                                        {isSubmitting ? 'Memproses...' : 'Saya Sudah Transfer'}
+                                        {isSubmitting ? 'Memproses...' : proofImage ? 'Kirim Bukti & Selesaikan' : 'Saya Sudah Transfer'}
                                     </button>
 
                                     <button

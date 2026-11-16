@@ -268,16 +268,63 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
         return 'Rp ' + Number(val).toLocaleString('id-ID')
     }
 
+    // Helper compress image before upload to handle high-res smartphone camera photos
+    const compressImage = (file: File, maxWidth = 1200, quality = 0.85): Promise<File | Blob> => {
+        return new Promise((resolve) => {
+            if (!file.type.startsWith('image/')) {
+                resolve(file)
+                return
+            }
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                const img = new window.Image()
+                img.onload = () => {
+                    const canvas = document.createElement('canvas')
+                    let width = img.width
+                    let height = img.height
+
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width)
+                        width = maxWidth
+                    }
+
+                    canvas.width = width
+                    canvas.height = height
+                    const ctx = canvas.getContext('2d')
+                    if (!ctx) {
+                        resolve(file)
+                        return
+                    }
+                    ctx.drawImage(img, 0, 0, width, height)
+                    const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+                    canvas.toBlob(
+                        (blob) => {
+                            if (blob) resolve(blob)
+                            else resolve(file)
+                        },
+                        mimeType,
+                        quality
+                    )
+                }
+                img.onerror = () => resolve(file)
+                img.src = e.target?.result as string
+            }
+            reader.onerror = () => resolve(file)
+            reader.readAsDataURL(file)
+        })
+    }
+
     // Handle Upload Bukti
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
 
         setUploadingProof(true)
-        const formData = new FormData()
-        formData.append('file', file)
-
         try {
+            const fileToSend = await compressImage(file, 1200, 0.85)
+            const formData = new FormData()
+            formData.append('file', fileToSend, file.name || 'proof.jpg')
+
             const res = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData
@@ -286,7 +333,8 @@ export default function WithdrawForm({ gameCode, gameName }: WithdrawFormProps) 
                 const data = await res.json()
                 setProofImage(data.url)
             } else {
-                alert('Gagal mengunggah gambar. Pastikan format JPG/PNG di bawah 5MB.')
+                const err = await res.json().catch(() => ({}))
+                alert('Gagal mengunggah gambar: ' + (err.error || 'Pastikan file valid di bawah 5MB'))
             }
         } catch {
             alert('Terjadi kendala jaringan saat upload.')

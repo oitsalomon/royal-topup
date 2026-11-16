@@ -230,29 +230,44 @@ async function sendMessage(
   return data; 
 }
 
-// Kirim Photo dengan Caption
+// Kirim Photo dengan Caption (dengan fallback otomatis ke sendMessage jika pengiriman foto gagal)
 async function sendPhoto(
   photoUrl: string,
   caption: string,
   inline_keyboard: { text: string; callback_data: string }[][]
 ) {
-  const body: Record<string, unknown> = {
-    chat_id: CHAT_ID,
-    photo: photoUrl,
-    caption,
-    parse_mode: 'HTML',
-  };
-
-  if (inline_keyboard.length > 0) {
-    body.reply_markup = { inline_keyboard };
+  let targetPhoto = photoUrl;
+  if (photoUrl && photoUrl.startsWith('/')) {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'https://royalclover.id';
+    targetPhoto = `${baseUrl.replace(/\/$/, '')}${photoUrl}`;
   }
 
-  const res = await fetch(`${BASE_URL}/sendPhoto`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  try {
+    const body: Record<string, unknown> = {
+      chat_id: CHAT_ID,
+      photo: targetPhoto,
+      caption,
+      parse_mode: 'HTML',
+    };
 
-  const data = await res.json();
-  return data;
+    if (inline_keyboard.length > 0) {
+      body.reply_markup = { inline_keyboard };
+    }
+
+    const res = await fetch(`${BASE_URL}/sendPhoto`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+    if (!data.ok) {
+      console.warn('sendPhoto Telegram gagal, dialihkan otomatis ke text message:', data);
+      return sendMessage(`${caption}\n\n[Bukti: ${photoUrl}]`, inline_keyboard);
+    }
+    return data;
+  } catch (err) {
+    console.warn('sendPhoto Telegram exception, dialihkan otomatis ke text message:', err);
+    return sendMessage(`${caption}\n\n[Bukti: ${photoUrl}]`, inline_keyboard);
+  }
 }

@@ -25,6 +25,7 @@ export default function AdminPackages() {
     const [editId, setEditId] = useState(0)
     const [uploading, setUploading] = useState(false)
     const [qrisUploading, setQrisUploading] = useState(false)
+    const [quickUploadingPkgId, setQuickUploadingPkgId] = useState<number | null>(null)
 
     const [formData, setFormData] = useState({
         name: '',
@@ -67,57 +68,161 @@ export default function AdminPackages() {
         return headers
     }
 
-    // Upload image to Cloudinary via /api/upload
+    // Client-side image compression to prevent large payload timeout or format rejection
+    const compressImage = (file: File, maxWidth = 1200, quality = 0.85): Promise<Blob | File> => {
+        return new Promise((resolve) => {
+            if (!file.type.startsWith('image/')) {
+                resolve(file)
+                return
+            }
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                const img = new window.Image()
+                img.onload = () => {
+                    const canvas = document.createElement('canvas')
+                    let width = img.width
+                    let height = img.height
+
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width)
+                        width = maxWidth
+                    }
+
+                    canvas.width = width
+                    canvas.height = height
+                    const ctx = canvas.getContext('2d')
+                    if (!ctx) {
+                        resolve(file)
+                        return
+                    }
+                    ctx.drawImage(img, 0, 0, width, height)
+                    const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+                    canvas.toBlob(
+                        (blob) => {
+                            if (blob) resolve(blob)
+                            else resolve(file)
+                        },
+                        mimeType,
+                        quality
+                    )
+                }
+                img.onerror = () => resolve(file)
+                img.src = e.target?.result as string
+            }
+            reader.onerror = () => resolve(file)
+            reader.readAsDataURL(file)
+        })
+    }
+
+    // Upload image via /api/upload with compression
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
 
         setUploading(true)
-        const data = new FormData()
-        data.append('file', file)
-
         try {
+            const fileToSend = await compressImage(file, 800, 0.85)
+            const data = new FormData()
+            data.append('file', fileToSend, file.name || 'product.jpg')
+
             const res = await fetch('/api/upload', {
                 method: 'POST',
                 body: data
             })
             if (res.ok) {
                 const result = await res.json()
-                setFormData(prev => ({ ...prev, image: result.url }))
+                if (result.url) {
+                    setFormData(prev => ({ ...prev, image: result.url }))
+                } else {
+                    alert('URL foto produk tidak valid dari server.')
+                }
             } else {
-                alert('Gagal mengunggah foto produk.')
+                const err = await res.json().catch(() => ({}))
+                alert('Gagal mengunggah foto produk: ' + (err.error || 'Server error'))
             }
-        } catch {
-            alert('Terjadi kesalahan jaringan saat upload.')
+        } catch (err: any) {
+            console.error(err)
+            alert('Terjadi kesalahan jaringan saat upload: ' + (err?.message || ''))
         } finally {
             setUploading(false)
         }
     }
 
-    // Upload QRIS image to Cloudinary via /api/upload
+    // Upload QRIS image via /api/upload with compression
     const handleQrisUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
 
         setQrisUploading(true)
-        const data = new FormData()
-        data.append('file', file)
-
         try {
+            const fileToSend = await compressImage(file, 1200, 0.85)
+            const data = new FormData()
+            data.append('file', fileToSend, file.name || 'qris.jpg')
+
             const res = await fetch('/api/upload', {
                 method: 'POST',
                 body: data
             })
             if (res.ok) {
                 const result = await res.json()
-                setFormData(prev => ({ ...prev, qris_image: result.url }))
+                if (result.url) {
+                    setFormData(prev => ({ ...prev, qris_image: result.url }))
+                } else {
+                    alert('URL foto QRIS tidak valid dari server.')
+                }
             } else {
-                alert('Gagal mengunggah foto QRIS.')
+                const err = await res.json().catch(() => ({}))
+                alert('Gagal mengunggah foto QRIS: ' + (err.error || 'Server error'))
             }
-        } catch {
-            alert('Terjadi kesalahan jaringan saat upload QRIS.')
+        } catch (err: any) {
+            console.error('QRIS Upload Error:', err)
+            alert('Terjadi kesalahan jaringan saat upload QRIS: ' + (err?.message || ''))
         } finally {
             setQrisUploading(false)
+        }
+    }
+
+    // Direct QRIS upload straight from package card (without opening modal)
+    const handleDirectCardQrisUpload = async (pkgId: number, file: File) => {
+        if (!file) return
+        setQuickUploadingPkgId(pkgId)
+        try {
+            const fileToSend = await compressImage(file, 1200, 0.85)
+            const data = new FormData()
+            data.append('file', fileToSend, file.name || 'qris.jpg')
+
+            const res = await fetch('/api/upload', {
+                method: 'POST',
+                body: data
+            })
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}))
+                alert('Gagal mengunggah foto QRIS: ' + (err.error || 'Server error'))
+                return
+            }
+            const result = await res.json()
+            if (!result.url) {
+                alert('URL QRIS tidak ditemukan dari server.')
+                return
+            }
+
+            const putRes = await fetch('/api/packages', {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ id: pkgId, qris_image: result.url })
+            })
+
+            if (putRes.ok) {
+                setPackages(prev => prev.map(p => p.id === pkgId ? { ...p, qris_image: result.url } : p))
+            } else {
+                const err = await putRes.json().catch(() => ({}))
+                alert('Gagal menyimpan QRIS ke paket: ' + (err.error || 'Server error'))
+            }
+        } catch (err: any) {
+            console.error('Direct QRIS Upload error:', err)
+            alert('Terjadi kesalahan saat upload QRIS: ' + (err?.message || 'Kendala jaringan'))
+        } finally {
+            setQuickUploadingPkgId(null)
         }
     }
 
@@ -138,9 +243,13 @@ export default function AdminPackages() {
                 setShowForm(false)
                 fetchPackages()
                 resetForm()
+            } else {
+                const errData = await res.json().catch(() => ({}))
+                alert('Gagal menyimpan paket: ' + (errData.error || res.statusText || 'Gagal menyimpan ke server'))
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error)
+            alert('Terjadi kesalahan jaringan saat menyimpan paket.')
         }
     }
 
@@ -323,7 +432,13 @@ export default function AdminPackages() {
                                 <label className="cursor-pointer px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-xl flex items-center gap-1 shrink-0 border border-slate-700">
                                     <Upload size={13} />
                                     <span>{uploading ? '...' : 'Pilih'}</span>
-                                    <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleImageUpload}
+                                        onClick={(e) => { (e.target as HTMLInputElement).value = '' }}
+                                        className="hidden"
+                                    />
                                 </label>
                             </div>
                         </div>
@@ -374,7 +489,13 @@ export default function AdminPackages() {
                                 <label className="cursor-pointer px-4 py-2 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 shrink-0 border border-amber-500/30 transition-colors">
                                     <Upload size={13} />
                                     <span>{qrisUploading ? 'Mengunggah...' : 'Upload File QRIS'}</span>
-                                    <input type="file" accept="image/*" onChange={handleQrisUpload} className="hidden" />
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleQrisUpload}
+                                        onClick={(e) => { (e.target as HTMLInputElement).value = '' }}
+                                        className="hidden"
+                                    />
                                 </label>
                             </div>
 

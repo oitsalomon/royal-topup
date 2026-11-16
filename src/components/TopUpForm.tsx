@@ -243,8 +243,8 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
             return
         }
 
-        // Check proof if NOT QRIS and NOT User
-        if (!formData.proof_image && !isQRIS && !user) {
+        // Check proof if NOT QRIS
+        if (!formData.proof_image && !isQRIS) {
             showAlert('Bukti Transfer', 'Mohon upload bukti transfer terlebih dahulu.', 'error')
             setSubmitting(false)
             return
@@ -732,7 +732,7 @@ export default function TopUpForm({ gameCode, gameName, gameId }: TopUpFormProps
                 </div>
 
                 {/* Section 4: Upload Bukti */}
-                {!selectedPayment?.name?.toLowerCase().includes('qris') && !user && (
+                {!selectedPayment?.name?.toLowerCase().includes('qris') && (
                     <div className="v4-glass p-8 md:p-10 rounded-[32px] shadow-2xl relative overflow-hidden group">
                         <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                         

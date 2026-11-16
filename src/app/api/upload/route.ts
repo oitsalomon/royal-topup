@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import cloudinary from '@/lib/cloudinary'
+import fs from 'fs/promises'
+import path from 'path'
 
 export async function POST(request: Request) {
     try {
@@ -10,37 +12,50 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'No file uploaded' }, { status: 400 })
         }
 
-        // Validate Environment Variables
-        if (
-            !process.env.CLOUDINARY_CLOUD_NAME ||
-            !process.env.CLOUDINARY_API_KEY ||
-            !process.env.CLOUDINARY_API_SECRET
-        ) {
-            return NextResponse.json({ error: 'Cloudinary config missing' }, { status: 500 })
-        }
-
         const bytes = await file.arrayBuffer()
         const buffer = Buffer.from(bytes)
 
-        // Upload to Cloudinary using a Promise wrapper (since v2 upload_stream is callback based)
-        const result = await new Promise<any>((resolve, reject) => {
-            const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                    folder: 'royal-topup-proofs', // Optional folder name
-                },
-                (error, result) => {
-                    if (error) reject(error)
-                    else resolve(result)
+        // 1. Try Cloudinary if env variables are configured
+        if (
+            process.env.CLOUDINARY_CLOUD_NAME &&
+            process.env.CLOUDINARY_API_KEY &&
+            process.env.CLOUDINARY_API_SECRET
+        ) {
+            try {
+                const result = await new Promise<any>((resolve, reject) => {
+                    const uploadStream = cloudinary.uploader.upload_stream(
+                        {
+                            folder: 'royal-topup-proofs',
+                        },
+                        (error, result) => {
+                            if (error) reject(error)
+                            else resolve(result)
+                        }
+                    )
+                    uploadStream.end(buffer)
+                })
+
+                if (result?.secure_url) {
+                    return NextResponse.json({ url: result.secure_url })
                 }
-            )
-            uploadStream.end(buffer)
-        })
+            } catch (cError) {
+                console.warn('Cloudinary upload failed, falling back to local public/uploads:', cError)
+            }
+        }
 
-        // Return the secure URL from Cloudinary
-        return NextResponse.json({ url: result.secure_url })
+        // 2. Resilient Fallback: Save to public/uploads
+        const uploadsDir = path.join(process.cwd(), 'public', 'uploads')
+        await fs.mkdir(uploadsDir, { recursive: true })
+        const ext = file.name ? path.extname(file.name) || '.jpg' : '.jpg'
+        const cleanExt = ext.startsWith('.') ? ext : `.${ext}`
+        const fileName = `upload-${Date.now()}-${Math.random().toString(36).substring(2, 9)}${cleanExt}`
+        const filePath = path.join(uploadsDir, fileName)
+        await fs.writeFile(filePath, buffer)
 
-    } catch (error) {
+        return NextResponse.json({ url: `/uploads/${fileName}` })
+
+    } catch (error: any) {
         console.error('Upload Error:', error)
-        return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
+        return NextResponse.json({ error: error?.message || 'Upload failed' }, { status: 500 })
     }
 }

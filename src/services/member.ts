@@ -20,7 +20,7 @@ export async function updateMemberStats(userId: number, amountChip: number, tx: 
     weekStart.setHours(0, 0, 0, 0)
 
     // 2. Get User Level
-    const user = await prisma.user.findUnique({
+    const user = await db.user.findUnique({
         where: { id: userId },
         select: { level: true, total_exp: true, loyalty_points: true }
     })
@@ -28,7 +28,7 @@ export async function updateMemberStats(userId: number, amountChip: number, tx: 
     if (!user) return
 
     // 3. Upsert Weekly Stats (For Leveling / Turnover tracking ONLY)
-    let stats = await prisma.weeklyStats.findUnique({
+    let stats = await db.weeklyStats.findUnique({
         where: {
             user_id_week_start: {
                 user_id: userId,
@@ -38,7 +38,7 @@ export async function updateMemberStats(userId: number, amountChip: number, tx: 
     })
 
     if (!stats) {
-        stats = await prisma.weeklyStats.create({
+        stats = await db.weeklyStats.create({
             data: {
                 user_id: userId,
                 week_start: weekStart,
@@ -49,74 +49,19 @@ export async function updateMemberStats(userId: number, amountChip: number, tx: 
         })
     }
 
-    // 4. Update Turnover & Award Loyalty Points
-    // CONVERSION: Transaction stores 1.0 as 1 Billion.
-    // However, the USER REQUEST says:
-    // "Pembelian 200.000 -> 1 LP"
-    // "Pembelian 1.000.000 -> 5 LP"
-    // "Rumus: 0.5% dari nilai pembelian"
-
-    // In our DB, `Transaction` has `amount_chip` and `amount_money`.
-    // Usually `amount_money` is the IDR value.
-    // We should use the ACTUAL IDR VALUE for LP calculation if possible.
-    // But `updateMemberStats` currently receives `amountChip` (float representing Billions).
-    // If this function is CALLED with `amount_chip`, we need to know the equivalent Money.
-
-    // CRITICAL FIX: The caller (route.ts) has access to both. 
-    // We should probably change the signature of `updateMemberStats` or calculate based on Chip if Money is not passed.
-    // CAUTION: changing signature might break other callers.
-    // Let's assume for now we calculate based on IDR equivalent of Chip? 
-    // OR BETTER: Check how it was called.
-    // In route.ts: `updateMemberStats(transaction.user_id, transaction.amount_chip, tx)`
-    // Wait, `amount_chip` in DB is float. 1.0 = 1B chips? 
-    // And usually 1B chips cost ~65k - 70k depending on rate?
-    // OR is `amount_chip` actually the face value? 
-
-    // Let's look at `route.ts` again.
-    // `transaction.amount_chip`
-    // `transaction.amount_money`
-    // The request example: "Pembelian 200.000 -> 1 LP". This implies MONEY.
-    // So we should really be passing `amount_money` to this function for LP calculation.
-
-    // I will OVERLOAD the logic here: 
-    // Use `rawAmount` (Billions of chips) for Turnover.
-    // But for LP, we need the Price.
-
-    // Since I cannot easily change the signature without verifying all callers, 
-    // and I see `route.ts` calls it.
-    // I will FETCH the transaction or rely on an assumption?
-    // No, I should update the function signature to accept `amountMoney` as optional.
-
-    // Current signature: (userId: number, amountChip: number, tx: any = prisma)
-    // New signature: (userId: number, amountChip: number, amountMoney: number, tx: any = prisma)
-
-    // NOTE: This file is relatively small, I can update the signature and defaults.
-
-    // For now, I will modify the function body assuming `amountMoney` is passed as 3rd arg, moving `tx` to 4th.
-    // Wait, that breaks callers.
-    // Better: (userId: number, amountChip: number, txOrMoney?: any, tx?: any)
-    // This is messy.
-
-    // PLAN:
-    // 1. Just fetch the latest transaction? No, too risky.
-    // 2. Add `amountMoney` to the arguments. update `route.ts` to pass it.
-
-    // Let's stick to the plan of modifying this file. I will check `route.ts` call site later.
-
     const rawAmount = amountChip * 1_000_000_000 // Turnover in Chips
 
-    await prisma.weeklyStats.update({
+    await db.weeklyStats.update({
         where: { id: stats.id },
         data: {
             total_turnover: { increment: rawAmount },
-            eligible_turnover: { increment: rawAmount }, // Everything is eligible for leveling?
-            // User level logic usually depends on total_turnover
+            eligible_turnover: { increment: rawAmount },
         }
     })
 
-    // 5. Update EXP (Existing Logic)
+    // 5. Update EXP
     if (user.total_exp < 100) {
-        await prisma.user.update({
+        await db.user.update({
             where: { id: userId },
             data: { total_exp: { increment: 5 } }
         })

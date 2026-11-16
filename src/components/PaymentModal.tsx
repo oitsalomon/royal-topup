@@ -184,67 +184,58 @@ export default function PaymentModal({ isOpen, onClose, transaction, onUploadPro
                     <div className="space-y-6">
                         <p className="text-[11px] font-black text-white uppercase tracking-[0.2em] flex items-center gap-3">
                             <span className="w-7 h-7 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-[10px] text-purple-400">02</span>
-                            Konfirmasi Transfer
+                            Konfirmasi Transfer & Bukti Pembayaran
                         </p>
 
-                        {isMember && isQRIS ? (
-                            <div className="v4-glass p-8 rounded-[32px] border-cyan-500/20 text-center shadow-xl animate-in fade-in zoom-in duration-700">
-                                <div className="w-16 h-16 bg-cyan-500/10 rounded-[20px] border border-cyan-500/20 flex items-center justify-center mx-auto mb-6 text-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.2)]">
-                                    <Check size={32} />
-                                </div>
-                                <h4 className="v4-font-syne text-xl font-black text-cyan-400 uppercase tracking-tight mb-2">OTOMATIS AKTIF</h4>
-                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest leading-relaxed">
-                                    Klik tombol <span className="text-cyan-400">Selesai</span>. Mutasi akan dicek otomatis oleh sistem Sultan.
-                                </p>
+                        <div className="relative group/upload">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                disabled={uploading || expired}
+                            />
+                            <div className={`border-2 border-dashed rounded-[32px] p-10 flex flex-col items-center justify-center gap-4 transition-all duration-500 ${file ? 'border-cyan-500/50 bg-cyan-500/5' : 'border-white/10 bg-white/5 hover:border-purple-500/30 hover:bg-purple-500/5 shadow-inner'}`}>
+                                {file ? (
+                                    <>
+                                        <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                                            <Check size={28} />
+                                        </div>
+                                        <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest truncate max-w-[200px]">{file.name}</span>
+                                        <span className="text-[9px] text-gray-400">Klik untuk mengganti foto</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="w-14 h-14 rounded-[20px] bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 group-hover/upload:text-purple-400 transition-colors">
+                                            <Upload size={28} />
+                                        </div>
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Upload Bukti Transfer</span>
+                                        <span className="text-[9px] text-gray-500">Format: JPG, PNG (Maks 5MB)</span>
+                                    </>
+                                )}
                             </div>
-                        ) : (
-                            <div className="relative group/upload">
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                    disabled={uploading || expired}
-                                />
-                                <div className={`border-2 border-dashed rounded-[32px] p-10 flex flex-col items-center justify-center gap-4 transition-all duration-500 ${file ? 'border-cyan-500/50 bg-cyan-500/5' : 'border-white/10 bg-white/5 hover:border-purple-500/30 hover:bg-purple-500/5 shadow-inner'}`}>
-                                    {file ? (
-                                        <>
-                                            <div className="w-14 h-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
-                                                <Check size={28} />
-                                            </div>
-                                            <span className="text-[10px] font-black text-cyan-400 uppercase tracking-widest truncate max-w-[200px]">{file.name}</span>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="w-14 h-14 rounded-[20px] bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 group-hover/upload:text-purple-400 transition-colors">
-                                                <Upload size={28} />
-                                            </div>
-                                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Upload Bukti Transfer</span>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        )}
+                        </div>
                     </div>
 
                 </div>
 
                 {/* Footer Actions */}
                 <div className="p-8 border-t border-white/5 relative z-10 backdrop-blur-md">
-                    {isMember && isQRIS ? (
+                    {file ? (
                         <button
-                            onClick={onClose}
-                            className="v4-btn-main w-full py-6 rounded-[24px] text-white font-black text-xs tracking-[0.3em] uppercase transition-all shadow-2xl shadow-purple-500/20 active:scale-95"
+                            onClick={handleSubmit}
+                            disabled={uploading || expired}
+                            className="v4-btn-main w-full py-6 rounded-[24px] text-white font-black text-xs tracking-[0.3em] uppercase transition-all shadow-2xl shadow-purple-500/20 active:scale-95 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
                         >
-                            SELESAI
+                            {uploading ? 'MEMPROSES...' : 'KIRIM BUKTI PEMBAYARAN'}
                         </button>
                     ) : (
                         <button
-                            onClick={handleSubmit}
-                            disabled={!file || uploading || expired}
-                            className="v4-btn-main w-full py-6 rounded-[24px] text-white font-black text-xs tracking-[0.3em] uppercase transition-all shadow-2xl shadow-purple-500/20 active:scale-95 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
+                            onClick={onClose}
+                            disabled={expired}
+                            className="v4-btn-main w-full py-6 rounded-[24px] text-white font-black text-xs tracking-[0.3em] uppercase transition-all shadow-2xl shadow-purple-500/20 active:scale-95 disabled:opacity-50"
                         >
-                            {uploading ? 'MEMPROSES...' : 'SAYA SUDAH TRANSFER'}
+                            SAYA SUDAH TRANSFER
                         </button>
                     )}
 

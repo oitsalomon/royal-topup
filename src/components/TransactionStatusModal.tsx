@@ -21,19 +21,66 @@ export default function TransactionStatusModal({ isOpen, transactionId, onClose 
     const [isLongWait, setIsLongWait] = useState(false)
     const [contactWa, setContactWa] = useState<string>('')
 
+    const compressImage = (file: File, maxWidth = 1200, quality = 0.85): Promise<File | Blob> => {
+        return new Promise((resolve) => {
+            if (!file.type.startsWith('image/')) {
+                resolve(file)
+                return
+            }
+            const reader = new FileReader()
+            reader.onload = (e) => {
+                const img = new window.Image()
+                img.onload = () => {
+                    const canvas = document.createElement('canvas')
+                    let width = img.width
+                    let height = img.height
+
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width)
+                        width = maxWidth
+                    }
+
+                    canvas.width = width
+                    canvas.height = height
+                    const ctx = canvas.getContext('2d')
+                    if (!ctx) {
+                        resolve(file)
+                        return
+                    }
+                    ctx.drawImage(img, 0, 0, width, height)
+                    const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+                    canvas.toBlob(
+                        (blob) => {
+                            if (blob) resolve(blob)
+                            else resolve(file)
+                        },
+                        mimeType,
+                        quality
+                    )
+                }
+                img.onerror = () => resolve(file)
+                img.src = e.target?.result as string
+            }
+            reader.onerror = () => resolve(file)
+            reader.readAsDataURL(file)
+        })
+    }
+
     const handleMemberUploadProof = async (file: File) => {
         if (!file || !transactionId) return
         setIsUploadingProof(true)
         setUploadSuccess(false)
         try {
+            const fileToSend = await compressImage(file, 1200, 0.85)
             const formData = new FormData()
-            formData.append('file', file)
+            formData.append('file', fileToSend, file.name || 'proof.jpg')
             const res = await fetch('/api/upload', {
                 method: 'POST',
                 body: formData
             })
             if (!res.ok) {
-                alert('Gagal mengunggah gambar bukti. Pastikan format JPG/PNG di bawah 5MB.')
+                const err = await res.json().catch(() => ({}))
+                alert('Gagal mengunggah gambar bukti: ' + (err.error || 'Pastikan file valid'))
                 return
             }
             const data = await res.json()

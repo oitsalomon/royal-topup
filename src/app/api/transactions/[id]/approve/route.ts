@@ -153,19 +153,26 @@ export async function POST(
                             })
                         }
 
-                        // Update Member Stats (Turnover, EXP)
+                        // Update Member Stats (Turnover, EXP, LP, Referral)
                         // ONLY if the transaction is linked to a user
-                        // @ts-ignore
                         if (transaction.user_id) {
-                            // @ts-ignore
-                            await updateMemberStats(transaction.user_id, transaction.amount_chip, tx)
+                            try {
+                                await updateMemberStats(transaction.user_id, transaction.amount_chip, tx)
+                            } catch (e) {
+                                console.error('Failed to update member stats on approve:', e)
+                            }
 
-                            // Award Loyalty Points (based on Money spent)
-                            // @ts-ignore
-                            await awardLoyaltyPoints(transaction.user_id, transaction.amount_money, tx)
+                            try {
+                                await awardLoyaltyPoints(transaction.user_id, transaction.amount_money, tx)
+                            } catch (e) {
+                                console.error('Failed to award loyalty points on approve:', e)
+                            }
 
-                            // Process Referral Bonus
-                            await processReferralBonus(transaction.id, tx)
+                            try {
+                                await processReferralBonus(transaction.id, tx)
+                            } catch (e) {
+                                console.error('Failed to process referral bonus on approve:', e)
+                            }
                         }
                     }
                 } else if (transaction.type === 'WITHDRAW') {

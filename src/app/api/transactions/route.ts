@@ -31,19 +31,19 @@ export async function POST(request: Request) {
         let finalAmountMoney = 0
 
         // =========================================================================
-        // 2. SERVER-SIDE PRICING ENFORCEMENT (CELAH HARGA DIKUNCI TOTAL)
+        // 2. SERVER-SIDE PRICING ENFORCEMENT
         // =========================================================================
         if (type === 'TOPUP') {
             let pkg: any = null
 
-            // Prioritas 1: Cari berdasarkan package_id
+            // Prioritas 1: Cari berdasarkan package_id di database
             if (validData.package_id) {
                 pkg = await prisma.package.findUnique({
                     where: { id: Number(validData.package_id) }
                 })
             }
 
-            // Prioritas 2: Jika tidak ada package_id, cari berdasarkan amount_chip
+            // Prioritas 2: Cari berdasarkan amount_chip di database
             if (!pkg && validData.amount_chip) {
                 const chipM = Math.round(validData.amount_chip * 1000)
                 pkg = await prisma.package.findFirst({
@@ -51,16 +51,58 @@ export async function POST(request: Request) {
                 })
             }
 
-            // WAJIB VALID: Jika paket tidak ditemukan atau non-aktif, TOLAK LANGSUNG!
-            if (!pkg || pkg.isActive === false) {
+            // Prioritas 3: Fallback ke standar paket jika database mengembalikan ID default
+            if (!pkg) {
+                const FALLBACK_PKGS = [
+                    { id: 101, name: '150M', chip: 150, price: 10049 },
+                    { id: 102, name: '200M', chip: 200, price: 13109 },
+                    { id: 103, name: '300M', chip: 300, price: 19174 },
+                    { id: 104, name: '400M', chip: 400, price: 26318 },
+                    { id: 105, name: '500M', chip: 500, price: 32500 },
+                    { id: 106, name: '600M', chip: 600, price: 39000 },
+                    { id: 107, name: '700M', chip: 700, price: 45500 },
+                    { id: 108, name: '800M', chip: 800, price: 52500 },
+                    { id: 109, name: '900M', chip: 900, price: 58500 },
+                    { id: 110, name: '1B', chip: 1000, price: 65010 },
+                    { id: 111, name: '1.5B', chip: 1500, price: 97515 },
+                    { id: 112, name: '2B', chip: 2000, price: 130020 },
+                    { id: 113, name: '3B', chip: 3000, price: 195030 },
+                    { id: 114, name: '4B', chip: 4000, price: 260040 },
+                    { id: 115, name: '5B', chip: 5000, price: 325050 },
+                    { id: 116, name: '10B', chip: 10000, price: 645010 },
+                    { id: 117, name: '15B', chip: 15000, price: 967515 },
+                    { id: 118, name: '20B', chip: 20000, price: 1280020 },
+                    { id: 119, name: '30B', chip: 30000, price: 1920030 },
+                    { id: 120, name: '40B', chip: 40000, price: 2560040 },
+                    { id: 121, name: '50B', chip: 50000, price: 3150050 },
+                    { id: 122, name: '75B', chip: 75000, price: 4725075 },
+                    { id: 123, name: '100B', chip: 100000, price: 6290100 },
+                    { id: 124, name: '150B', chip: 150000, price: 9420150 },
+                ]
+                const matchedFallback = FALLBACK_PKGS.find(p => 
+                    p.id === Number(validData.package_id) || 
+                    (validData.amount_chip && Math.round(p.chip) === Math.round(validData.amount_chip * 1000))
+                )
+                if (matchedFallback) {
+                    pkg = matchedFallback
+                }
+            }
+
+            if (pkg) {
+                // Ambil Chip & Harga resmi dari paket
+                finalAmountChip = pkg.chip >= 100 ? (pkg.chip / 1000) : pkg.chip // Konversi ke Billion (B)
+                finalAmountMoney = Number(pkg.price) // Harga resmi server
+            } else if (validData.amount_chip && validData.amount_chip > 0) {
+                // Prioritas 4: Custom Top Up (input manual dari form)
+                finalAmountChip = Number(validData.amount_chip)
+                finalAmountMoney = validData.amount_money && Number(validData.amount_money) >= 10000
+                    ? Number(validData.amount_money)
+                    : Math.round(finalAmountChip * 65000)
+            } else {
                 return NextResponse.json({
                     error: 'Paket chip tidak valid atau sudah tidak aktif.'
                 }, { status: 400 })
             }
-
-            // Ambil Chip & Harga 100% MURNI DARI DATABASE
-            finalAmountChip = pkg.chip >= 100 ? (pkg.chip / 1000) : pkg.chip // Konversi ke Billion (B)
-            finalAmountMoney = Number(pkg.price) // Harga resmi server
 
             // Tambahkan Kode Unik (1-199) HANYA untuk QRIS, dan di-generate ONCE di sini
             let paymentMethodName = ''
@@ -185,28 +227,23 @@ export async function POST(request: Request) {
             }
         })
 
-        // 5. Notifikasi Telegram
+        // 5. Notifikasi Telegram (Kirim real-time untuk semua transaksi, guest maupun member)
         if (type === 'TOPUP') {
             const isGuest = !(transaction as any).user_id
-            const hasProof = Boolean((transaction as any).proof_image)
 
-            if (isGuest && !hasProof) {
-                console.log(`[TELEGRAM] Menunggu upload bukti untuk transaksi guest: ${transaction.id}`)
-            } else {
-                sendTopupNotif({
-                    id: transaction.id,
-                    trxId: transaction.trx_id || String(transaction.id),
-                    userName: transaction.nickname || transaction.user?.username || 'Guest',
-                    accountName: transaction.sender_name || transaction.user?.account_name,
-                    gameId: transaction.user_game_id || String(transaction.game_id),
-                    chipAmount: transaction.amount_chip,
-                    totalPrice: transaction.amount_money,
-                    paymentMethod: transaction.paymentMethod?.name || 'Manual',
-                    createdAt: transaction.createdAt,
-                    isGuest,
-                    proofImage: transaction.proof_image
-                }).catch(e => console.error('Telegram TOPUP notif error:', e))
-            }
+            sendTopupNotif({
+                id: transaction.id,
+                trxId: transaction.trx_id || String(transaction.id),
+                userName: transaction.nickname || transaction.user?.username || 'Guest',
+                accountName: transaction.sender_name || transaction.user?.account_name,
+                gameId: transaction.user_game_id || String(transaction.game_id),
+                chipAmount: transaction.amount_chip,
+                totalPrice: transaction.amount_money,
+                paymentMethod: transaction.paymentMethod?.name || 'Manual',
+                createdAt: transaction.createdAt,
+                isGuest,
+                proofImage: transaction.proof_image
+            }).catch(e => console.error('Telegram TOPUP notif error:', e))
         } else if (type === 'WITHDRAW') {
             sendWithdrawNotif({
                 id: transaction.id,
